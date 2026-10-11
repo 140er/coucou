@@ -18,10 +18,11 @@ class KeepAliveSourceTest {
         assertTrue(alarm.contains("AlarmManager.ELAPSED_REALTIME_WAKEUP"))
     }
 
-    @Test fun theWakeLockHasATimeoutAndIsTakenInOnePlaceOnly() {
+    @Test fun theWakeLocksHaveATimeoutAndAreTakenInTwoPlacesOnly() {
         val all = File("src/main/kotlin").walkTopDown().filter { it.extension == "kt" }.joinToString("\n") { it.readText() }
-        assertEquals("one wake lock in the whole app", 1, Regex("""newWakeLock\(""").findAll(all).count())
+        assertEquals("two wake locks in the whole app: the keep-alive check and the screen light for an approval", 2, Regex("""newWakeLock\(""").findAll(all).count())
         assertTrue(src("app/KeepAlive.kt").contains("acquire(KeepAlivePolicy.WAKE_LOCK_MS)"))
+        assertTrue("the approval screen light is short and only when the screen is off", src("app/Notifications.kt").contains("acquire(WAKE_MS)") && src("app/Notifications.kt").contains("WAKE_MS = 6_000L"))
         assertFalse("never held without a timeout", Regex("""wakeLock\w*\.acquire\(\)""", RegexOption.IGNORE_CASE).containsMatchIn(all))
         assertTrue(manifest.contains("android.permission.WAKE_LOCK"))
     }
