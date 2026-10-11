@@ -16,6 +16,8 @@ final class VoiceCaptionState: ObservableObject {
     @Published var isListening: Bool = false
     /// Capsule is expanded (full response readable, scrollable).
     @Published var isExpanded: Bool = false
+    /// Distance from the top of the screen to the capsule: just under the island.
+    @Published var topOffset: CGFloat = 0
 }
 
 // MARK: - VoiceCaptionManager
@@ -45,12 +47,22 @@ final class VoiceCaptionManager {
     private var subs: Set<AnyCancellable> = []
     private var mouseMonitors: [Any] = []
 
-    /// The panel never changes size: only the capsule inside it unfolds, in one SwiftUI spring,
-    /// so the black background and the text always move together. The panel is transparent
-    /// and lets clicks through, except over the capsule itself.
+    /// The panel never moves or resizes: it hangs from the top of the screen and the capsule
+    /// slides inside it with the island's own SwiftUI animation (same spring to open, same curve to
+    /// close), so they always move together. AppKit window-frame animations stuttered and never
+    /// matched the island's timing. The capsule unfolds in one SwiftUI spring, so the black
+    /// background and the text move together. The panel is transparent and lets clicks through,
+    /// except over the capsule itself.
     static let panelWidth:  CGFloat = 400
-    static let panelHeight: CGFloat = 300
+    /// Room for the tallest island (the chat prompt and long questions) above the capsule.
+    static let islandRoom:  CGFloat = 440
+    static let capsuleRoom: CGFloat = 300
+    static let panelHeight: CGFloat = islandRoom + capsuleRoom
     private let notchGap:   CGFloat = 6
+    private var lastMode: IslandMode = .hidden
+    // Same animations as IslandContainer (IslandRootView.swift).
+    private let openSpring = Animation.spring(response: 0.5, dampingFraction: 0.72)
+    private let closeEase  = Animation.timingCurve(0.45, 0, 0.2, 1, duration: 0.34)
 
     /// Height of the black capsule, reported by the view (it follows the answer's length).
     var capsuleHeight: CGFloat = 0 {
@@ -72,8 +84,15 @@ final class VoiceCaptionManager {
         app.$mode.combineLatest(app.$view)
             .removeDuplicates { $0 == $1 }
             .receive(on: RunLoop.main)
-            .sink { [weak self] _ in
-                MainActor.assumeIsolated { self?.reposition(animated: true) }
+            .sink { [weak self] pair in
+                MainActor.assumeIsolated {
+                    guard let self else { return }
+                    // The island closes with an ease curve when its mode shrinks, else it springs.
+                    let order: (IslandMode) -> Int = { $0 == .hidden ? 0 : $0 == .compact ? 1 : 2 }
+                    let closing = order(pair.0) < order(self.lastMode)
+                    self.lastMode = pair.0
+                    self.reposition(animated: true, closing: closing)
+                }
             }
             .store(in: &subs)
         engine.$isListeningForCommand
@@ -196,9 +215,9 @@ final class VoiceCaptionManager {
 
     private var screen: NSScreen?
 
-    /// Just under the visible island (compact, open or hidden), centred on it.
-    /// Uses the same open spring duration as the island (easeOut 0.5 s).
-    private func reposition(animated: Bool) {
+    /// The panel hangs from the top of the screen, centred; the capsule sits just under the visible
+    /// island (compact, open or hidden) and moves with the island's animation.
+    private func reposition(animated: Bool, closing: Bool = false) {
         guard let p = panel, let screen else { return }
         let app = AppState.shared
         let (_, fixedH) = islandSize(mode: app.mode, view: app.view, progress: app.uploadProgress,
@@ -210,19 +229,18 @@ final class VoiceCaptionManager {
         let visibleH = max(islandH, app.notchHeight)
         let sf = screen.frame
         let w = Self.panelWidth, h = Self.panelHeight
-        // The capsule sits at the top of the panel, notchGap below the island; it unfolds downward.
-        let origin = NSPoint(x: sf.midX - w / 2, y: sf.maxY - visibleH - notchGap - h)
-        let newFrame = NSRect(origin: origin, size: NSSize(width: w, height: h))
+        let frame = NSRect(x: sf.midX - w / 2, y: sf.maxY - h, width: w, height: h)
+        if p.frame != frame { p.setFrame(frame, display: true) }
 
-        if animated && p.isVisible {
-            NSAnimationContext.runAnimationGroup { ctx in
-                // Match the island's open spring (response 0.5, damping 0.72 ≈ easeOut 0.5 s).
-                ctx.duration = 0.5
-                ctx.timingFunction = CAMediaTimingFunction(name: .easeOut)
-                p.animator().setFrame(newFrame, display: true)
+        let offset = min(visibleH + notchGap, Self.islandRoom)
+        if offset != state.topOffset {
+            if animated && p.isVisible && state.isVisible {
+                withAnimation(closing ? closeEase : openSpring) { state.topOffset = offset }
+            } else {
+                var tr = Transaction()
+                tr.disablesAnimations = true
+                withTransaction(tr) { state.topOffset = offset }
             }
-        } else {
-            p.setFrame(newFrame, display: true)
         }
         updateMouseAcceptance()
     }
@@ -253,7 +271,8 @@ final class VoiceCaptionManager {
             return
         }
         let f = p.frame
-        let capsule = NSRect(x: f.minX, y: f.maxY - capsuleHeight, width: f.width, height: capsuleHeight)
+        let capsule = NSRect(x: f.minX, y: f.maxY - state.topOffset - capsuleHeight,
+                             width: f.width, height: capsuleHeight)
         let inside = capsule.contains(NSEvent.mouseLocation)
         if p.ignoresMouseEvents == inside { p.ignoresMouseEvents = !inside }
     }
@@ -314,7 +333,9 @@ struct VoiceCaptionView: View {
     var body: some View {
         VStack(spacing: 0) {
             if !heard.isEmpty || !answer.isEmpty {
-                capsule.transition(.opacity)
+                capsule
+                    .padding(.top, state.topOffset)
+                    .transition(.opacity)
             }
             Spacer(minLength: 0)
         }
