@@ -14,8 +14,8 @@ on:
   push:
     branches: [main]
     paths:
-      - 'windows/**'
-      - 'android/**'
+      - 'windows/src-tauri/src/phone_link/**'
+      - 'android/app/src/**'
       - 'docs/ANDROID_LINK.md'
       - 'docs/RELAY_LINK.md'
       - '.github/workflows/phone-link.yml'
