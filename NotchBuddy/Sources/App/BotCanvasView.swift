@@ -16,11 +16,9 @@ struct BotCanvasView: View {
     @StateObject private var engine = BotEngine()
 
     var body: some View {
-        // 60 fps: every frame on a 60 Hz screen, one in two on ProMotion (120 Hz drew the
-        // notch twice as often for no visible gain and doubled the CPU and WindowServer cost).
-        // MochiFrameClock.advance runs the skipped steps, so Mochi's speed never changes.
-        TimelineView(.animation(minimumInterval: MochiFrameClock.interval(fps: 60),
-                                paused: state.mode == .hidden || paused)) { timeline in
+        // Display refresh rate — every frame on a 60 Hz screen, every frame on ProMotion.
+        // MochiFrameClock.advance accumulates the step debt so Mochi's speed never changes.
+        TimelineView(.animation(paused: state.mode == .hidden || paused)) { timeline in
             // The Canvas must capture the frame's date: a closure that doesn't change from
             // one tick to the next is not redrawn, and Mochi froze.
             let frame = timeline.date
@@ -247,9 +245,8 @@ struct MiniBotCanvasView: View {
 
 
     var body: some View {
-        // 60 fps like the main Mochi. Paused in island views that are not shown.
-        TimelineView(.animation(minimumInterval: MochiFrameClock.interval(fps: 60),
-                                paused: !viewActive)) { timeline in
+        // Display refresh rate. Paused in island views that are not shown.
+        TimelineView(.animation(paused: !viewActive)) { timeline in
             let frame = timeline.date   // see BotCanvasView: redraw on every tick
             Canvas { context, size in
                 _ = frame
