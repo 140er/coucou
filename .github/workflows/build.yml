@@ -30,6 +30,9 @@ jobs:
       - name: Test parallel Claude Code sessions
         run: bash scripts/test-session-registry.sh
 
+      - name: Test approval queue
+        run: bash scripts/test-approval-queue.sh
+
       - name: Desktop Mochi and gaze tests
         run: bash scripts/test-desktop-mochi.sh
 
