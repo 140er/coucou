@@ -43,15 +43,19 @@ final class VoiceCaptionManager {
     private var panel: NSPanel?
     private var hideTask: Task<Void, Never>?
     private var subs: Set<AnyCancellable> = []
+    private var mouseMonitors: [Any] = []
 
-    private let captionWidth:        CGFloat = 360
-    private let captionExpandedWidth: CGFloat = 480   // wider and taller when unfolded
-    private let captionCompactHeight: CGFloat = 76    // 1 heard + 2 answer lines
-    private let captionExpandedHeight: CGFloat = 240  // full response + scroll
-    private let notchGap:             CGFloat = 6
+    /// The panel never changes size: only the capsule inside it unfolds, in one SwiftUI spring,
+    /// so the black background and the text always move together. The panel is transparent
+    /// and lets clicks through, except over the capsule itself.
+    static let panelWidth:  CGFloat = 400
+    static let panelHeight: CGFloat = 300
+    private let notchGap:   CGFloat = 6
 
-    private var currentHeight: CGFloat { state.isExpanded ? captionExpandedHeight : captionCompactHeight }
-    private var currentWidth: CGFloat { state.isExpanded ? captionExpandedWidth : captionWidth }
+    /// Height of the black capsule, reported by the view (it follows the answer's length).
+    var capsuleHeight: CGFloat = 0 {
+        didSet { if capsuleHeight != oldValue { updateMouseAcceptance() } }
+    }
 
     private init() {
         // Only these engine properties: observing the whole engine redraws on every mic frame.
@@ -105,10 +109,10 @@ final class VoiceCaptionManager {
         reposition(animated: false)
 
         guard let p = panel else { return }
-        p.ignoresMouseEvents = false   // accept tap to expand
         if !p.isVisible { p.alphaValue = 0; p.orderFrontRegardless() }
 
         state.isVisible = true
+        startMouseTracking()
         NSAnimationContext.runAnimationGroup { ctx in
             ctx.duration = 0.2
             p.animator().alphaValue = 1
@@ -133,6 +137,7 @@ final class VoiceCaptionManager {
     func setUserLine(_ text: String) {
         state.userLine = text
         state.responseLine = ""
+        state.isExpanded = false
     }
 
     func appendResponse(_ chunk: String) {
@@ -162,23 +167,24 @@ final class VoiceCaptionManager {
     func setExpanded(_ expanded: Bool, animated: Bool) {
         guard state.isExpanded != expanded else { return }
         state.isExpanded = expanded
-        reposition(animated: animated)
     }
 
     // MARK: - Private
 
     private func _buildPanel() {
+        let size = NSSize(width: Self.panelWidth, height: Self.panelHeight)
         let view = NSHostingView(rootView: VoiceCaptionView(state: state, manager: self))
-        view.frame = NSRect(x: 0, y: 0, width: captionExpandedWidth, height: captionExpandedHeight)
+        view.frame = NSRect(origin: .zero, size: size)
 
         let p = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: captionExpandedWidth, height: captionExpandedHeight),
+            contentRect: NSRect(origin: .zero, size: size),
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
         )
         p.isOpaque = false
         p.backgroundColor = .clear
+        p.hasShadow = false
         // Same level as the island, so the caption is never hidden behind it.
         p.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.mainMenuWindow)) + 3)
         p.ignoresMouseEvents = true
@@ -203,11 +209,9 @@ final class VoiceCaptionManager {
         }
         let visibleH = max(islandH, app.notchHeight)
         let sf = screen.frame
-        let h  = currentHeight
-        // Panel grows upward: bottom at notchGap below the island, top at h above that.
-        let w  = currentWidth
-        let origin = NSPoint(x: sf.midX - w / 2,
-                             y: sf.maxY - visibleH - notchGap - h)
+        let w = Self.panelWidth, h = Self.panelHeight
+        // The capsule sits at the top of the panel, notchGap below the island; it unfolds downward.
+        let origin = NSPoint(x: sf.midX - w / 2, y: sf.maxY - visibleH - notchGap - h)
         let newFrame = NSRect(origin: origin, size: NSSize(width: w, height: h))
 
         if animated && p.isVisible {
@@ -220,13 +224,45 @@ final class VoiceCaptionManager {
         } else {
             p.setFrame(newFrame, display: true)
         }
+        updateMouseAcceptance()
+    }
+
+    // MARK: - Clicks only on the capsule
+
+    private func startMouseTracking() {
+        guard mouseMonitors.isEmpty else { updateMouseAcceptance(); return }
+        if let g = NSEvent.addGlobalMonitorForEvents(matching: [.mouseMoved, .leftMouseDragged], handler: { [weak self] _ in
+            Task { @MainActor [weak self] in self?.updateMouseAcceptance() }
+        }) { mouseMonitors.append(g) }
+        if let l = NSEvent.addLocalMonitorForEvents(matching: [.mouseMoved], handler: { [weak self] e in
+            Task { @MainActor [weak self] in self?.updateMouseAcceptance() }
+            return e
+        }) { mouseMonitors.append(l) }
+        updateMouseAcceptance()
+    }
+
+    private func stopMouseTracking() {
+        mouseMonitors.forEach { NSEvent.removeMonitor($0) }
+        mouseMonitors = []
+        panel?.ignoresMouseEvents = true
+    }
+
+    private func updateMouseAcceptance() {
+        guard let p = panel, state.isVisible, capsuleHeight > 0 else {
+            if panel?.ignoresMouseEvents == false { panel?.ignoresMouseEvents = true }
+            return
+        }
+        let f = p.frame
+        let capsule = NSRect(x: f.minX, y: f.maxY - capsuleHeight, width: f.width, height: capsuleHeight)
+        let inside = capsule.contains(NSEvent.mouseLocation)
+        if p.ignoresMouseEvents == inside { p.ignoresMouseEvents = !inside }
     }
 
     private func _fadeOut() {
         state.isVisible = false
         state.isExpanded = false
+        stopMouseTracking()
         guard let p = panel, p.isVisible else { return }
-        p.ignoresMouseEvents = true
         NSAnimationContext.runAnimationGroup({ ctx in
             ctx.duration = 0.2
             p.animator().alphaValue = 0
@@ -237,10 +273,26 @@ final class VoiceCaptionManager {
 }
 
 // MARK: - VoiceCaptionView
+//
+// One black capsule. Folded: what I said + the first two lines of the answer, with a small chevron
+// when there is more. Unfolded: the capsule grows to fit the whole answer (up to maxBody, then it
+// scrolls). The height is measured from the text itself, and the text is clipped by the capsule,
+// so the background and the words open together in the same spring.
 
 struct VoiceCaptionView: View {
     @ObservedObject var state: VoiceCaptionState
     let manager: VoiceCaptionManager
+
+    @State private var fullHeight: CGFloat = 0
+    @State private var twoLineHeight: CGFloat = 0
+
+    private static let hPad: CGFloat = 14
+    private static let vPad: CGFloat = 9
+    private static let chevronRoom: CGFloat = 14
+    private static let maxBody: CGFloat = 250
+    private static let radius: CGFloat = 14
+    private var textWidth: CGFloat { VoiceCaptionManager.panelWidth - 2 * Self.hPad - Self.chevronRoom }
+    private let answerFont = Font.system(size: 12, weight: .medium)
 
     /// While the mic is open: what I am saying, live. Afterwards: what I said + the answer.
     private var heard: String {
@@ -251,65 +303,104 @@ struct VoiceCaptionView: View {
     }
     private var answer: String { state.isListening ? "" : state.responseLine }
 
-    // Show the expand indicator when the answer is long enough to be truncated.
-    private var canExpand: Bool { !answer.isEmpty && answer.count > 80 }
+    /// More than two lines: the chevron shows and a tap unfolds.
+    private var hasMore: Bool { twoLineHeight > 0 && fullHeight > twoLineHeight + 1 }
+    private var expanded: Bool { state.isExpanded && hasMore }
+    private var bodyHeight: CGFloat {
+        guard !answer.isEmpty else { return 0 }
+        return expanded ? min(fullHeight, Self.maxBody) : min(fullHeight, twoLineHeight)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
             if !heard.isEmpty || !answer.isEmpty {
-                VStack(alignment: .leading, spacing: 2) {
-                    if !heard.isEmpty {
-                        Text(verbatim: heard)
-                            .font(.system(size: 12))
-                            .foregroundColor(.white.opacity(0.55))
-                            .lineLimit(1)
-                            .truncationMode(.head)
-                    }
-                    if !answer.isEmpty {
-                        if state.isExpanded {
-                            ScrollView(.vertical, showsIndicators: false) {
-                                Text(verbatim: answer)
-                                    .font(.system(size: 12, weight: .medium))
-                                    .foregroundColor(.white)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .padding(.bottom, 2)
-                            }
-                            .frame(maxHeight: 180)
-                        } else {
-                            HStack(alignment: .bottom, spacing: 4) {
-                                Text(verbatim: answer)
-                                    .font(.system(size: 12, weight: .medium))
-                                    .foregroundColor(.white)
-                                    .lineLimit(2)
-                                    .truncationMode(.tail)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                if canExpand {
-                                    Image(systemName: "chevron.down")
-                                        .font(.system(size: 8, weight: .semibold))
-                                        .foregroundColor(.white.opacity(0.35))
-                                        .padding(.bottom, 1)
-                                }
-                            }
-                        }
-                    }
-                }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-                .frame(maxWidth: state.isExpanded ? 480 : 360, alignment: .leading)
-                .fixedSize(horizontal: false, vertical: !state.isExpanded)
-                .background(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(Color.black.opacity(0.92))
-                )
-                .transition(.opacity)
-                .onTapGesture { manager.toggleExpanded() }
+                capsule.transition(.opacity)
             }
             Spacer(minLength: 0)
         }
-        .animation(.spring(response: 0.42, dampingFraction: 0.75), value: state.isExpanded)
+        .frame(width: VoiceCaptionManager.panelWidth, height: VoiceCaptionManager.panelHeight, alignment: .top)
+        .background(alignment: .topLeading) { measurement }
         .animation(.easeOut(duration: 0.2), value: heard.isEmpty && answer.isEmpty)
-        .frame(width: state.isExpanded ? 480 : 360, height: state.isExpanded ? 240 : 76, alignment: .top)
         .environment(\.colorScheme, .dark)
+    }
+
+    private var capsule: some View {
+        let shape = RoundedRectangle(cornerRadius: Self.radius, style: .continuous)
+        return VStack(alignment: .leading, spacing: 3) {
+            if !heard.isEmpty {
+                Text(verbatim: heard)
+                    .font(.system(size: 12))
+                    .foregroundColor(.white.opacity(0.55))
+                    .lineLimit(1)
+                    .truncationMode(.head)
+                    .frame(width: textWidth, alignment: .leading)
+            }
+            if !answer.isEmpty {
+                answerText
+                    .frame(width: textWidth, height: bodyHeight, alignment: .topLeading)
+                    .clipped()
+            }
+        }
+        .padding(.leading, Self.hPad)
+        .padding(.trailing, Self.hPad + Self.chevronRoom)
+        .padding(.vertical, Self.vPad)
+        .frame(width: VoiceCaptionManager.panelWidth, alignment: .leading)
+        .background(shape.fill(Color.black.opacity(0.92)))
+        .overlay(alignment: .bottomTrailing) {
+            if hasMore {
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 8, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.4))
+                    .rotationEffect(.degrees(expanded ? 180 : 0))
+                    .padding(.trailing, 12)
+                    .padding(.bottom, Self.vPad + 2)
+            }
+        }
+        .clipShape(shape)
+        .contentShape(shape)
+        .onTapGesture { if hasMore { manager.toggleExpanded() } }
+        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { manager.capsuleHeight = $0 }
+        .onDisappear { manager.capsuleHeight = 0 }
+        .animation(.spring(response: 0.42, dampingFraction: 0.86), value: expanded)
+        .animation(.easeOut(duration: 0.2), value: fullHeight)
+    }
+
+    @ViewBuilder private var answerText: some View {
+        if expanded && fullHeight > Self.maxBody {
+            ScrollView(.vertical, showsIndicators: false) {
+                Text(verbatim: answer)
+                    .font(answerFont)
+                    .foregroundColor(.white)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(width: textWidth, alignment: .leading)
+            }
+        } else {
+            Text(verbatim: answer)
+                .font(answerFont)
+                .foregroundColor(.white)
+                .lineLimit(expanded ? nil : 2)
+                .truncationMode(.tail)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(width: textWidth, alignment: .leading)
+        }
+    }
+
+    /// Invisible copies of the answer, laid out at the same width: its full height and the height of two lines.
+    private var measurement: some View {
+        ZStack(alignment: .topLeading) {
+            Text(verbatim: answer.isEmpty ? " " : answer)
+                .font(answerFont)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(width: textWidth, alignment: .leading)
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { fullHeight = $0 }
+            Text(verbatim: "A\nA")
+                .font(answerFont)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(width: textWidth, alignment: .leading)
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { twoLineHeight = $0 }
+        }
+        .hidden()
+        .allowsHitTesting(false)
     }
 }
 #endif
