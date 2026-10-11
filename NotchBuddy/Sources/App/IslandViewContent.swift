@@ -3841,8 +3841,9 @@ struct TickerShimmerText: View {
     @Environment(\.islandViewActive) private var viewActive
 
     var body: some View {
-        // A 2.2 s sweep at display refresh rate. Paused when hidden.
-        TimelineView(.animation(paused: paused || !viewActive)) { tl in
+        // A 2.2 s sweep at 60 fps. Paused when hidden.
+        TimelineView(.animation(minimumInterval: MochiFrameClock.interval(fps: 60),
+                                paused: paused || !viewActive)) { tl in
             let t = tl.date.timeIntervalSinceReferenceDate
             let p = CGFloat(t.truncatingRemainder(dividingBy: 2.2) / 2.2)
             // phase sweeps -0.1 → 1.1 so white peak enters from left and exits right
