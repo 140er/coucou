@@ -41,6 +41,10 @@ for _ in $(seq 1 120); do
 done
 curl -fsS "http://127.0.0.1:${PORT}/" | grep -q "Coucou link relay" || { echo "the relay did not start"; cat "$LOG/relay.log"; exit 1; }
 
+# Build the Rust test binary first: with a cold cache it takes minutes, longer than the phone side waits for the welcome.
+echo "building the computer side (Rust)"
+(cd "$ROOT/windows" && cargo test -p coucou --lib --no-run)
+
 echo "starting the computer side (Rust)"
 (cd "$ROOT/windows" && cargo test -p coucou --lib relay_client::tests::e2e -- --ignored --nocapture >"$LOG/pc.log" 2>&1) &
 PC_PID=$!
