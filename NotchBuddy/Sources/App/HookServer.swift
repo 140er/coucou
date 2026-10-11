@@ -1017,10 +1017,6 @@ final class HookServer: @unchecked Sendable {
         ClaudeHost.name(for: AppState.shared.tasks.first { $0.id == "integration_claude" }?.hostApp)
     }
 
-    /// Updates or transiently creates a workspace pill (VS Code or Cursor) task.
-    /// If the task already exists (persistent), just updates name/cwd.
-    /// If missing (transient), creates it and inserts after the main pill.
-    @MainActor
     /// Records the session an event came from, then refreshes its card.
     /// `externalAgent` is the validated `coucou_agent` name for a third-party agent pill,
     /// nil for a workspace pill.
@@ -1051,6 +1047,9 @@ final class HookServer: @unchecked Sendable {
         if !owner.bundleId.isEmpty { state.tasks[idx].sessionBundleId = owner.bundleId }
     }
 
+    /// Updates or transiently creates a workspace pill (VS Code or Cursor) task.
+    /// If the task already exists (persistent), just updates name/cwd.
+    /// If missing (transient), creates it and inserts after the main pill.
     /// Name, cwd and terminal belong to the session that owns the pill (the oldest one
     /// still running), so a second session under the same client cannot rename the card,
     /// or send "Open terminal" elsewhere, out from under the first.
