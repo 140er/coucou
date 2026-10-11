@@ -17,6 +17,7 @@ import {
 } from "../core/pills";
 import { h, clear } from "../views/dom";
 import { agentsSection } from "./agents";
+import { phoneSection } from "./phone";
 import { colorDot } from "./colors";
 import { renderDiff, statusDot } from "./parts";
 import {
@@ -1369,6 +1370,7 @@ async function render() {
     localSection(customKey),
     activePillsSection(connected),
     integrationsSection(present),
+    phoneSection(settings.phoneLink ?? false, toggle, settings),
     generalSection(),
     shortcutsSection(shortcutReport),
     h("div", {
