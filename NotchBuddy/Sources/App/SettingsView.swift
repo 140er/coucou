@@ -1286,6 +1286,10 @@ struct SettingsView: View {
                 .onChange(of: cryptoExchange) { _, _ in CryptoController.shared.settingsChanged() }
                 .onChange(of: cryptoCurrency) { _, _ in CryptoController.shared.settingsChanged() }
 
+                // Portfolio: exchange accounts + wallets.
+                PortfolioSettingsSection()
+                    .padding(.top, 4)
+
                 Button(String(localized: "integrations.save")) {
                     saveIntegrations()
                     CryptoController.shared.settingsChanged()

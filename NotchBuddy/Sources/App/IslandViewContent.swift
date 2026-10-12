@@ -231,6 +231,8 @@ struct OverviewView: View {
                let url = exchange.tradeURL(exchange.pair(first, CryptoSettings.currency)) {
                 NSWorkspace.shared.open(url)
             }
+        case "integration_portfolio":
+            break   // no global URL; individual holdings open their exchange pages
         case "integration_vercel":
             NSWorkspace.shared.open(URL(string: "https://vercel.com/dashboard")!)
         case "integration_github":
@@ -1854,6 +1856,8 @@ struct IntegrationCardView: View {
             #endif
         case "integration_crypto":
             return true  // public market data: no key, nothing to set up
+        case "integration_portfolio":
+            return PortfolioSettings.hasAnyAccount
         case "ai_anthropic":  return KeychainStore.shared.get("anthropic-api-key") != nil
         case "ai_google":     return KeychainStore.shared.get("google-api-key")    != nil
         case "ai_openai":     return KeychainStore.shared.get("openai-api-key")    != nil
@@ -2105,6 +2109,9 @@ struct IntegrationCardView: View {
         } else if task.id == "integration_crypto" {
             // Its own card in every state (loading, no coins, prices).
             CryptoCardView()
+                .transition(.opacity)
+        } else if task.id == "integration_portfolio" {
+            PortfolioCardView()
                 .transition(.opacity)
         } else if mailHasData {
             #if !APPSTORE

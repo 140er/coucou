@@ -72,6 +72,12 @@ final class KeychainStore: @unchecked Sendable {
         "calcom-api-key",
         "notion-api-key",
         "elevenlabs-api-key",
+        // Portfolio exchange credentials
+        "portfolio-binance-key",  "portfolio-binance-secret",
+        "portfolio-okx-key",      "portfolio-okx-secret",      "portfolio-okx-passphrase",
+        "portfolio-bybit-key",    "portfolio-bybit-secret",
+        "portfolio-kraken-key",   "portfolio-kraken-secret",
+        "portfolio-coinbase-key", "portfolio-coinbase-secret",  "portfolio-coinbase-passphrase",
     ]
 
     private init() {
