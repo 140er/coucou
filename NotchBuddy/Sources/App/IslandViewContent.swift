@@ -1307,7 +1307,12 @@ struct PromptView: View {
                         ScrollView(.vertical, showsIndicators: false) {
                             VStack(alignment: .leading, spacing: 6) {
                                 ForEach(state.chatHistory) { msg in
-                                    ChatBubble(message: msg).id(msg.id)
+                                    ChatBubble(
+                                        message: msg,
+                                        isStreaming: state.stateOverride != nil
+                                            && msg.role == .assistant
+                                            && msg.id == state.chatHistory.last?.id
+                                    ).id(msg.id)
                                 }
                                 if state.stateOverride != nil {
                                     HStack { TypingDotsView(); Spacer(minLength: 32) }
@@ -1594,6 +1599,9 @@ struct ModelPickerView: View {
                             case .openai:    state.openAIChatModel = model.id
                             case .ollama:    state.ollamaChatModel = model.id
                             case .lmstudio:  state.lmstudioChatModel = model.id
+                            case .deepseek:  state.deepseekChatModel = model.id
+                            case .qwen:      state.qwenChatModel = model.id
+                            case .moonshot:  state.moonshotChatModel = model.id
                             }
                             isPresented = false
                             SoundEngine.shared.play("blip")
@@ -1628,6 +1636,7 @@ struct ModelPickerView: View {
 
 struct ChatBubble: View {
     let message: ChatMessage
+    var isStreaming: Bool = false
 
     var body: some View {
         if !message.content.isEmpty {
@@ -1643,7 +1652,22 @@ struct ChatBubble: View {
                         .background(Color.white.opacity(0.13))
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                 } else {
-                    ChatMarkdownView(markdown: message.content)
+                    Group {
+                        if isStreaming {
+                            TimelineView(.periodic(from: .now, by: 0.5)) { tl in
+                                let show = Int(tl.date.timeIntervalSinceReferenceDate / 0.5).isMultiple(of: 2)
+                                Text(message.content + (show ? "▌" : " "))
+                                    .font(.system(size: 12.5))
+                                    .foregroundColor(Color(hex: "#B0B5BE"))
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        } else {
+                            ChatMarkdownView(markdown: message.content)
+                        }
+                    }
+                    .padding(.horizontal, 8).padding(.vertical, 6)
+                    .background(Color.white.opacity(0.05))
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
                     Spacer(minLength: 8)
                 }
             }

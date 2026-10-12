@@ -519,6 +519,9 @@
         }
       }
     },
+    "Address" : {
+
+    },
     "Advertisement" : {
       "localizations" : {
         "ar" : {
@@ -14942,10 +14945,30 @@
     },
     "portfolio.testing" : {
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Testing…" } },
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Test en cours…" } },
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Wird getestet…" } },
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Probando…" } }
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wird getestet…"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Testing…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Probando…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Test en cours…"
+          }
+        }
       }
     },
     "portfolio.verify-save" : {

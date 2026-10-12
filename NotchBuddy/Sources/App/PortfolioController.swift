@@ -8,6 +8,8 @@ struct PortfolioHolding: Identifiable, Equatable, Sendable {
     let symbol: String          // "BTC", "ETH", "USDT"
     let amount: Double          // raw units (BTC, not satoshi)
     var price: Double           // USD price; filled after the price pass
+    var change24h: Double? = nil        // % change vs 24 h ago; nil = unavailable
+    var priceHistory: [Double] = []     // last 7 daily closes, oldest first
     var id: String { symbol }
     var value: Double { amount * price }
 }
@@ -29,26 +31,68 @@ enum ExchangeKind: String, CaseIterable, Sendable, Codable {
 }
 
 enum WalletKind: String, CaseIterable, Sendable, Codable {
-    case bitcoin, ethereum, solana
+    // UTXO
+    case bitcoin, dogecoin, litecoin
+    // EVM — Ethereum mainnet + L2s + alt-L1s
+    case ethereum, polygon, bnbChain, avalanche, arbitrum, optimism, base
+    // Other L1s
+    case solana, tron, xrp, cardano, cosmos, near
+
     var name: String {
         switch self {
-        case .bitcoin:  return "Bitcoin"
-        case .ethereum: return "Ethereum"
-        case .solana:   return "Solana"
+        case .bitcoin:   return "Bitcoin"
+        case .dogecoin:  return "Dogecoin"
+        case .litecoin:  return "Litecoin"
+        case .ethereum:  return "Ethereum"
+        case .polygon:   return "Polygon"
+        case .bnbChain:  return "BNB Chain"
+        case .avalanche: return "Avalanche"
+        case .arbitrum:  return "Arbitrum"
+        case .optimism:  return "Optimism"
+        case .base:      return "Base"
+        case .solana:    return "Solana"
+        case .tron:      return "TRON"
+        case .xrp:       return "XRP Ledger"
+        case .cardano:   return "Cardano"
+        case .cosmos:    return "Cosmos"
+        case .near:      return "NEAR"
         }
     }
+
     var symbol: String {
         switch self {
-        case .bitcoin:  return "BTC"
-        case .ethereum: return "ETH"
-        case .solana:   return "SOL"
+        case .bitcoin:   return "BTC"
+        case .dogecoin:  return "DOGE"
+        case .litecoin:  return "LTC"
+        case .ethereum:  return "ETH"
+        case .polygon:   return "POL"
+        case .bnbChain:  return "BNB"
+        case .avalanche: return "AVAX"
+        case .arbitrum:  return "ETH"
+        case .optimism:  return "ETH"
+        case .base:      return "ETH"
+        case .solana:    return "SOL"
+        case .tron:      return "TRX"
+        case .xrp:       return "XRP"
+        case .cardano:   return "ADA"
+        case .cosmos:    return "ATOM"
+        case .near:      return "NEAR"
         }
     }
+
     var placeholder: String {
         switch self {
-        case .bitcoin:  return "bc1q… or 1… or 3…"
-        case .ethereum: return "0x…"
-        case .solana:   return "base58 address"
+        case .bitcoin:                                        return "bc1q… or 1… or 3…"
+        case .dogecoin:                                       return "D…"
+        case .litecoin:                                       return "ltc1… or L… or M…"
+        case .ethereum, .polygon, .bnbChain, .avalanche,
+             .arbitrum, .optimism, .base:                    return "0x…"
+        case .solana:                                         return "base58 address"
+        case .tron:                                           return "T…"
+        case .xrp:                                            return "r…"
+        case .cardano:                                        return "addr1…"
+        case .cosmos:                                         return "cosmos1…"
+        case .near:                                           return "alice.near or 64-char hex"
         }
     }
 }
@@ -234,8 +278,10 @@ final class PortfolioController: ObservableObject {
             for i in priced.indices {
                 for j in priced[i].holdings.indices {
                     let sym = priced[i].holdings[j].symbol
-                    if let p = prices[sym] {
-                        priced[i].holdings[j].price = p
+                    if let info = prices[sym] {
+                        priced[i].holdings[j].price        = info.price
+                        priced[i].holdings[j].change24h    = info.change24h
+                        priced[i].holdings[j].priceHistory = info.history
                     } else if sym == "USDT" || sym == "USDC" || sym == "BUSD" || sym == "DAI" {
                         priced[i].holdings[j].price = 1.0    // stable coins ≈ $1
                     }
@@ -267,30 +313,54 @@ final class PortfolioController: ObservableObject {
 
     // MARK: - Price fetch (Coinbase public, no key)
 
-    private nonisolated static func fetchPrices(symbols: [String]) async -> [String: Double] {
+    private struct PriceInfo: Sendable {
+        var price: Double
+        var change24h: Double?
+        var history: [Double]   // 7 daily closes, oldest first
+    }
+
+    private nonisolated static func fetchPrices(symbols: [String]) async -> [String: PriceInfo] {
         guard !symbols.isEmpty else { return [:] }
-        var prices: [String: Double] = [:]
-        await withTaskGroup(of: (String, Double?).self) { group in
+        var result: [String: PriceInfo] = [:]
+        await withTaskGroup(of: (String, PriceInfo?).self) { group in
             for sym in symbols {
                 group.addTask {
                     let pair = "\(sym)-USD"
-                    guard let url = URL(string: "https://api.exchange.coinbase.com/products/\(pair)/stats") else {
-                        return (sym, nil)
+                    let base = "https://api.exchange.coinbase.com/products/\(pair)"
+
+                    // Stats: last price + 24h open
+                    guard let statsURL = URL(string: "\(base)/stats") else { return (sym, nil) }
+                    var statsReq = URLRequest(url: statsURL, timeoutInterval: 8)
+                    statsReq.setValue("application/json", forHTTPHeaderField: "Accept")
+                    guard let (statsData, statsResp) = try? await URLSession.shared.data(for: statsReq),
+                          (statsResp as? HTTPURLResponse)?.statusCode == 200,
+                          let statsJSON = try? JSONSerialization.jsonObject(with: statsData) as? [String: Any],
+                          let last = statsJSON["last"].flatMap({ Self.num($0) }) else { return (sym, nil) }
+                    let open24h = statsJSON["open"].flatMap({ Self.num($0) })
+                    let change = open24h.map { o in o > 0 ? (last - o) / o * 100 : 0.0 }
+
+                    // Candles: 7 daily closes for sparkline
+                    var history: [Double] = []
+                    if let candlesURL = URL(string: "\(base)/candles?granularity=86400") {
+                        var candlesReq = URLRequest(url: candlesURL, timeoutInterval: 8)
+                        candlesReq.setValue("application/json", forHTTPHeaderField: "Accept")
+                        if let (candlesData, candlesResp) = try? await URLSession.shared.data(for: candlesReq),
+                           (candlesResp as? HTTPURLResponse)?.statusCode == 200,
+                           let arr = try? JSONSerialization.jsonObject(with: candlesData) as? [[Any]] {
+                            // Candles: [time, low, high, open, close, volume] — newest first
+                            history = arr.prefix(7).compactMap { $0.count > 4 ? Self.num($0[4]) : nil }
+                                .reversed()
+                        }
                     }
-                    var req = URLRequest(url: url, timeoutInterval: 8)
-                    req.setValue("application/json", forHTTPHeaderField: "Accept")
-                    guard let (data, resp) = try? await URLSession.shared.data(for: req),
-                          (resp as? HTTPURLResponse)?.statusCode == 200,
-                          let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                          let last = json["last"].flatMap({ Self.num($0) }) else { return (sym, nil) }
-                    return (sym, last)
+
+                    return (sym, PriceInfo(price: last, change24h: change, history: history))
                 }
             }
-            for await (sym, price) in group {
-                if let p = price { prices[sym] = p }
+            for await (sym, info) in group {
+                if let i = info { result[sym] = i }
             }
         }
-        return prices
+        return result
     }
 
     private nonisolated static func num(_ v: Any) -> Double? {
@@ -592,11 +662,26 @@ private enum WalletFetcher {
 
     static func fetch(_ wallet: PortfolioWallet) async throws -> [PortfolioHolding] {
         switch wallet.kind {
-        case .bitcoin:  return try await fetchBTC(address: wallet.address)
-        case .ethereum: return try await fetchETH(address: wallet.address)
-        case .solana:   return try await fetchSOL(address: wallet.address)
+        case .bitcoin:   return try await fetchBTC(address: wallet.address)
+        case .dogecoin:  return try await fetchBlockchair(address: wallet.address, chain: "dogecoin",  symbol: "DOGE")
+        case .litecoin:  return try await fetchBlockchair(address: wallet.address, chain: "litecoin",  symbol: "LTC")
+        case .ethereum:  return try await fetchEVM(address: wallet.address, rpcURL: "https://cloudflare-eth.com",              symbol: "ETH")
+        case .polygon:   return try await fetchEVM(address: wallet.address, rpcURL: "https://polygon-rpc.com",                 symbol: "POL")
+        case .bnbChain:  return try await fetchEVM(address: wallet.address, rpcURL: "https://bsc-dataseed.binance.org",        symbol: "BNB")
+        case .avalanche: return try await fetchEVM(address: wallet.address, rpcURL: "https://api.avax.network/ext/bc/C/rpc",   symbol: "AVAX")
+        case .arbitrum:  return try await fetchEVM(address: wallet.address, rpcURL: "https://arb1.arbitrum.io/rpc",            symbol: "ETH")
+        case .optimism:  return try await fetchEVM(address: wallet.address, rpcURL: "https://mainnet.optimism.io",             symbol: "ETH")
+        case .base:      return try await fetchEVM(address: wallet.address, rpcURL: "https://mainnet.base.org",                symbol: "ETH")
+        case .solana:    return try await fetchSOL(address: wallet.address)
+        case .tron:      return try await fetchTRON(address: wallet.address)
+        case .xrp:       return try await fetchXRP(address: wallet.address)
+        case .cardano:   return try await fetchCardano(address: wallet.address)
+        case .cosmos:    return try await fetchCosmos(address: wallet.address)
+        case .near:      return try await fetchNEAR(address: wallet.address)
         }
     }
+
+    // MARK: BTC (blockchain.info)
 
     private static func fetchBTC(address: String) async throws -> [PortfolioHolding] {
         guard let url = URL(string: "https://blockchain.info/balance?active=\(address)&cors=true") else {
@@ -609,27 +694,61 @@ private enum WalletFetcher {
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let addrData = json[address] as? [String: Any],
               let satoshi = addrData["final_balance"] as? Int else { throw FetchError.parseError }
-        let btc = Double(satoshi) / 1e8
-        return [PortfolioHolding(symbol: "BTC", amount: btc, price: 0)]
+        return [PortfolioHolding(symbol: "BTC", amount: Double(satoshi) / 1e8, price: 0)]
     }
 
-    private static func fetchETH(address: String) async throws -> [PortfolioHolding] {
-        guard let url = URL(string: "https://cloudflare-eth.com") else { throw FetchError.networkError }
+    // MARK: UTXO via Blockchair (DOGE, LTC)
+
+    private static func fetchBlockchair(address: String, chain: String, symbol: String) async throws -> [PortfolioHolding] {
+        guard let url = URL(string: "https://api.blockchair.com/\(chain)/dashboards/address/\(address)") else {
+            throw FetchError.invalidAddress
+        }
+        var req = URLRequest(url: url, timeoutInterval: 10)
+        req.setValue("application/json", forHTTPHeaderField: "Accept")
+        guard let (data, resp) = try? await URLSession.shared.data(for: req),
+              (resp as? HTTPURLResponse)?.statusCode == 200 else { throw FetchError.networkError }
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let dataDict = json["data"] as? [String: Any],
+              let addrDict = dataDict[address] as? [String: Any],
+              let addrInfo = addrDict["address"] as? [String: Any] else { throw FetchError.parseError }
+        let satoshi: Double
+        if let i = addrInfo["balance"] as? Int { satoshi = Double(i) }
+        else if let s = addrInfo["balance"] as? String, let d = Double(s) { satoshi = d }
+        else { throw FetchError.parseError }
+        return [PortfolioHolding(symbol: symbol, amount: satoshi / 1e8, price: 0)]
+    }
+
+    // MARK: EVM (eth_getBalance JSON-RPC — works for any EVM chain)
+
+    private static func fetchEVM(address: String, rpcURL: String, symbol: String) async throws -> [PortfolioHolding] {
+        guard let url = URL(string: rpcURL) else { throw FetchError.networkError }
         var req = URLRequest(url: url, timeoutInterval: 10)
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        let body: [String: Any] = ["method": "eth_getBalance",
-                                   "params": [address, "latest"],
-                                   "id": 1, "jsonrpc": "2.0"]
+        let body: [String: Any] = ["jsonrpc": "2.0", "id": 1,
+                                   "method": "eth_getBalance", "params": [address, "latest"]]
         req.httpBody = try? JSONSerialization.data(withJSONObject: body)
         guard let (data, resp) = try? await URLSession.shared.data(for: req),
               (resp as? HTTPURLResponse)?.statusCode == 200 else { throw FetchError.networkError }
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let hexWei = json["result"] as? String,
-              let wei = UInt64(hexWei.dropFirst(2), radix: 16) else { throw FetchError.parseError }
-        let eth = Double(wei) / 1e18
-        return [PortfolioHolding(symbol: "ETH", amount: eth, price: 0)]
+              let wei = hexToDouble(hexWei) else { throw FetchError.parseError }
+        return [PortfolioHolding(symbol: symbol, amount: wei / 1e18, price: 0)]
     }
+
+    /// Converts a 0x-prefixed hex string to Double without integer overflow.
+    private static func hexToDouble(_ hex: String) -> Double? {
+        let s = hex.lowercased().hasPrefix("0x") ? String(hex.dropFirst(2)) : hex
+        guard !s.isEmpty else { return 0 }
+        var result: Double = 0
+        for c in s {
+            guard let digit = c.hexDigitValue else { return nil }
+            result = result * 16 + Double(digit)
+        }
+        return result
+    }
+
+    // MARK: Solana
 
     private static func fetchSOL(address: String) async throws -> [PortfolioHolding] {
         guard let url = URL(string: "https://api.mainnet-beta.solana.com") else { throw FetchError.networkError }
@@ -644,8 +763,101 @@ private enum WalletFetcher {
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let result = json["result"] as? [String: Any],
               let lamports = result["value"] as? Int else { throw FetchError.parseError }
-        let sol = Double(lamports) / 1e9
-        return [PortfolioHolding(symbol: "SOL", amount: sol, price: 0)]
+        return [PortfolioHolding(symbol: "SOL", amount: Double(lamports) / 1e9, price: 0)]
+    }
+
+    // MARK: TRON (TronGrid)
+
+    private static func fetchTRON(address: String) async throws -> [PortfolioHolding] {
+        guard let url = URL(string: "https://api.trongrid.io/v1/accounts/\(address)") else {
+            throw FetchError.invalidAddress
+        }
+        var req = URLRequest(url: url, timeoutInterval: 10)
+        req.setValue("application/json", forHTTPHeaderField: "Accept")
+        guard let (data, resp) = try? await URLSession.shared.data(for: req),
+              (resp as? HTTPURLResponse)?.statusCode == 200 else { throw FetchError.networkError }
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let dataArr = json["data"] as? [[String: Any]] else { throw FetchError.parseError }
+        let sun = dataArr.first.flatMap { $0["balance"] as? Int } ?? 0
+        return [PortfolioHolding(symbol: "TRX", amount: Double(sun) / 1e6, price: 0)]
+    }
+
+    // MARK: XRP Ledger
+
+    private static func fetchXRP(address: String) async throws -> [PortfolioHolding] {
+        guard let url = URL(string: "https://xrplcluster.com") else { throw FetchError.networkError }
+        var req = URLRequest(url: url, timeoutInterval: 10)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let body: [String: Any] = ["method": "account_info",
+                                   "params": [["account": address, "ledger_index": "current"]]]
+        req.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        guard let (data, resp) = try? await URLSession.shared.data(for: req),
+              (resp as? HTTPURLResponse)?.statusCode == 200 else { throw FetchError.networkError }
+        guard let json  = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let result = json["result"] as? [String: Any],
+              let acct   = result["account_data"] as? [String: Any],
+              let dropsStr = acct["Balance"] as? String,
+              let drops = Double(dropsStr) else { throw FetchError.parseError }
+        return [PortfolioHolding(symbol: "XRP", amount: drops / 1e6, price: 0)]
+    }
+
+    // MARK: Cardano (Koios public API)
+
+    private static func fetchCardano(address: String) async throws -> [PortfolioHolding] {
+        guard let url = URL(string: "https://api.koios.rest/api/v1/address_info") else { throw FetchError.networkError }
+        var req = URLRequest(url: url, timeoutInterval: 10)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.setValue("application/json", forHTTPHeaderField: "Accept")
+        req.httpBody = try? JSONSerialization.data(withJSONObject: ["_addresses": [address]])
+        guard let (data, resp) = try? await URLSession.shared.data(for: req),
+              (resp as? HTTPURLResponse)?.statusCode == 200 else { throw FetchError.networkError }
+        guard let arr = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]],
+              let first = arr.first else { throw FetchError.parseError }
+        let lovelace = (first["balance"] as? String).flatMap(Double.init) ?? 0
+        return [PortfolioHolding(symbol: "ADA", amount: lovelace / 1e6, price: 0)]
+    }
+
+    // MARK: Cosmos Hub (REST)
+
+    private static func fetchCosmos(address: String) async throws -> [PortfolioHolding] {
+        let path = "https://rest.cosmos.directory/cosmoshub/cosmos/bank/v1beta1/balances/\(address)"
+        guard let url = URL(string: path) else { throw FetchError.invalidAddress }
+        var req = URLRequest(url: url, timeoutInterval: 10)
+        req.setValue("application/json", forHTTPHeaderField: "Accept")
+        guard let (data, resp) = try? await URLSession.shared.data(for: req),
+              (resp as? HTTPURLResponse)?.statusCode == 200 else { throw FetchError.networkError }
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let balances = json["balances"] as? [[String: Any]] else { throw FetchError.parseError }
+        var holdings: [PortfolioHolding] = []
+        for b in balances {
+            guard let denom = b["denom"] as? String, denom == "uatom",
+                  let amtStr = b["amount"] as? String, let amt = Double(amtStr), amt > 0 else { continue }
+            holdings.append(PortfolioHolding(symbol: "ATOM", amount: amt / 1e6, price: 0))
+        }
+        return holdings
+    }
+
+    // MARK: NEAR Protocol
+
+    private static func fetchNEAR(address: String) async throws -> [PortfolioHolding] {
+        guard let url = URL(string: "https://rpc.mainnet.near.org") else { throw FetchError.networkError }
+        var req = URLRequest(url: url, timeoutInterval: 10)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let body: [String: Any] = ["jsonrpc": "2.0", "id": "dontcare", "method": "query",
+                                   "params": ["request_type": "view_account", "finality": "final",
+                                              "account_id": address]]
+        req.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        guard let (data, resp) = try? await URLSession.shared.data(for: req),
+              (resp as? HTTPURLResponse)?.statusCode == 200 else { throw FetchError.networkError }
+        guard let json     = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let result   = json["result"] as? [String: Any],
+              let amtStr   = result["amount"] as? String else { throw FetchError.parseError }
+        // amount is in yoctoNEAR (1 NEAR = 1e24)
+        let near = amtStr.reduce(0.0) { $0 * 10 + Double($1.wholeNumberValue ?? 0) } / 1e24
+        return [PortfolioHolding(symbol: "NEAR", amount: near, price: 0)]
     }
 }
 
@@ -688,20 +900,42 @@ extension PortfolioController {
 enum AddressValidator {
     /// Quick local check before hitting the network.
     static func isPlausible(_ address: String, kind: WalletKind) -> Bool {
+        let a = address.trimmingCharacters(in: .whitespaces)
         switch kind {
         case .bitcoin:
-            // bech32 (bc1q...), bech32m (bc1p...), P2PKH (1...), P2SH (3...)
-            let a = address.trimmingCharacters(in: .whitespaces)
+            // bech32 (bc1q…), bech32m (bc1p…), P2PKH (1…), P2SH (3…)
             if a.lowercased().hasPrefix("bc1") { return a.count >= 14 && a.count <= 90 }
             if a.hasPrefix("1") || a.hasPrefix("3") { return a.count >= 25 && a.count <= 34 }
             return false
-        case .ethereum:
-            let a = address.trimmingCharacters(in: .whitespaces)
+        case .dogecoin:
+            // P2PKH (D…) or P2SH (A…)
+            return (a.hasPrefix("D") || a.hasPrefix("A")) && a.count >= 25 && a.count <= 34
+        case .litecoin:
+            if a.lowercased().hasPrefix("ltc1") { return a.count >= 26 && a.count <= 90 }
+            if a.hasPrefix("L") || a.hasPrefix("M") { return a.count >= 25 && a.count <= 34 }
+            return false
+        case .ethereum, .polygon, .bnbChain, .avalanche, .arbitrum, .optimism, .base:
+            // All EVM chains share the same 0x-prefixed 20-byte address format
             guard a.lowercased().hasPrefix("0x") else { return false }
             return a.dropFirst(2).count == 40 && a.dropFirst(2).allSatisfy(\.isHexDigit)
         case .solana:
-            let a = address.trimmingCharacters(in: .whitespaces)
             return a.count >= 32 && a.count <= 44
+        case .tron:
+            // Base58-encoded, always starts with T, 34 chars
+            return a.hasPrefix("T") && a.count == 34
+        case .xrp:
+            return a.hasPrefix("r") && a.count >= 25 && a.count <= 35
+        case .cardano:
+            // Shelley mainnet (addr1…), bech32, ~103 chars
+            return a.lowercased().hasPrefix("addr1") && a.count >= 50
+        case .cosmos:
+            // bech32, always cosmos1… + 38 chars = 45 total
+            return a.hasPrefix("cosmos1") && a.count == 45
+        case .near:
+            // Implicit account: 64 lowercase hex chars
+            if a.count == 64 { return a.allSatisfy { $0.isNumber || ($0 >= "a" && $0 <= "f") } }
+            // Named account: e.g. alice.near — must contain a dot
+            return a.count >= 5 && a.count <= 64 && a.contains(".")
         }
     }
 }

@@ -121,6 +121,11 @@ private struct PortfolioHoldingRow: View {
     let holding: PortfolioHolding
     @State private var hovered = false
 
+    private var changeColor: Color {
+        guard let ch = holding.change24h else { return Color(hex: "#8E939C") }
+        return ch >= 0 ? Color(hex: "#4CAF50") : Color(hex: "#F4505E")
+    }
+
     var body: some View {
         HStack(spacing: 6) {
             Text(verbatim: holding.symbol)
@@ -134,6 +139,18 @@ private struct PortfolioHoldingRow: View {
                 .monospacedDigit()
                 .lineLimit(1)
             Spacer(minLength: 2)
+            if holding.priceHistory.count >= 2 {
+                let positive = holding.change24h.map { $0 >= 0 } ?? true
+                SparklineView(prices: holding.priceHistory, positive: positive)
+                    .frame(width: 36, height: 14)
+            }
+            if let ch = holding.change24h {
+                Text(String(format: ch >= 0 ? "+%.1f%%" : "%.1f%%", ch))
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundColor(changeColor)
+                    .monospacedDigit()
+                    .lineLimit(1)
+            }
             if holding.price > 0 {
                 Text(verbatim: PortfolioController.formatValue(holding.value))
                     .font(.system(size: 11, weight: .medium))
@@ -151,5 +168,33 @@ private struct PortfolioHoldingRow: View {
         )
         .contentShape(Rectangle())
         .onHover { hovered = $0 }
+    }
+}
+
+// MARK: - Sparkline
+
+private struct SparklineView: View {
+    let prices: [Double]
+    let positive: Bool
+
+    var body: some View {
+        GeometryReader { geo in
+            let mn = prices.min() ?? 0, mx = prices.max() ?? 1
+            let range = mx - mn == 0 ? 1.0 : mx - mn
+            let w = geo.size.width, h = geo.size.height
+            let n = prices.count
+            Path { path in
+                for (i, p) in prices.enumerated() {
+                    let x = w * CGFloat(i) / CGFloat(n - 1)
+                    let y = h - h * CGFloat((p - mn) / range)
+                    if i == 0 { path.move(to: CGPoint(x: x, y: y)) }
+                    else       { path.addLine(to: CGPoint(x: x, y: y)) }
+                }
+            }
+            .stroke(
+                positive ? Color(hex: "#4CAF50") : Color(hex: "#F4505E"),
+                style: StrokeStyle(lineWidth: 1.2, lineCap: .round, lineJoin: .round)
+            )
+        }
     }
 }
