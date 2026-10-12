@@ -147,58 +147,98 @@ private struct AddExchangeSheet: View {
     @State private var error: String?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 0) {
+            // Title bar
             Text(String(localized: "portfolio.add-exchange"))
-                .font(.headline)
+                .font(.system(size: 13, weight: .semibold))
+                .padding(.bottom, 16)
 
-            Picker(String(localized: "portfolio.exchange"), selection: $selectedExchange) {
-                ForEach(ExchangeKind.allCases, id: \.rawValue) { ex in
-                    Text(verbatim: ex.name).tag(ex)
+            // Exchange dropdown (menu, not segmented — 5 items is too wide)
+            HStack {
+                Text(String(localized: "portfolio.exchange"))
+                    .font(.system(size: 12))
+                    .foregroundColor(Color(hex: "#8E939C"))
+                    .frame(width: 80, alignment: .leading)
+                Picker("", selection: $selectedExchange) {
+                    ForEach(ExchangeKind.allCases, id: \.rawValue) { ex in
+                        Text(verbatim: ex.name).tag(ex)
+                    }
                 }
+                .pickerStyle(.menu)
+                .labelsHidden()
+                .onChange(of: selectedExchange) { _, _ in error = nil; apiKey = ""; apiSecret = ""; passphrase = "" }
             }
-            .pickerStyle(.segmented)
-            .onChange(of: selectedExchange) { _, _ in error = nil }
+            .padding(.bottom, 10)
 
+            // Instructions
             instructions(for: selectedExchange)
                 .font(.system(size: 11))
-                .foregroundColor(Color(hex: "#8E939C"))
+                .foregroundColor(Color(hex: "#6B7079"))
                 .fixedSize(horizontal: false, vertical: true)
+                .padding(.bottom, 12)
 
-            SecureField("API Key", text: $apiKey)
-                .textFieldStyle(.roundedBorder)
-            SecureField("API Secret", text: $apiSecret)
-                .textFieldStyle(.roundedBorder)
+            // Fields
+            fieldRow(label: "API Key", text: $apiKey)
+            fieldRow(label: "API Secret", text: $apiSecret, isSecret: true)
             if selectedExchange.needsPassphrase {
-                SecureField("Passphrase", text: $passphrase)
-                    .textFieldStyle(.roundedBorder)
+                fieldRow(label: "Passphrase", text: $passphrase, isSecret: true)
             }
 
             if let err = error {
                 Text(verbatim: err)
                     .font(.system(size: 11))
-                    .foregroundColor(.red)
+                    .foregroundColor(Color(hex: "#F4505E"))
                     .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 4)
             }
 
-            HStack {
+            Spacer().frame(height: 16)
+
+            // Buttons
+            HStack(spacing: 8) {
                 Button(String(localized: "Cancel")) { dismiss() }
+                    .keyboardShortcut(.cancelAction)
                 Spacer()
                 Button {
                     Task { await testAndSave() }
                 } label: {
                     if testing {
-                        ProgressView().scaleEffect(0.7)
+                        HStack(spacing: 6) {
+                            ProgressView().scaleEffect(0.75).frame(width: 14, height: 14)
+                            Text(String(localized: "portfolio.testing"))
+                        }
                     } else {
                         Text(String(localized: "portfolio.test-save"))
                     }
                 }
                 .buttonStyle(.borderedProminent)
+                .keyboardShortcut(.defaultAction)
                 .disabled(testing || apiKey.isEmpty || apiSecret.isEmpty
                           || (selectedExchange.needsPassphrase && passphrase.isEmpty))
             }
         }
         .padding(20)
-        .frame(width: 380)
+        .frame(width: 360)
+    }
+
+    @ViewBuilder
+    private func fieldRow(label: String, text: Binding<String>, isSecret: Bool = false) -> some View {
+        HStack(alignment: .center, spacing: 8) {
+            Text(label)
+                .font(.system(size: 12))
+                .foregroundColor(Color(hex: "#8E939C"))
+                .frame(width: 80, alignment: .leading)
+            Group {
+                if isSecret {
+                    SecureField("", text: text)
+                } else {
+                    TextField("", text: text)
+                }
+            }
+            .textFieldStyle(.roundedBorder)
+            .font(.system(size: 12, design: .monospaced))
+        }
+        .padding(.bottom, 8)
     }
 
     @MainActor
@@ -260,49 +300,85 @@ private struct AddWalletSheet: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 0) {
             Text(String(localized: "portfolio.add-wallet"))
-                .font(.headline)
+                .font(.system(size: 13, weight: .semibold))
+                .padding(.bottom, 16)
 
-            Picker(String(localized: "portfolio.network"), selection: $selectedKind) {
-                ForEach(WalletKind.allCases, id: \.rawValue) { k in
-                    Text(verbatim: k.name).tag(k)
+            // Network picker — only 3 items, menu is cleaner
+            HStack {
+                Text(String(localized: "portfolio.network"))
+                    .font(.system(size: 12))
+                    .foregroundColor(Color(hex: "#8E939C"))
+                    .frame(width: 80, alignment: .leading)
+                Picker("", selection: $selectedKind) {
+                    ForEach(WalletKind.allCases, id: \.rawValue) { k in
+                        Text(verbatim: k.name).tag(k)
+                    }
                 }
+                .pickerStyle(.menu)
+                .labelsHidden()
+                .onChange(of: selectedKind) { _, _ in error = nil; address = "" }
             }
-            .pickerStyle(.segmented)
-            .onChange(of: selectedKind) { _, _ in error = nil }
+            .padding(.bottom, 12)
 
-            TextField(selectedKind.placeholder, text: $address)
-                .textFieldStyle(.roundedBorder)
-                .font(.system(size: 11, design: .monospaced))
+            // Address field
+            HStack(alignment: .center, spacing: 8) {
+                Text("Address")
+                    .font(.system(size: 12))
+                    .foregroundColor(Color(hex: "#8E939C"))
+                    .frame(width: 80, alignment: .leading)
+                TextField(selectedKind.placeholder, text: $address)
+                    .textFieldStyle(.roundedBorder)
+                    .font(.system(size: 11, design: .monospaced))
+            }
+            .padding(.bottom, 8)
 
-            TextField(String(localized: "portfolio.wallet-label"), text: $label)
-                .textFieldStyle(.roundedBorder)
+            // Label field
+            HStack(alignment: .center, spacing: 8) {
+                Text(String(localized: "portfolio.wallet-label"))
+                    .font(.system(size: 12))
+                    .foregroundColor(Color(hex: "#8E939C"))
+                    .frame(width: 80, alignment: .leading)
+                TextField("My wallet", text: $label)
+                    .textFieldStyle(.roundedBorder)
+                    .font(.system(size: 12))
+            }
+            .padding(.bottom, 10)
 
             Text(String(localized: "portfolio.wallet-hint"))
                 .font(.system(size: 11))
-                .foregroundColor(Color(hex: "#8E939C"))
+                .foregroundColor(Color(hex: "#6B7079"))
+                .fixedSize(horizontal: false, vertical: true)
 
             if let err = error {
                 Text(verbatim: err)
                     .font(.system(size: 11))
-                    .foregroundColor(.red)
+                    .foregroundColor(Color(hex: "#F4505E"))
                     .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 4)
             }
 
-            HStack {
+            Spacer().frame(height: 16)
+
+            HStack(spacing: 8) {
                 Button(String(localized: "Cancel")) { dismiss() }
+                    .keyboardShortcut(.cancelAction)
                 Spacer()
                 Button {
                     Task { await verifyAndSave() }
                 } label: {
                     if testing {
-                        ProgressView().scaleEffect(0.7)
+                        HStack(spacing: 6) {
+                            ProgressView().scaleEffect(0.75).frame(width: 14, height: 14)
+                            Text(String(localized: "portfolio.testing"))
+                        }
                     } else {
                         Text(String(localized: "portfolio.verify-save"))
                     }
                 }
                 .buttonStyle(.borderedProminent)
+                .keyboardShortcut(.defaultAction)
                 .disabled(testing || !isAddressPlausible)
             }
         }
