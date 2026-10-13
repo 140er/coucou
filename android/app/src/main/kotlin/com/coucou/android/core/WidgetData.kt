@@ -28,6 +28,15 @@ enum class WidgetTone(val rgb: Rgb) {
     companion object {
         private fun c(v: Double) = (v.coerceIn(0.0, 1.0) * 255).roundToInt()
 
+        /** The tone of a [Glance] (the summary widget, the tile and the notification share these five). */
+        fun of(tone: GlanceTone): WidgetTone = when (tone) {
+            GlanceTone.CALM -> MUTED
+            GlanceTone.OK -> DONE
+            GlanceTone.BUSY -> WORKING
+            GlanceTone.ATTENTION -> ATTENTION
+            GlanceTone.TROUBLE -> TROUBLE
+        }
+
         /** The tone of one agent's state; a computer that is not connected is always muted. */
         fun of(state: BotState, connected: Boolean = true): WidgetTone = if (!connected) MUTED else when (state) {
             BotState.APPROVAL, BotState.QUESTION -> ATTENTION
@@ -155,6 +164,9 @@ enum class WidgetSample(val key: String) {
         fun parse(key: String?): WidgetSample? = values().firstOrNull { it.key == key?.trim()?.lowercase() }
     }
 }
+
+/** The state of Mochi's face on the summary widget: the most urgent agent's, else calm when connected and asleep when not. */
+fun Glance.mood(): BotState = lines.firstOrNull()?.state ?: if (connected) BotState.IDLE else BotState.SLEEPING
 
 object WidgetData {
     /** Rows on the List widget. */
