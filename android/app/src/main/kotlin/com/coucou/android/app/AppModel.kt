@@ -335,6 +335,7 @@ class AppModel(private val context: Context) : LinkListener {
         val g = glance()
         notifier.updateOngoing(this, g)
         GlanceWidget.update(context, g)
+        WidgetHub.update(context, com.coucou.android.core.WidgetData.build(g, sessions, this::agentName))
         GlanceTile.requestUpdate(context)
     }
 

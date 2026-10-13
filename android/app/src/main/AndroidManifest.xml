@@ -74,6 +74,20 @@
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/coucou_widget_info" />
         </receiver>
 
+        <!-- The Solo and List widgets: Mochi and the agents, pushed by the app when something changes (no timer). -->
+        <receiver android:name=".app.SoloWidget" android:exported="true" android:label="@string/widget_solo_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/coucou_solo_widget_info" />
+        </receiver>
+        <receiver android:name=".app.ListWidget" android:exported="true" android:label="@string/widget_list_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/coucou_list_widget_info" />
+        </receiver>
+
         <!-- The quick-settings tile: on while the computer is connected; a tap opens Coucou. -->
         <service
             android:name=".app.GlanceTile"

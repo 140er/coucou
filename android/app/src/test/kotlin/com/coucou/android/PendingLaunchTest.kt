@@ -79,6 +79,43 @@ class PendingLaunchTest {
     @Test fun everyOtherComponentWithAnIntentFilterIsTheLauncher() {
         val m = manifest()
         val exported = Regex("""android:name="([^"]+)"[^>]*android:exported="true"""").findAll(m).map { it.groupValues[1] }.toSet()
-        assertEquals(setOf(".MainActivity", ".app.GlanceWidget", ".app.GlanceTile"), exported)
+        assertEquals(setOf(".MainActivity", ".app.GlanceWidget", ".app.GlanceTile", ".app.SoloWidget", ".app.ListWidget"), exported)
+    }
+
+    @Test fun aWidgetRowAsksForASessionOnce() {
+        launch.requestSession("agent_codex")
+        assertEquals("agent_codex", launch.takeSession())
+        assertNull("only once", launch.takeSession())
+    }
+
+    @Test fun aStaleOrBadSessionRequestIsDropped() {
+        launch.requestSession("agent_codex")
+        now += PendingLaunch.TTL_MS + 1
+        assertNull(launch.takeSession())
+        launch.requestSession("")
+        assertNull(launch.takeSession())
+        launch.requestSession(null)
+        assertNull(launch.takeSession())
+        launch.requestSession("x".repeat(PendingLaunch.MAX_PILL + 1))
+        assertNull(launch.takeSession())
+    }
+
+    @Test fun theSessionSlotAndTheAllowSlotNeverMeet() {
+        launch.request("fp-1", allow = true)
+        launch.requestSession("agent_codex")
+        assertEquals("agent_codex", launch.takeSession())
+        assertEquals("the Allow is still there", PendingLaunch.Request("fp-1", true), launch.take())
+        launch.requestSession("agent_codex")
+        assertNull("a session request is never an Allow", launch.take())
+        assertEquals("agent_codex", launch.takeSession())
+    }
+
+    @Test fun theExportedActivityOnlyAsksTheModelForTheSessionToOpen() {
+        val src = File(main + "MainActivity.kt").readText()
+        assertTrue(src.contains("model.launch.takeSession()"))
+        assertFalse(src.contains("EXTRA_SESSION"))
+        val callers = File(main).walkTopDown().filter { it.extension == "kt" }
+            .filter { it.readText().contains("launch.requestSession(") }.map { it.name }.toList()
+        assertEquals(listOf("LaunchActivity.kt"), callers)
     }
 }
