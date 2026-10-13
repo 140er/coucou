@@ -670,7 +670,8 @@ class AppModel(private val context: Context) : LinkListener {
             chatOffered = Protocol.CAP_CHAT in caps
             detailsOffered = Protocol.CAP_DETAILS in caps
             diffsOffered = Protocol.CAP_DIFFS in caps
-            if (Protocol.CAP_USAGE !in caps) { usage = null; pushGlance() } // the Usage Ring says to turn it on
+            if (Protocol.CAP_USAGE !in caps) usage = null
+            pushGlance() // the Usage Ring says to turn it on
             if (Protocol.CAP_SERVICES !in caps) services = emptyList()
         }
     }
