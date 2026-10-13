@@ -12,12 +12,11 @@ import android.widget.RemoteViews
 import com.coucou.android.MainActivity
 import com.coucou.android.R
 import com.coucou.android.core.WidgetContent
-import com.coucou.android.core.WidgetData
 import com.coucou.android.core.WidgetTone
 import kotlin.math.roundToInt
 
 /**
- * The one place that pushes the Solo and List widgets. The app calls [update] on every change of sessions, requests and
+ * The one place that pushes the Widgets (Solo, List, Mochi Big, Status Pill, Waiting Alert, Usage Ring, Today and Mochi Mood). The app calls [update] on every change of sessions, requests and
  * link (from AppModel.pushGlance); a push whose content is the same as the last one is dropped, so a change that does not
  * show on a widget costs nothing. There is no timer: a widget is drawn when something changes or when it is added.
  */
@@ -27,11 +26,17 @@ object WidgetHub {
     private val widgets = listOf(
         Kind(SoloWidget::class.java) { c, w -> SoloWidget.views(c, w) },
         Kind(ListWidget::class.java) { c, w -> ListWidget.views(c, w) },
+        Kind(MochiBigWidget::class.java) { c, w -> MochiBigWidget.views(c, w) },
+        Kind(StatusPillWidget::class.java) { c, w -> StatusPillWidget.views(c, w) },
+        Kind(WaitingAlertWidget::class.java) { c, w -> WaitingAlertWidget.views(c, w) },
+        Kind(UsageRingWidget::class.java) { c, w -> UsageRingWidget.views(c, w) },
+        Kind(TodayWidget::class.java) { c, w -> TodayWidget.views(c, w) },
+        Kind(MoodWidget::class.java) { c, w -> MoodWidget.views(c, w) },
     )
 
     private var last: WidgetContent? = null
 
-    /** Pushes [content] to every Solo and List widget on the home screen (none: nothing happens). */
+    /** Pushes [content] to every Widget of the family on the home screen (none: nothing happens). */
     @Synchronized
     fun update(context: Context, content: WidgetContent) {
         if (content == last) return
@@ -52,9 +57,7 @@ object WidgetHub {
 
     /** Draws the widgets the system just created or resized, from what the app says now. */
     fun refresh(context: Context, manager: AppWidgetManager, ids: IntArray, views: (Context, WidgetContent) -> RemoteViews) {
-        val model = (context.applicationContext as CoucouApp).model
-        val content = WidgetData.build(model.glance(), model.sessions, model::agentName)
-        val rendered = views(context, content)
+        val rendered = views(context, current(context))
         for (id in ids) runCatching { manager.updateAppWidget(id, rendered) }
     }
 
@@ -90,6 +93,16 @@ object WidgetHub {
         WidgetTone.TROUBLE -> R.drawable.widget_tint_trouble
     }
 
+    /** What the app says now. */
+    private fun current(context: Context): WidgetContent = (context.applicationContext as CoucouApp).model.widgetContent()
+
+    /** Draws every Widget again from what the app says now, even if nothing looks different (a new day, a new time zone). */
+    @Synchronized
+    fun refreshAll(context: Context) {
+        last = null
+        update(context, current(context))
+    }
+
     /** Opens the app on Home. */
     fun openApp(context: Context, code: Int): PendingIntent {
         val open = Intent(context, MainActivity::class.java)
@@ -112,4 +125,10 @@ object WidgetHub {
     const val CODE_SOLO = 0x5100
     const val CODE_LIST_HEADER = 0x5200
     const val CODE_LIST_ROW = 0x5300
+    const val CODE_BIG = 0x5400
+    const val CODE_PILL = 0x5500
+    const val CODE_ALERT = 0x5600
+    const val CODE_RING = 0x5700
+    const val CODE_TODAY = 0x5800
+    const val CODE_MOOD = 0x5900
 }

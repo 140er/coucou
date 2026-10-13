@@ -79,7 +79,10 @@ class PendingLaunchTest {
     @Test fun everyOtherComponentWithAnIntentFilterIsTheLauncher() {
         val m = manifest()
         val exported = Regex("""android:name="([^"]+)"[^>]*android:exported="true"""").findAll(m).map { it.groupValues[1] }.toSet()
-        assertEquals(setOf(".MainActivity", ".app.GlanceWidget", ".app.GlanceTile", ".app.SoloWidget", ".app.ListWidget"), exported)
+        assertEquals(setOf(
+                ".MainActivity", ".app.GlanceWidget", ".app.GlanceTile", ".app.SoloWidget", ".app.ListWidget", ".app.MochiBigWidget",
+                ".app.StatusPillWidget", ".app.WaitingAlertWidget", ".app.UsageRingWidget", ".app.TodayWidget", ".app.MoodWidget",
+            ), exported)
     }
 
     @Test fun aWidgetRowAsksForASessionOnce() {

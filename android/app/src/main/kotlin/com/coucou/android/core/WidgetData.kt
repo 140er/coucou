@@ -1,6 +1,7 @@
 package com.coucou.android.core
 
 import com.coucou.android.link.SessionInfo
+import com.coucou.android.link.UsageSnapshot
 import com.coucou.android.mochi.BotState
 import com.coucou.android.mochi.MochiConst
 import com.coucou.android.mochi.Rgb
@@ -41,8 +42,24 @@ data class WidgetTile(val pillId: String, val name: String, val state: BotState,
     val tone: WidgetTone get() = WidgetTone.of(state)
 }
 
+/** The plan usage a ring shows: which plan and window, and how much of it is used. */
+data class UsageRing(val plan: String, val window: String, val pct: Int) {
+    /** 0 to 1, for the arc. */
+    val fraction: Float get() = pct.coerceIn(0, 100) / 100f
+
+    /** "Claude · 5 h". */
+    val label: String get() = "$plan · $window"
+
+    /** Green while there is room, orange from half, red from four fifths: the same rule as Home ([PlanText]). */
+    val tone: WidgetTone get() = when (PlanText.level(pct)) {
+        PlanText.Level.LOW -> WidgetTone.DONE
+        PlanText.Level.MEDIUM -> WidgetTone.ATTENTION
+        PlanText.Level.HIGH -> WidgetTone.TROUBLE
+    }
+}
+
 /**
- * Everything the Solo and List widgets draw, as plain data so two pushes can be compared and the identical one skipped.
+ * Everything the Widgets draw, as plain data so two pushes can be compared and the identical one skipped.
  * Built from the same sessions, order and wording as [GlanceBuilder], so the widgets never say anything the notification,
  * the tile and the first widget do not.
  */
@@ -54,6 +71,10 @@ data class WidgetContent(
     val waiting: Int,
     /** Most urgent first. Empty while the computer is not connected. */
     val tiles: List<WidgetTile>,
+    /** The plan usage for the ring; null when the computer does not send it (its switch is off) or is not connected. */
+    val ring: UsageRing? = null,
+    /** Agent tasks finished today, counted on this phone only. */
+    val today: Int = 0,
 ) {
     /** The agent Solo shows. */
     val top: WidgetTile? get() = tiles.firstOrNull()
@@ -64,6 +85,44 @@ data class WidgetContent(
         !connected -> "Waiting for your computer"
         else -> "No agents running"
     }
+
+    /** What Mochi says in his speech bubble: the agent's name and its state, nothing about what it is doing. */
+    val bubble: String get() {
+        val t = top ?: return emptyLine.orEmpty()
+        if (waiting > 1) return "$waiting things are waiting for you"
+        return when (t.state) {
+            BotState.APPROVAL -> "${t.name} is waiting for you"
+            BotState.QUESTION -> "${t.name} has a question"
+            BotState.WORKING -> "${t.name} is working"
+            BotState.THINKING -> "${t.name} is thinking"
+            BotState.SEARCHING -> "${t.name} is searching"
+            BotState.FINISHED -> "${t.name} is done"
+            BotState.ERROR -> "${t.name} stopped on an error"
+            BotState.RATELIMIT -> "${t.name} hit a limit"
+            BotState.DIZZY -> "${t.name} needs a look"
+            BotState.IDLE, BotState.SLEEPING -> "${t.name} is idle"
+        }
+    }
+
+    /** The Waiting Alert's line: "2 waiting" in orange, or a calm word. */
+    val alertLine: String get() = when {
+        !connected -> "Not connected"
+        waiting > 0 -> "$waiting waiting"
+        else -> "All calm"
+    }
+
+    /** The line under the alert: who is waiting, or why there is nothing to say. */
+    val alertSub: String get() = when {
+        !connected -> "Waiting for your computer"
+        waiting > 0 -> top?.name.orEmpty()
+        else -> "Nothing needs you"
+    }
+
+    /** Mochi's face on the Today widget: pleased once something finished today, calm before. */
+    val todayMood: BotState get() = if (today > 0) BotState.FINISHED else BotState.IDLE
+
+    /** The Today widget glows green once something finished today. */
+    val todayLook: WidgetTone get() = if (today > 0) WidgetTone.DONE else WidgetTone.MUTED
 
     /** The look of the whole widget: orange while something waits for you, else the top agent's tone, muted when nothing runs. */
     val look: WidgetTone get() = when {
@@ -81,12 +140,31 @@ object WidgetData {
     const val MAX_ROWS = 5
     private val FALLBACK = GlanceTone.CALM.argb
 
-    fun build(glance: Glance, sessions: List<SessionInfo>, nameOf: (String) -> String): WidgetContent {
+    fun build(
+        glance: Glance,
+        sessions: List<SessionInfo>,
+        nameOf: (String) -> String,
+        usage: UsageSnapshot? = null,
+        today: Int = 0,
+        nowMs: Long = 0L,
+    ): WidgetContent {
         val tiles = if (!glance.connected) emptyList() else sessions
             .sortedBy { GlanceBuilder.rank(it.state) }
             .take(MAX_ROWS)
             .map { WidgetTile(it.pillId, nameOf(it.pillId), it.state, GlanceBuilder.lineOf(it), colourOf(it)) }
-        return WidgetContent(glance.headline, glance.tone, glance.connected, glance.waiting, tiles)
+        val ring = if (glance.connected) ring(usage, nowMs) else null
+        return WidgetContent(glance.headline, glance.tone, glance.connected, glance.waiting, tiles, ring, today.coerceAtLeast(0))
+    }
+
+    /** Claude's five-hour window first, then its week, then Codex; null when the computer sent none of them. */
+    fun ring(usage: UsageSnapshot?, nowMs: Long): UsageRing? {
+        usage ?: return null
+        for ((name, plan) in listOf("Claude" to usage.claude, "Codex" to usage.codex)) {
+            plan ?: continue
+            plan.fiveHour?.let { return UsageRing(name, "5 h", PlanText.effectivePct(it, nowMs)) }
+            plan.sevenDay?.let { return UsageRing(name, "week", PlanText.effectivePct(it, nowMs)) }
+        }
+        return null
     }
 
     /** The session's own colour, else its pill's, else grey. */

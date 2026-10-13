@@ -12,11 +12,19 @@ class WidgetSurfacesTest {
     private fun read(path: String) = File(path).readText()
     private val manifest get() = read("src/main/AndroidManifest.xml")
 
-    private val sources = listOf("app/SoloWidget.kt", "app/ListWidget.kt", "app/WidgetHub.kt", "app/MochiBitmap.kt", "core/WidgetData.kt")
-        .associateWith { read(main + it) }
+    /** Every widget source: the providers, the hub, the pictures, the pure logic and the day's count. */
+    private val widgets = listOf(
+        "SoloWidget" to "coucou_solo_widget_info", "ListWidget" to "coucou_list_widget_info", "MochiBigWidget" to "coucou_big_widget_info",
+        "StatusPillWidget" to "coucou_pill_widget_info", "WaitingAlertWidget" to "coucou_alert_widget_info",
+        "UsageRingWidget" to "coucou_ring_widget_info", "TodayWidget" to "coucou_today_widget_info", "MoodWidget" to "coucou_mood_widget_info",
+    )
+    private val sources = (
+        widgets.map { "app/${it.first}.kt" } +
+            listOf("app/WidgetHub.kt", "app/MochiBitmap.kt", "app/RingBitmap.kt", "app/TodayStore.kt", "core/WidgetData.kt", "core/TodayCounter.kt")
+        ).associateWith { read(main + it) }
 
     @Test fun theWidgetsAreRegisteredAndNeverWakeOnATimer() {
-        for ((cls, info) in listOf("SoloWidget" to "coucou_solo_widget_info", "ListWidget" to "coucou_list_widget_info")) {
+        for ((cls, info) in widgets) {
             assertTrue(manifest.contains("""android:name=".app.$cls""""))
             assertTrue(manifest.contains("@xml/$info"))
             val xml = read("src/main/res/xml/$info.xml")
@@ -52,27 +60,42 @@ class WidgetSurfacesTest {
         assertEquals(2, Regex("FLAG_IMMUTABLE").findAll(hub).count())
         assertTrue(hub.contains("Intent(context, LaunchActivity::class.java)"))
         assertTrue(hub.contains("Intent(context, MainActivity::class.java)"))
-        for (src in listOf(sources.getValue("app/SoloWidget.kt"), sources.getValue("app/ListWidget.kt"))) {
-            assertFalse(src.contains("PendingIntent.get"))
-            assertFalse(src.contains("Intent(\""))
+        for ((name, src) in sources) {
+            if (name == "app/WidgetHub.kt") continue
+            assertFalse("$name builds its own PendingIntent", src.contains("PendingIntent.get"))
+            assertFalse("$name builds its own Intent", src.contains("Intent(\""))
         }
     }
 
     @Test fun everyRowAndEveryWidgetHasItsOwnRequestCode() {
         val hub = sources.getValue("app/WidgetHub.kt")
         val codes = Regex("""const val CODE_\w+ = (0x[0-9A-Fa-f]+)""").findAll(hub).map { it.groupValues[1] }.toList()
-        assertEquals(3, codes.size)
+        assertEquals(9, codes.size)
         assertEquals(codes.size, codes.toSet().size)
         // The rows use CODE_LIST_ROW + index: the ranges must not run into the next code.
         val values = codes.map { it.removePrefix("0x").toInt(16) }.sorted()
         assertTrue(values.zipWithNext().all { (a, b) -> b - a >= 16 })
         assertTrue(sources.getValue("app/ListWidget.kt").contains("WidgetHub.CODE_LIST_ROW + i"))
+        // Every provider uses its own code, and the family uses each code once.
+        val used = widgets.map { (cls, _) -> Regex("""WidgetHub\.(CODE_\w+)""").findAll(sources.getValue("app/$cls.kt")).map { it.groupValues[1] }.toSet() }
+        for (u in used) assertTrue(u.isNotEmpty())
+        val flat = used.flatten()
+        assertEquals("a code is shared by two Widgets: $flat", flat.size, flat.toSet().size)
     }
 
     @Test fun theImageAndTheBadgeAreDescribed() {
-        for (cls in listOf("app/SoloWidget.kt")) assertTrue(sources.getValue(cls).contains("setContentDescription(R.id.solo_mochi"))
+        assertTrue(sources.getValue("app/SoloWidget.kt").contains("setContentDescription(R.id.solo_mochi"))
         assertTrue(sources.getValue("app/SoloWidget.kt").contains("setContentDescription(R.id.solo_badge"))
         assertTrue(sources.getValue("app/ListWidget.kt").contains("setContentDescription(R.id.list_badge"))
+        // Every Widget with a picture describes it; every layout image that is not decoration has a description or is hidden from it.
+        for ((cls, _) in widgets) assertTrue("$cls has no content description", sources.getValue("app/$cls.kt").contains("setContentDescription("))
+        for (layout in File("src/main/res/layout").listFiles()!!.filter { it.name.startsWith("widget_") && it.name != "widget_glance.xml" }) {
+            for (img in Regex("""<ImageView[^>]*>""").findAll(layout.readText())) {
+                val tag = img.value
+                assertTrue("${layout.name}: an image with neither a description nor importantForAccessibility=no: $tag",
+                    tag.contains("android:contentDescription") || tag.contains("""android:importantForAccessibility="no""""))
+            }
+        }
     }
 
     @Test fun everyChangeOfThePictureReachesTheHub() {

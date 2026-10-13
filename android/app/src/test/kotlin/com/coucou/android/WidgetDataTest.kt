@@ -5,7 +5,12 @@ import com.coucou.android.core.GlanceBuilder
 import com.coucou.android.core.GlanceTone
 import com.coucou.android.core.WidgetData
 import com.coucou.android.link.LinkState
+import com.coucou.android.link.PlanUsage
+import com.coucou.android.link.PlanWindow
 import com.coucou.android.link.SessionInfo
+import com.coucou.android.link.UsageSnapshot
+import com.coucou.android.core.UsageRing
+import com.coucou.android.core.WidgetTone
 import com.coucou.android.mochi.BotState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -22,7 +27,7 @@ class WidgetDataTest {
         GlanceBuilder.build(true, link, "PC", sessions, approvals) { names[it] ?: "An agent" }
 
     private fun build(sessions: List<SessionInfo>, approvals: Int = 0, link: LinkState = LinkState.CONNECTED) =
-        WidgetData.build(glance(sessions, approvals, link), sessions) { names[it] ?: "An agent" }
+        WidgetData.build(glance(sessions, approvals, link), sessions, nameOf = { names[it] ?: "An agent" })
 
     @Test fun theMostUrgentAgentComesFirstLikeOnTheOtherSurfaces() {
         val sessions = listOf(s("agent_amp", BotState.IDLE), s("agent_codex", BotState.WORKING), s("agent_gemini", BotState.APPROVAL))
@@ -108,5 +113,77 @@ class WidgetDataTest {
         val t = build(listOf(s("agent_codex", BotState.APPROVAL), s("agent_amp", BotState.FINISHED))).tiles
         assertEquals(com.coucou.android.core.WidgetTone.ATTENTION, t[0].tone)
         assertEquals(com.coucou.android.core.WidgetTone.DONE, t[1].tone)
+    }
+
+    // ── The speech bubble, the alert, the ring and the day's count ──────────────────────────────────
+
+    @Test fun theBubbleSaysWhoAndHowNeverWhat() {
+        fun bubble(state: BotState, approvals: Int = 0) = build(listOf(s("agent_codex", state, status = "editing secret.txt")), approvals).bubble
+        assertEquals("Codex is working", bubble(BotState.WORKING))
+        assertEquals("Codex is thinking", bubble(BotState.THINKING))
+        assertEquals("Codex is searching", bubble(BotState.SEARCHING))
+        assertEquals("Codex is waiting for you", bubble(BotState.APPROVAL, approvals = 1))
+        assertEquals("Codex has a question", bubble(BotState.QUESTION))
+        assertEquals("Codex is done", bubble(BotState.FINISHED))
+        assertEquals("Codex stopped on an error", bubble(BotState.ERROR))
+        assertEquals("Codex hit a limit", bubble(BotState.RATELIMIT))
+        assertEquals("Codex needs a look", bubble(BotState.DIZZY))
+        assertEquals("Codex is idle", bubble(BotState.IDLE))
+        for (st in BotState.values()) assertFalse(bubble(st).contains("secret"))
+    }
+
+    @Test fun theBubbleCountsWhatWaitsAndSpeaksWhenThereIsNoAgent() {
+        assertEquals("3 things are waiting for you", build(listOf(s("agent_codex", BotState.APPROVAL)), approvals = 3).bubble)
+        assertEquals("No agents running", build(emptyList()).bubble)
+        assertEquals("Waiting for your computer", build(emptyList(), link = LinkState.DISCONNECTED).bubble)
+    }
+
+    @Test fun theAlertIsCalmUntilSomethingWaits() {
+        assertEquals("All calm", build(emptyList()).alertLine)
+        assertEquals("1 waiting", build(listOf(s("agent_codex", BotState.APPROVAL)), approvals = 1).alertLine)
+        assertEquals("3 waiting", build(listOf(s("agent_codex", BotState.QUESTION)), approvals = 2).alertLine)
+        assertEquals("Not connected", build(emptyList(), link = LinkState.DISCONNECTED).alertLine)
+        assertEquals(WidgetTone.ATTENTION, build(listOf(s("agent_codex", BotState.APPROVAL)), approvals = 1).look)
+        assertEquals(WidgetTone.MUTED, build(emptyList()).look)
+    }
+
+    private val now = 1_000_000L
+    private fun usage(claude5: Int? = null, claudeWeek: Int? = null, codex5: Int? = null, resets: Long = now + 3_600_000) = UsageSnapshot(
+        if (claude5 != null || claudeWeek != null) PlanUsage(claude5?.let { PlanWindow(it, resets) }, claudeWeek?.let { PlanWindow(it, resets) }) else null,
+        codex5?.let { PlanUsage(PlanWindow(it, resets), null) },
+    )
+
+    private fun built(u: UsageSnapshot?, link: LinkState = LinkState.CONNECTED) =
+        WidgetData.build(glance(emptyList(), 0, link), emptyList(), { "x" }, u, today = 0, nowMs = now)
+
+    @Test fun theRingPrefersClaudesFiveHoursThenItsWeekThenCodex() {
+        assertEquals(UsageRing("Claude", "5 h", 42), built(usage(claude5 = 42, claudeWeek = 10, codex5 = 90)).ring)
+        assertEquals(UsageRing("Claude", "week", 10), built(usage(claudeWeek = 10, codex5 = 90)).ring)
+        assertEquals(UsageRing("Codex", "5 h", 90), built(usage(codex5 = 90)).ring)
+        assertNull(built(usage()).ring)
+        assertNull("the switch is off", built(null).ring)
+    }
+
+    @Test fun aWindowThatHasResetCountsAsZeroAndNothingShowsWhenNotConnected() {
+        assertEquals(0, built(usage(claude5 = 80, resets = now - 1)).ring!!.pct)
+        assertNull(built(usage(claude5 = 42), LinkState.DISCONNECTED).ring)
+    }
+
+    @Test fun theRingIsGreenThenOrangeThenRedLikeHome() {
+        assertEquals(WidgetTone.DONE, UsageRing("Claude", "5 h", 49).tone)
+        assertEquals(WidgetTone.ATTENTION, UsageRing("Claude", "5 h", 50).tone)
+        assertEquals(WidgetTone.ATTENTION, UsageRing("Claude", "5 h", 79).tone)
+        assertEquals(WidgetTone.TROUBLE, UsageRing("Claude", "5 h", 80).tone)
+        assertEquals(0.42f, UsageRing("Claude", "5 h", 42).fraction, 0.0001f)
+        assertEquals(1f, UsageRing("Claude", "5 h", 140).fraction, 0f)
+        assertEquals(0f, UsageRing("Claude", "5 h", -3).fraction, 0f)
+        assertEquals("Claude · 5 h", UsageRing("Claude", "5 h", 1).label)
+    }
+
+    @Test fun todayRidesAlongAndIsNeverNegative() {
+        val g = glance(emptyList())
+        assertEquals(4, WidgetData.build(g, emptyList(), { "x" }, today = 4).today)
+        assertEquals(0, WidgetData.build(g, emptyList(), { "x" }, today = -2).today)
+        assertFalse(WidgetData.build(g, emptyList(), { "x" }, today = 4) == WidgetData.build(g, emptyList(), { "x" }, today = 5))
     }
 }

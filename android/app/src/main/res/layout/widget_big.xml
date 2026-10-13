@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The Mochi Big widget: a large Mochi with a glow, a speech bubble that says who is doing what in plain words (never a command or a file), and the agent's name and state. Plain RemoteViews. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/big_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_card">
+
+    <FrameLayout
+        android:id="@+id/big_tint"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_margin="1dp"
+        android:background="@drawable/widget_tint_muted" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:padding="14dp">
+
+        <TextView
+            android:id="@+id/big_bubble"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/widget_bubble"
+            android:ellipsize="end"
+            android:gravity="center"
+            android:maxLines="2"
+            android:paddingStart="16dp"
+            android:paddingTop="10dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="10dp"
+            android:textColor="@color/widget_bubble_text"
+            android:textSize="@dimen/widget_text_name"
+            android:textStyle="bold" />
+
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="10dp"
+            android:importantForAccessibility="no"
+            android:src="@drawable/widget_bubble_tail" />
+
+        <ImageView
+            android:id="@+id/big_mochi"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:contentDescription="@string/widget_big_label"
+            android:scaleType="fitCenter" />
+
+        <LinearLayout
+            android:id="@+id/big_row"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:id="@+id/big_dot"
+                android:layout_width="@dimen/widget_dot"
+                android:layout_height="@dimen/widget_dot"
+                android:importantForAccessibility="no"
+                android:src="@drawable/widget_dot" />
+
+            <TextView
+                android:id="@+id/big_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="@color/widget_text"
+                android:textSize="@dimen/widget_text_name"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/big_state"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="@dimen/widget_text_state" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/big_badge"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|end"
+        android:layout_margin="12dp"
+        android:background="@drawable/widget_badge_bg"
+        android:gravity="center"
+        android:minWidth="22dp"
+        android:paddingStart="6dp"
+        android:paddingEnd="6dp"
+        android:textColor="#FF1C1C1E"
+        android:textSize="@dimen/widget_text_secondary"
+        android:textStyle="bold"
+        android:visibility="gone" />
+</FrameLayout>

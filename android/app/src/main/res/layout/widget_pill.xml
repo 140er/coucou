@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The Status Pill widget: one slim line with a dot in the state's tone, the agent's name and its state word. Plain RemoteViews. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/pill_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_card">
+
+    <FrameLayout
+        android:id="@+id/pill_tint"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_margin="1dp"
+        android:background="@drawable/widget_tint_muted" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="18dp"
+        android:paddingEnd="18dp">
+
+        <ImageView
+            android:id="@+id/pill_dot"
+            android:layout_width="@dimen/widget_dot"
+            android:layout_height="@dimen/widget_dot"
+            android:importantForAccessibility="no"
+            android:src="@drawable/widget_dot" />
+
+        <TextView
+            android:id="@+id/pill_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="@color/widget_text"
+            android:textSize="@dimen/widget_text_name"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/pill_state"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:gravity="end"
+            android:maxLines="1"
+            android:textColor="@color/widget_text_secondary"
+            android:textSize="@dimen/widget_text_state" />
+    </LinearLayout>
+</FrameLayout>
