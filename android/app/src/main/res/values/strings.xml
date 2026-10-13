@@ -51,6 +51,7 @@
     <string name="widget_btn_session_cd">Open the top agent</string>
     <string name="widget_btn_pair_cd">Pair again with your computer</string>
     <string name="widget_sample_claude">Claude Code</string>
+    <string name="widget_sample_claude_short">Claude</string>
     <string name="widget_sample_codex">Codex</string>
     <string name="widget_sample_gemini">Gemini CLI</string>
     <string name="widget_sample_approval">Waiting for your approval</string>
@@ -63,7 +64,7 @@
     <string name="widget_sample_ring_pct">70%</string>
     <string name="widget_sample_ring_label">Claude · 5 h</string>
     <string name="widget_sample_today">5</string>
-    <string name="widget_sample_two_agents">2 agents are working</string>
+    <string name="widget_sample_two_agents">2 agents working</string>
     <string name="widget_sample_thinking">Thinking</string>
     <string name="widget_sample_idle">Idle</string>
     <string name="widget_sample_waiting">Waiting</string>

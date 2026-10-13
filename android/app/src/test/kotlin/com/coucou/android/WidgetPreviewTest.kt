@@ -135,8 +135,8 @@ class WidgetPreviewTest {
         assertEquals(listOf("Waiting for you", "1", "Claude Code", "Waiting for your approval", "Codex", "Working", "Gemini CLI", "Finished"), list)
         assertEquals(3, Regex("""android:minHeight="@dimen/widget_row_min"""").findAll(preview("list")).count())
         assertTrue(text("big").containsAll(listOf("Claude Code is waiting for you", "Claude Code", "Waiting", "Home", "Chat", "Settings", "Recent", "Top agent", "Pair again")))
-        assertEquals(listOf("2 agents are working", "Claude Code", "Working", "Codex", "Thinking", "Gemini CLI", "Idle"), text("glance"))
-        assertEquals(listOf("Claude Code", "Working"), text("pill"))
+        assertEquals(listOf("2 agents working", "Claude Code", "Working", "Codex", "Thinking", "Gemini CLI", "Idle"), text("glance"))
+        assertEquals(listOf("Claude", "Working"), text("pill"))
         // The pill shows its four buttons: home, chat, settings and recent, in that order.
         assertEquals(listOf("ic_widget_home", "ic_widget_chat", "ic_widget_settings", "ic_widget_recent"), Regex("""@drawable/(ic_widget_\w+)""").findAll(preview("pill")).map { it.groupValues[1] }.toList())
         assertEquals(listOf("2 waiting", "Claude Code"), text("alert"))
@@ -245,6 +245,31 @@ class WidgetPreviewTest {
         }
         for (k in listOf("widget_btn_home", "widget_btn_chat", "widget_btn_settings", "widget_btn_recent", "widget_btn_session", "widget_btn_pair")) {
             for (word in listOf("statusText", "steps", ".command", "files")) assertFalse("$k says $word", strings.getValue(k).contains(word) && strings.getValue(k + "_cd").contains(word))
+        }
+    }
+
+    // ── Nothing is cut in a preview ─────────────────────────────────────────────────────────────────
+
+    /** A rough width in dp of one line of Roboto: about 0.5 em a character, 0.56 in bold. Good enough to catch a sentence that cannot fit. */
+    private fun width(text: String, sp: Double, bold: Boolean) = text.length * sp * (if (bold) 0.56 else 0.50)
+    private fun sample(key: String) = strings.getValue(key)
+
+    @Test fun theStatusPillPreviewFitsTheWidthOfA4x1OnA720pxPhone() {
+        // 720px at 2x is 360dp; a 4x1 there is about 330dp. Left of the four buttons (4 x 36 + 4 x 6) and the padding (16 + 8):
+        val room = 330 - 16 - 8 - (4 * 36 + 4 * 6)
+        val used = 10 + 8 + width(sample("widget_sample_claude_short"), 16.0, true) + 8 + width(sample("widget_sample_working"), 13.0, false)
+        assertTrue("dot, name and state word need ${used.toInt()}dp of the $room dp there", used <= room)
+        val xml = preview("pill")
+        assertTrue(xml.contains("@string/widget_sample_claude_short") && xml.contains("@string/widget_sample_working"))
+    }
+
+    @Test fun theSummaryPreviewFitsItsHeadlineAndItsLinesInTheRightColumn() {
+        // A 3x2 about 250dp wide: padding 12 + 12, Mochi 64 and 8 beside it.
+        val room = 250 - 24 - 64 - 8
+        assertTrue("headline ${width(sample("widget_sample_two_agents"), 16.0, true).toInt()}dp of $room", width(sample("widget_sample_two_agents"), 16.0, true) <= room)
+        for ((name, state) in listOf("widget_sample_claude" to "widget_sample_working", "widget_sample_codex" to "widget_sample_thinking", "widget_sample_gemini" to "widget_sample_idle")) {
+            val line = 8 + 6 + width(sample(name), 13.0, true) + 6 + width(sample(state), 12.0, false)
+            assertTrue("$name line needs ${line.toInt()}dp of $room", line <= room)
         }
     }
 }
