@@ -5,6 +5,10 @@
     <dimen name="widget_border_width">1dp</dimen>
     <dimen name="widget_pad">12dp</dimen>
     <dimen name="widget_row_min">48dp</dimen>
+    <dimen name="widget_button">36dp</dimen>
+    <dimen name="widget_button_pad">8dp</dimen>
+    <dimen name="widget_tile_radius">16dp</dimen>
+    <dimen name="widget_tile_height">52dp</dimen>
     <dimen name="widget_dot">10dp</dimen>
     <dimen name="widget_icon">18dp</dimen>
     <dimen name="widget_text_name">16sp</dimen>

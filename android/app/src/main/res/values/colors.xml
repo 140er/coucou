@@ -8,6 +8,8 @@
     <color name="widget_text_secondary">#B3FFFFFF</color>
     <color name="widget_bubble">#FFFFFFFF</color>
     <color name="widget_bubble_text">#FF1C1C1E</color>
+    <!-- The lighter circle or tile behind a button. -->
+    <color name="widget_button">#1FFFFFFF</color>
 
     <!-- The state palette: the same colours as Mochi's states (MochiConst) and WidgetTone. -->
     <color name="widget_tone_muted">#FF94A2B8</color>
