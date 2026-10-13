@@ -11,11 +11,22 @@ import com.coucou.android.mochi.Rgb
 import kotlin.math.roundToInt
 
 /**
- * How loud a widget looks: the colour of its dot, badge, glow and gradient. Taken from the app's own state colours
- * ([MochiConst]), so a Widget and Mochi on Home always agree. Waiting is orange, working blue, done green.
+ * The one palette of every Widget: the colour of the glow behind Mochi, the card's gradient and 1dp border, the status dot, the badge
+ * and the button tiles. Each tone has its colour in res/values/colors.xml (`widget_tone_<name>`, `widget_tint_<name>`,
+ * `widget_border_<name>`), and a test keeps the two in step; no Widget picks a colour of its own for a state.
+ *
+ * - [DONE] green: finished, Mochi's happy face.
+ * - [WORKING] blue.
+ * - [ATTENTION] orange: waiting for the user (an approval or a question).
+ * - [IDLE] soft grey: calm, "All calm", "No agents running".
+ * - [MUTED] muted grey, with the "not connected" icon: the computer is not there.
+ * - [TROUBLE] red: an agent stopped on an error or a limit.
+ *
+ * Taken from the app's own state colours ([MochiConst]), so a Widget and Mochi on Home always agree.
  */
 enum class WidgetTone(val rgb: Rgb) {
     MUTED(MochiConst.C_SLEEPING),
+    IDLE(Rgb(0.722, 0.741, 0.780)),
     WORKING(MochiConst.C_WORKING),
     ATTENTION(MochiConst.C_APPROVAL),
     DONE(MochiConst.C_FINISHED),
@@ -28,22 +39,13 @@ enum class WidgetTone(val rgb: Rgb) {
     companion object {
         private fun c(v: Double) = (v.coerceIn(0.0, 1.0) * 255).roundToInt()
 
-        /** The tone of a [Glance] (the summary widget, the tile and the notification share these five). */
-        fun of(tone: GlanceTone): WidgetTone = when (tone) {
-            GlanceTone.CALM -> MUTED
-            GlanceTone.OK -> DONE
-            GlanceTone.BUSY -> WORKING
-            GlanceTone.ATTENTION -> ATTENTION
-            GlanceTone.TROUBLE -> TROUBLE
-        }
-
         /** The tone of one agent's state; a computer that is not connected is always muted. */
         fun of(state: BotState, connected: Boolean = true): WidgetTone = if (!connected) MUTED else when (state) {
             BotState.APPROVAL, BotState.QUESTION -> ATTENTION
             BotState.WORKING, BotState.THINKING, BotState.SEARCHING -> WORKING
             BotState.FINISHED -> DONE
             BotState.ERROR, BotState.RATELIMIT, BotState.DIZZY -> TROUBLE
-            BotState.IDLE, BotState.SLEEPING -> MUTED
+            BotState.IDLE, BotState.SLEEPING -> IDLE
         }
     }
 }
@@ -130,14 +132,18 @@ data class WidgetContent(
     /** Mochi's face on the Today widget: pleased once something finished today, calm before. */
     val todayMood: BotState get() = if (today > 0) BotState.FINISHED else BotState.IDLE
 
-    /** The Today widget glows green once something finished today. */
-    val todayLook: WidgetTone get() = if (today > 0) WidgetTone.DONE else WidgetTone.MUTED
+    /** The Today widget glows green once something finished today, soft grey before. */
+    val todayLook: WidgetTone get() = if (today > 0) WidgetTone.DONE else WidgetTone.IDLE
 
-    /** The look of the whole widget: orange while something waits for you, else the top agent's tone, muted when nothing runs. */
+    /**
+     * The look of the whole widget. Not connected: muted. Something waits for you: orange. Otherwise the most urgent agent's tone, and
+     * the tiles are already in the order of [GlanceBuilder.rank] (waiting, then trouble, working, happy, idle): the top one decides.
+     * Connected with nothing to list: idle grey.
+     */
     val look: WidgetTone get() = when {
         !connected -> WidgetTone.MUTED
         waiting > 0 -> WidgetTone.ATTENTION
-        else -> top?.let { WidgetTone.of(it.state) } ?: WidgetTone.MUTED
+        else -> top?.let { WidgetTone.of(it.state) } ?: WidgetTone.IDLE
     }
 
     /** The state Mochi is drawn in: the top agent's, else calm when connected and asleep when not. */
@@ -160,6 +166,13 @@ enum class WidgetSample(val key: String) {
         /** The sample called [key] (any case, spaces around ignored); null for anything else. */
         fun parse(key: String?): WidgetSample? = values().firstOrNull { it.key == key?.trim()?.lowercase() }
     }
+}
+
+/** The look of the summary widget, by the same rule as [WidgetContent.look]: its lines are already in the order of urgency. */
+fun Glance.look(): WidgetTone = when {
+    !connected -> WidgetTone.MUTED
+    waiting > 0 -> WidgetTone.ATTENTION
+    else -> lines.firstOrNull()?.let { WidgetTone.of(it.state) } ?: WidgetTone.IDLE
 }
 
 /** The state of Mochi's face on the summary widget: the most urgent agent's, else calm when connected and asleep when not. */

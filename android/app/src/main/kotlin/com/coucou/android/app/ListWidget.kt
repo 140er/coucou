@@ -47,7 +47,7 @@ class ListWidget : AppWidgetProvider() {
                 v.setViewVisibility(R.id.list_header, View.GONE)
                 v.setViewVisibility(R.id.list_rows, View.GONE)
                 v.setViewVisibility(R.id.list_empty, View.VISIBLE)
-                v.setImageViewBitmap(R.id.list_empty_face, MochiBitmap.of(c.mood, WidgetHub.px(context, 96), glow = true))
+                v.setImageViewBitmap(R.id.list_empty_face, MochiBitmap.of(c.mood, WidgetHub.px(context, 96), glow = true, tone = c.look))
                 v.setContentDescription(R.id.list_empty_face, context.getString(R.string.widget_mochi_description, c.mood.key))
                 v.setImageViewResource(R.id.list_empty_icon, if (c.connected) R.drawable.widget_dot else R.drawable.ic_widget_offline)
                 v.setInt(R.id.list_empty_icon, "setColorFilter", c.look.argb)

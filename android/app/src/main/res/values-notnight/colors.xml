@@ -7,4 +7,6 @@
     <color name="widget_text_soft">#D91C1C1E</color>
     <color name="widget_text_secondary">#B31C1C1E</color>
     <color name="widget_button">#14000000</color>
+    <!-- The orange as text on the light card needs a deeper shade to be readable. -->
+    <color name="widget_tone_attention_text">#FFA4570A</color>
 </resources>

@@ -84,14 +84,24 @@ object WidgetHub {
     /** dp to pixels on this screen, at least 1. */
     fun px(context: Context, dp: Int): Int = (dp * context.resources.displayMetrics.density).roundToInt().coerceAtLeast(1)
 
-    /** The card and its gradient for a tone: an orange border while something waits, else the plain border; the tone's tint over it. */
+    /** The card (a 1dp border in the state's colour) and its gradient for a tone: the one place a Widget turns a state into colours. */
     fun paint(v: RemoteViews, root: Int, tint: Int, tone: WidgetTone) {
-        v.setInt(root, "setBackgroundResource", if (tone == WidgetTone.ATTENTION) R.drawable.widget_card_attention else R.drawable.widget_card)
+        v.setInt(root, "setBackgroundResource", cardOf(tone))
         v.setInt(tint, "setBackgroundResource", tintOf(tone))
+    }
+
+    private fun cardOf(tone: WidgetTone): Int = when (tone) {
+        WidgetTone.MUTED -> R.drawable.widget_card_muted
+        WidgetTone.IDLE -> R.drawable.widget_card_idle
+        WidgetTone.WORKING -> R.drawable.widget_card_working
+        WidgetTone.ATTENTION -> R.drawable.widget_card_attention
+        WidgetTone.DONE -> R.drawable.widget_card_done
+        WidgetTone.TROUBLE -> R.drawable.widget_card_trouble
     }
 
     private fun tintOf(tone: WidgetTone): Int = when (tone) {
         WidgetTone.MUTED -> R.drawable.widget_tint_muted
+        WidgetTone.IDLE -> R.drawable.widget_tint_idle
         WidgetTone.WORKING -> R.drawable.widget_tint_working
         WidgetTone.ATTENTION -> R.drawable.widget_tint_attention
         WidgetTone.DONE -> R.drawable.widget_tint_done

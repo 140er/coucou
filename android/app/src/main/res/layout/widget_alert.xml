@@ -29,6 +29,14 @@
             android:contentDescription="@string/widget_alert_label"
             android:scaleType="fitCenter" />
 
+        <ImageView
+            android:id="@+id/alert_offline"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:importantForAccessibility="no"
+            android:src="@drawable/ic_widget_offline"
+            android:visibility="gone" />
+
         <TextView
             android:id="@+id/alert_count"
             android:layout_width="match_parent"
@@ -36,7 +44,7 @@
             android:ellipsize="end"
             android:gravity="center"
             android:maxLines="1"
-            android:textColor="@color/widget_tone_attention"
+            android:textColor="@color/widget_tone_attention_text"
             android:textSize="20sp"
             android:textStyle="bold"
             android:visibility="gone" />

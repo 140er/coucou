@@ -27,26 +27,29 @@ object MochiBitmap {
     private const val SEED = 7
     private const val SETTLE_FRAMES = 60
     private const val FRAME_SEC = 1.0 / 60
-    private const val KEEP = 12
+    private const val KEEP = 16
 
     /** How strong the glow is at its centre; a muted state glows less. */
     private const val GLOW_ALPHA = 0.55f
     private const val GLOW_ALPHA_MUTED = 0.32f
 
-    private data class Key(val state: BotState, val size: Int, val glow: Boolean)
+    private data class Key(val state: BotState, val size: Int, val glow: Boolean, val tone: WidgetTone)
 
     private val cache = object : LinkedHashMap<Key, Bitmap>(16, 0.75f, true) {
         override fun removeEldestEntry(eldest: MutableMap.MutableEntry<Key, Bitmap>) = size > KEEP
     }
 
-    /** Mochi in [state], [sizePx] pixels square. The same instance comes back while it is kept. */
+    /**
+     * Mochi in [state], [sizePx] pixels square. The glow is in [tone], the colour of the card he sits on (by default the one of his own
+     * state), so the Widget and its Mochi always share one colour. The same instance comes back while it is kept.
+     */
     @Synchronized
-    fun of(state: BotState, sizePx: Int, glow: Boolean = false): Bitmap {
-        val key = Key(state, sizePx, glow)
-        return cache.getOrPut(key) { draw(state, sizePx, glow) }
+    fun of(state: BotState, sizePx: Int, glow: Boolean = false, tone: WidgetTone = WidgetTone.of(state)): Bitmap {
+        val key = Key(state, sizePx, glow, tone)
+        return cache.getOrPut(key) { draw(state, sizePx, glow, tone) }
     }
 
-    private fun draw(state: BotState, sizePx: Int, glow: Boolean): Bitmap {
+    private fun draw(state: BotState, sizePx: Int, glow: Boolean, tone: WidgetTone): Bitmap {
         var ms = 0.0
         val engine = MochiEngine({ ms }, Random(SEED)).apply { setState(state, force = true) }
         repeat(SETTLE_FRAMES) {
@@ -56,9 +59,8 @@ object MochiBitmap {
         val image = ImageBitmap(sizePx, sizePx)
         CanvasDrawScope().draw(Density(1f), LayoutDirection.Ltr, Canvas(image), Size(sizePx.toFloat(), sizePx.toFloat())) {
             if (glow) {
-                val tone = WidgetTone.of(state)
                 val centre = Offset(sizePx / 2f, sizePx / 2f)
-                val light = Color(tone.argb).copy(alpha = if (tone == WidgetTone.MUTED) GLOW_ALPHA_MUTED else GLOW_ALPHA)
+                val light = Color(tone.argb).copy(alpha = if (tone == WidgetTone.MUTED || tone == WidgetTone.IDLE) GLOW_ALPHA_MUTED else GLOW_ALPHA)
                 drawCircle(Brush.radialGradient(listOf(light, Color.Transparent), centre, sizePx / 2f), sizePx / 2f, centre)
             }
             drawMochi(engine, ms / 1000)

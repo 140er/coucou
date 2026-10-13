@@ -11,6 +11,7 @@
 
     <!-- The state palette: the same colours as Mochi's states (MochiConst) and WidgetTone. -->
     <color name="widget_tone_muted">#FF94A2B8</color>
+    <color name="widget_tone_idle">#FFB8BDC7</color>
     <color name="widget_tone_working">#FF3B9EFF</color>
     <color name="widget_tone_attention">#FFF5A524</color>
     <color name="widget_tone_done">#FF34D499</color>
@@ -18,8 +19,22 @@
 
     <!-- The gradient of a card: the tone at 15 to 25 % alpha, fading into the card. -->
     <color name="widget_tint_muted">#2694A2B8</color>
+    <color name="widget_tint_idle">#26B8BDC7</color>
     <color name="widget_tint_working">#333B9EFF</color>
     <color name="widget_tint_attention">#40F5A524</color>
     <color name="widget_tint_done">#3334D499</color>
     <color name="widget_tint_trouble">#33F4505E</color>
+
+    <!-- The 1dp border of a card: the tone at 60 % alpha, so the state shows on the edge too. -->
+    <color name="widget_border_muted">#9994A2B8</color>
+    <color name="widget_border_idle">#99B8BDC7</color>
+    <color name="widget_border_working">#993B9EFF</color>
+    <color name="widget_border_attention">#99F5A524</color>
+    <color name="widget_border_done">#9934D499</color>
+    <color name="widget_border_trouble">#99F4505E</color>
+
+    <!-- Text and glyphs drawn on the badge or on a tone colour. -->
+    <color name="widget_on_tone">#FF1C1C1E</color>
+    <!-- The tone as text colour: the tone itself on the dark card; in day mode a deeper one (see values-notnight). -->
+    <color name="widget_tone_attention_text">#FFF5A524</color>
 </resources>

@@ -5,7 +5,7 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/widget_card">
+    android:background="@drawable/widget_card_attention">
 
     <FrameLayout
         android:layout_width="match_parent"
@@ -57,7 +57,7 @@
                 android:paddingStart="6dp"
                 android:paddingEnd="6dp"
                 android:text="@string/widget_sample_one"
-                android:textColor="#FF1C1C1E"
+                android:textColor="@color/widget_on_tone"
                 android:textSize="@dimen/widget_text_secondary"
                 android:textStyle="bold" />
         </LinearLayout>

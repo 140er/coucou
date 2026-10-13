@@ -10,6 +10,7 @@ import android.widget.RemoteViews
 import com.coucou.android.R
 import com.coucou.android.core.Glance
 import com.coucou.android.core.WidgetTone
+import com.coucou.android.core.look
 import com.coucou.android.core.mood
 
 /**
@@ -55,13 +56,14 @@ class GlanceWidget : AppWidgetProvider() {
 
         private fun render(context: Context, g: Glance, size: WidgetHub.Size): RemoteViews {
             val v = RemoteViews(context.packageName, R.layout.widget_glance)
-            val tone = WidgetTone.of(g.tone)
+            val tone = g.look()
             WidgetHub.paint(v, R.id.widget_root, R.id.glance_tint, tone)
 
             val mood = g.mood()
-            v.setImageViewBitmap(R.id.glance_mochi, MochiBitmap.of(mood, WidgetHub.px(context, 64), glow = true))
+            v.setImageViewBitmap(R.id.glance_mochi, MochiBitmap.of(mood, WidgetHub.px(context, 64), glow = true, tone = tone))
             v.setContentDescription(R.id.glance_mochi, context.getString(R.string.widget_mochi_description, mood.key))
 
+            v.setViewVisibility(R.id.glance_offline, if (g.connected) View.GONE else View.VISIBLE)
             v.setTextViewText(R.id.glance_headline, g.headline)
             if (g.waiting > 0) {
                 v.setTextViewText(R.id.glance_badge, g.waiting.toString())

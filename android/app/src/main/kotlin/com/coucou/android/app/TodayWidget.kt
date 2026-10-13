@@ -27,7 +27,7 @@ class TodayWidget : AppWidgetProvider() {
         fun views(context: Context, c: WidgetContent): RemoteViews {
             val v = RemoteViews(context.packageName, R.layout.widget_today)
             WidgetHub.paint(v, R.id.today_root, R.id.today_tint, c.todayLook)
-            v.setImageViewBitmap(R.id.today_face, MochiBitmap.of(c.todayMood, WidgetHub.px(context, 72), glow = true))
+            v.setImageViewBitmap(R.id.today_face, MochiBitmap.of(c.todayMood, WidgetHub.px(context, 72), glow = true, tone = c.todayLook))
             v.setContentDescription(R.id.today_face, context.getString(R.string.widget_mochi_description, c.todayMood.key))
             v.setTextViewText(R.id.today_count, c.today.toString())
             v.setContentDescription(R.id.today_root, context.getString(R.string.widget_today_cd, c.today))

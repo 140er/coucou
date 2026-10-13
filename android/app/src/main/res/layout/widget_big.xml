@@ -55,6 +55,15 @@
                     android:visibility="gone">
 
                     <ImageView
+                        android:id="@+id/big_offline"
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:layout_marginEnd="2dp"
+                        android:importantForAccessibility="no"
+                        android:src="@drawable/ic_widget_offline"
+                        android:visibility="gone" />
+
+                    <ImageView
                         android:id="@+id/big_dot"
                         android:layout_width="@dimen/widget_dot"
                         android:layout_height="@dimen/widget_dot"
@@ -515,7 +524,7 @@
         android:minWidth="22dp"
         android:paddingStart="6dp"
         android:paddingEnd="6dp"
-        android:textColor="#FF1C1C1E"
+        android:textColor="@color/widget_on_tone"
         android:textSize="@dimen/widget_text_secondary"
         android:textStyle="bold"
         android:visibility="gone" />

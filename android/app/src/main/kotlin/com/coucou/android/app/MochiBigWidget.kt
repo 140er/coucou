@@ -51,15 +51,20 @@ class MochiBigWidget : AppWidgetProvider() {
             val small = size == WidgetHub.Size.SMALL
 
             // Left: Mochi with his glow, then the agent and its state word.
-            v.setImageViewBitmap(R.id.big_mochi, MochiBitmap.of(c.mood, WidgetHub.px(context, if (large) 170 else if (small) 120 else 140), glow = true))
+            v.setImageViewBitmap(R.id.big_mochi, MochiBitmap.of(c.mood, WidgetHub.px(context, if (large) 170 else if (small) 120 else 140), glow = true, tone = c.look))
             v.setContentDescription(R.id.big_mochi, context.getString(R.string.widget_mochi_description, (top?.stateWord ?: c.headline).lowercase()))
+            // Not connected: the "not connected" icon instead of the dot, and the headline instead of an agent.
+            v.setViewVisibility(R.id.big_offline, if (c.connected) View.GONE else View.VISIBLE)
             if (top != null) {
                 v.setViewVisibility(R.id.big_row, View.VISIBLE)
+                v.setViewVisibility(R.id.big_dot, View.VISIBLE)
                 v.setInt(R.id.big_dot, "setColorFilter", top.tone.argb)
                 v.setTextViewText(R.id.big_name, top.name)
                 v.setTextViewText(R.id.big_state, top.stateWord)
             } else {
-                v.setViewVisibility(R.id.big_row, View.GONE)
+                v.setViewVisibility(R.id.big_row, if (c.connected) View.GONE else View.VISIBLE)
+                v.setViewVisibility(R.id.big_dot, View.GONE)
+                v.setTextViewText(R.id.big_name, c.headline)
                 v.setTextViewText(R.id.big_state, c.emptyLine.orEmpty())
             }
             v.setViewVisibility(R.id.big_state, View.VISIBLE)
