@@ -4,7 +4,7 @@ package com.coucou.android.core
  * The screens a Widget button may open: a closed list, never a free string. A button carries the [key] of one of these to
  * LaunchActivity (ours, not exported), which turns it into a [LaunchScreen] with [parse] and hands it to the app inside
  * the process ([PendingLaunch]). Anything that is not in the list is rejected, so a button can only ever open a screen; none
- * approves, denies or sends anything.
+ * changes or sends anything.
  */
 enum class LaunchScreen(val key: String, val screen: Screen) {
     HOME("home", Screen.HOME),

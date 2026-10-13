@@ -17,10 +17,12 @@ class WidgetSurfacesTest {
         "SoloWidget" to "coucou_solo_widget_info", "ListWidget" to "coucou_list_widget_info", "MochiBigWidget" to "coucou_big_widget_info",
         "StatusPillWidget" to "coucou_pill_widget_info", "WaitingAlertWidget" to "coucou_alert_widget_info",
         "UsageRingWidget" to "coucou_ring_widget_info", "TodayWidget" to "coucou_today_widget_info", "MoodWidget" to "coucou_mood_widget_info",
+        // The summary widget (3x2): same class, receiver and provider file as ever, in the shared look since Widgets C.
+        "GlanceWidget" to "coucou_widget_info",
     )
     private val sources = (
         widgets.map { "app/${it.first}.kt" } +
-            listOf("app/WidgetHub.kt", "app/MochiBitmap.kt", "app/RingBitmap.kt", "app/TodayStore.kt", "core/WidgetData.kt", "core/TodayCounter.kt")
+            listOf("app/WidgetHub.kt", "app/MochiBitmap.kt", "app/RingBitmap.kt", "app/TodayStore.kt", "core/WidgetData.kt", "core/TodayCounter.kt", "core/LaunchScreen.kt")
         ).associateWith { read(main + it) }
 
     @Test fun theWidgetsAreRegisteredAndNeverWakeOnATimer() {
@@ -56,9 +58,10 @@ class WidgetSurfacesTest {
 
     @Test fun everyPendingIntentIsImmutableAndExplicit() {
         val hub = sources.getValue("app/WidgetHub.kt")
-        assertEquals(2, Regex("PendingIntent.getActivity").findAll(hub).count())
-        assertEquals(2, Regex("FLAG_IMMUTABLE").findAll(hub).count())
-        assertTrue(hub.contains("Intent(context, LaunchActivity::class.java)"))
+        // Open the app, open a session, open a screen: three, all immutable, the last two through LaunchActivity.
+        assertEquals(3, Regex("PendingIntent.getActivity").findAll(hub).count())
+        assertEquals(3, Regex("FLAG_IMMUTABLE").findAll(hub).count())
+        assertEquals(2, Regex("Intent\\(context, LaunchActivity::class.java\\)").findAll(hub).count())
         assertTrue(hub.contains("Intent(context, MainActivity::class.java)"))
         for ((name, src) in sources) {
             if (name == "app/WidgetHub.kt") continue
@@ -70,7 +73,7 @@ class WidgetSurfacesTest {
     @Test fun everyRowAndEveryWidgetHasItsOwnRequestCode() {
         val hub = sources.getValue("app/WidgetHub.kt")
         val codes = Regex("""const val CODE_\w+ = (0x[0-9A-Fa-f]+)""").findAll(hub).map { it.groupValues[1] }.toList()
-        assertEquals(9, codes.size)
+        assertEquals(12, codes.size)
         assertEquals(codes.size, codes.toSet().size)
         // The rows use CODE_LIST_ROW + index: the ranges must not run into the next code.
         val values = codes.map { it.removePrefix("0x").toInt(16) }.sorted()
@@ -89,7 +92,7 @@ class WidgetSurfacesTest {
         assertTrue(sources.getValue("app/ListWidget.kt").contains("setContentDescription(R.id.list_badge"))
         // Every Widget with a picture describes it; every layout image that is not decoration has a description or is hidden from it.
         for ((cls, _) in widgets) assertTrue("$cls has no content description", sources.getValue("app/$cls.kt").contains("setContentDescription("))
-        for (layout in File("src/main/res/layout").listFiles()!!.filter { it.name.startsWith("widget_") && it.name != "widget_glance.xml" }) {
+        for (layout in File("src/main/res/layout").listFiles()!!.filter { it.name.startsWith("widget_") }) {
             for (img in Regex("""<ImageView[^>]*>""").findAll(layout.readText())) {
                 val tag = img.value
                 assertTrue("${layout.name}: an image with neither a description nor importantForAccessibility=no: $tag",
@@ -106,11 +109,25 @@ class WidgetSurfacesTest {
         assertTrue(sources.getValue("app/WidgetHub.kt").contains("if (content == last) return"))
     }
 
-    @Test fun theFirstWidgetIsUntouched() {
-        // GlanceSurfacesTest guards its registration; this guards that the new widgets did not take its names.
+    @Test fun theSummaryWidgetKeepsItsNamesAndItsRefreshPath() {
+        // GlanceSurfacesTest guards its registration; this guards that the restyle kept the names, the size and the refresh path.
+        assertTrue(manifest.contains("""android:name=".app.GlanceWidget""""))
         assertTrue(manifest.contains("@xml/coucou_widget_info"))
         assertTrue(File("src/main/res/layout/widget_glance.xml").exists())
-        assertTrue(read("src/main/res/xml/coucou_widget_info.xml").contains("""android:targetCellWidth="3""""))
+        val info = read("src/main/res/xml/coucou_widget_info.xml")
+        assertTrue(info.contains("""android:targetCellWidth="3""""))
+        assertTrue(info.contains("""android:targetCellHeight="2""""))
+        assertTrue(info.contains("""android:initialLayout="@layout/widget_glance""""))
+        val src = read(main + "app/GlanceWidget.kt")
+        assertTrue(src.contains("fun update(context: Context, glance: Glance)"))
+        assertTrue(src.contains("model.glance()"))
+        // Its data is the Glance's, and a tap anywhere opens the app: no button, no session, no screen.
+        for (word in listOf("g.headline", "g.detail", "g.lines", "g.waiting")) assertTrue(word, src.contains(word))
+        assertTrue(src.contains("WidgetHub.openApp("))
+        for (word in listOf("openScreen", "openSession", "LaunchScreen")) assertFalse(word, src.contains(word))
+        val layout = read("src/main/res/layout/widget_glance.xml")
+        assertFalse(layout.contains("<Button"))
+        assertFalse("no icon button in the summary", layout.contains("ic_widget_"))
     }
 
     @Test fun theListRowsAreAtLeastFortyEightDpAndTheEmptyStateFillsTheCard() {
@@ -123,7 +140,7 @@ class WidgetSurfacesTest {
     }
 
     @Test fun theCardsUseTheSharedLook() {
-        for (layout in listOf("widget_solo", "widget_list")) {
+        for (layout in listOf("widget_solo", "widget_list", "widget_glance", "widget_pill", "widget_big")) {
             val xml = read("src/main/res/layout/$layout.xml")
             assertTrue(layout, xml.contains("@drawable/widget_card"))
             assertTrue(layout, xml.contains("@drawable/widget_tint_muted"))
@@ -192,7 +209,7 @@ class WidgetSurfacesTest {
         val expected = mapOf(
             "coucou_solo_widget_info" to (2 to 2), "coucou_list_widget_info" to (4 to 3), "coucou_big_widget_info" to (4 to 4),
             "coucou_pill_widget_info" to (4 to 1), "coucou_alert_widget_info" to (2 to 2), "coucou_ring_widget_info" to (2 to 2),
-            "coucou_today_widget_info" to (2 to 2), "coucou_mood_widget_info" to (1 to 1),
+            "coucou_today_widget_info" to (2 to 2), "coucou_mood_widget_info" to (1 to 1), "coucou_widget_info" to (3 to 2),
         )
         assertEquals(widgets.map { it.second }.toSet(), expected.keys)
         for ((info, cells) in expected) {
@@ -230,7 +247,7 @@ class WidgetSurfacesTest {
 
     @Test fun everyWidgetIsOnTheSharedCardAndOnlyUsesWhatRemoteViewsAllow() {
         val allowed = setOf("FrameLayout", "LinearLayout", "RelativeLayout", "GridLayout", "TextView", "ImageView", "ProgressBar", "Button")
-        for (layout in File("src/main/res/layout").listFiles()!!.filter { it.name.startsWith("widget_") && it.name != "widget_glance.xml" }) {
+        for (layout in File("src/main/res/layout").listFiles()!!.filter { it.name.startsWith("widget_") }) {
             val xml = layout.readText()
             assertTrue(layout.name, xml.contains("@drawable/widget_card"))
             // A real layout starts muted and is repainted by WidgetHub; a preview is already in the tone of its sample.

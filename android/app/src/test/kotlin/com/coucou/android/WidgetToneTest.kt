@@ -1,6 +1,9 @@
 package com.coucou.android
 
+import com.coucou.android.core.Glance
 import com.coucou.android.core.GlanceTone
+import com.coucou.android.core.GlanceLine
+import com.coucou.android.core.mood
 import com.coucou.android.core.WidgetContent
 import com.coucou.android.core.WidgetTile
 import com.coucou.android.core.WidgetTone
@@ -96,5 +99,26 @@ class WidgetToneTest {
         assertEquals(WidgetTone.WORKING, content(states = arrayOf(BotState.WORKING, BotState.IDLE)).look)
         assertEquals(WidgetTone.DONE, content(states = arrayOf(BotState.FINISHED)).look)
         assertEquals(WidgetTone.MUTED, content().look)
+    }
+
+    // ── The summary widget: the existing Glance, in the shared look ──────────────────────────────────
+
+    @Test fun theFiveToneOfTheGlanceBecomeTheFiveToneOfTheWidgets() {
+        assertEquals(WidgetTone.MUTED, WidgetTone.of(GlanceTone.CALM))
+        assertEquals(WidgetTone.DONE, WidgetTone.of(GlanceTone.OK))
+        assertEquals(WidgetTone.WORKING, WidgetTone.of(GlanceTone.BUSY))
+        assertEquals(WidgetTone.ATTENTION, WidgetTone.of(GlanceTone.ATTENTION))
+        assertEquals(WidgetTone.TROUBLE, WidgetTone.of(GlanceTone.TROUBLE))
+        for (t in GlanceTone.values()) WidgetTone.of(t)
+    }
+
+    private fun glance(connected: Boolean, vararg states: BotState) =
+        Glance("h", "d", GlanceTone.CALM, connected, states.map { GlanceLine("A", "t", it) }, 0)
+
+    @Test fun mochiOnTheSummaryFollowsTheMostUrgentLine() {
+        assertEquals(BotState.APPROVAL, glance(true, BotState.APPROVAL, BotState.WORKING).mood())
+        assertEquals(BotState.WORKING, glance(true, BotState.WORKING).mood())
+        assertEquals(BotState.IDLE, glance(true).mood())
+        assertEquals(BotState.SLEEPING, glance(false).mood())
     }
 }

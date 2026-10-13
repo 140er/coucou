@@ -15,16 +15,16 @@ import com.coucou.android.core.WidgetContent
  * word; on the right four round buttons (Home, Chat, Settings, Recent) that open that screen of the app. Narrower, the state
  * word goes first, then the name; the buttons never move and the text never runs under them. Drawn by [WidgetHub] when
  * something changes (updatePeriodMillis = 0). A tap on the text opens the top agent, or the app. It only opens things: no
- * button approves, denies or sends anything.
+ * button changes anything.
  */
 class StatusPillWidget : AppWidgetProvider() {
     override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) =
         WidgetHub.refresh(context, manager, ids) { c, w -> views(c, w) }
 
     companion object {
-        // Width in dp: under 260 only the dot is left of the buttons, from 260 the name, from 330 the state word too.
-        private val MEDIUM_AT = SizeF(260f, 0f)
-        private val LARGE_AT = SizeF(330f, 0f)
+        // Width in dp: under 290 only the dot is left of the buttons, from 290 the name, from 360 the state word too.
+        private val MEDIUM_AT = SizeF(290f, 0f)
+        private val LARGE_AT = SizeF(360f, 0f)
 
         private class Button(val view: Int, val screen: LaunchScreen)
 

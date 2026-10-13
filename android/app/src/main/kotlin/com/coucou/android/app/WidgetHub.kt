@@ -139,7 +139,7 @@ object WidgetHub {
 
     /**
      * Opens one screen of the closed [LaunchScreen] list, for a button. Through LaunchActivity like [openSession]: explicit
-     * component, immutable, one [code] of its own per button, and only the key of the screen travels. Nothing is approved.
+     * component, immutable, one [code] of its own per button, and only the key of the screen travels. Nothing is changed.
      */
     fun openScreen(context: Context, code: Int, screen: LaunchScreen): PendingIntent {
         val open = Intent(context, LaunchActivity::class.java)

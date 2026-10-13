@@ -22,9 +22,9 @@ class MochiBigWidget : AppWidgetProvider() {
         WidgetHub.refresh(context, manager, ids) { c, w -> views(c, w) }
 
     companion object {
-        // Height in dp, so that Mochi keeps at least 40% of the card: under 270 no buttons, from 270 one row of four, from 380 two rows.
-        private val MEDIUM_AT = SizeF(0f, 270f)
-        private val LARGE_AT = SizeF(0f, 380f)
+        // Height in dp, so that Mochi keeps at least 40% of the card: under 290 no buttons, from 290 one row of four, from 400 two rows.
+        private val MEDIUM_AT = SizeF(0f, 290f)
+        private val LARGE_AT = SizeF(0f, 400f)
 
         private class Tile(val view: Int, val screen: LaunchScreen?)
 

@@ -19,8 +19,11 @@ class WidgetPreviewTest {
         Regex("""<string name="(\w+)">(.*?)</string>""").findAll(read(res + "values/strings.xml")).associate { it.groupValues[1] to it.groupValues[2].replace("\\'", "'") }
 
     /** Provider XML name to the name of its preview. */
-    private val providers = listOf("solo", "list", "big", "pill", "alert", "ring", "today", "mood")
-    private fun info(name: String) = read("${res}xml/coucou_${name}_widget_info.xml")
+    private val providers = listOf("solo", "list", "big", "pill", "alert", "ring", "today", "mood", "glance")
+
+    /** The provider file of a Widget: the summary widget keeps the name it has always had. */
+    private fun infoName(name: String) = if (name == "glance") "coucou_widget_info" else "coucou_${name}_widget_info"
+    private fun info(name: String) = read("${res}xml/${infoName(name)}.xml")
     private fun attr(xml: String, name: String) = Regex("""android:$name="([^"]*)"""").find(xml)?.groupValues?.get(1)
     private fun preview(name: String) = read("${res}layout/widget_preview_$name.xml")
     private val previewFiles get() = File(res + "layout").listFiles()!!.filter { it.name.startsWith("widget_preview_") }
@@ -41,11 +44,13 @@ class WidgetPreviewTest {
         assertEquals("one preview layout per provider, no stray ones", providers.map { "widget_preview_$it.xml" }.sorted(), previewFiles.map { it.name }.sorted())
     }
 
-    @Test fun theFirstWidgetKeepsItsProviderAsItWas() {
-        assertFalse(info("solo").isEmpty())
+    @Test fun theSummaryWidgetKeepsItsNamesAndGainsAPreview() {
         val first = read(res + "xml/coucou_widget_info.xml")
-        assertFalse(first.contains("preview"))
+        assertTrue(first.contains("""android:previewLayout="@layout/widget_preview_glance""""))
         assertTrue(first.contains("""android:initialLayout="@layout/widget_glance""""))
+        assertTrue(first.contains("""android:updatePeriodMillis="0""""))
+        assertTrue(read("src/main/AndroidManifest.xml").contains("""android:name=".app.GlanceWidget""""))
+        assertTrue(File(res + "xml/coucou_widget_info.xml").exists())
     }
 
     // ── Names and descriptions ─────────────────────────────────────────────────────────────────────
@@ -55,7 +60,7 @@ class WidgetPreviewTest {
         val labels = mutableSetOf<String>()
         for (n in providers) {
             val desc = attr(info(n), "description")!!.removePrefix("@string/")
-            val label = Regex("""android:name="\.app\.\w+"\s+android:exported="true"\s+android:label="@string/(\w+)"[^>]*>\s*<intent-filter>(?:(?!</receiver>).)*?coucou_${n}_widget_info""", RegexOption.DOT_MATCHES_ALL)
+            val label = Regex("""android:name="\.app\.\w+"\s+android:exported="true"\s+android:label="@string/(\w+)"[^>]*>\s*<intent-filter>(?:(?!</receiver>).)*?${infoName(n)}""", RegexOption.DOT_MATCHES_ALL)
                 .find(manifest)?.groupValues?.get(1)
             assertNotNull("$n has no label in the manifest", label)
             val l = strings.getValue(label!!)
@@ -77,7 +82,7 @@ class WidgetPreviewTest {
         val expected = mapOf(
             "widget_solo_label" to "Mochi at a glance", "widget_list_label" to "All your agents", "widget_big_label" to "Mochi, big",
             "widget_pill_label" to "One-line status", "widget_alert_label" to "Approvals waiting", "widget_ring_label" to "Plan usage",
-            "widget_today_label" to "Finished today", "widget_mood_label" to "Mochi's mood",
+            "widget_today_label" to "Finished today", "widget_mood_label" to "Mochi's mood", "widget_glance_label" to "Agents summary",
         )
         for ((k, v) in expected) assertEquals(k, v, strings[k])
     }
@@ -129,8 +134,11 @@ class WidgetPreviewTest {
         assertEquals("Waiting for you", list.first())
         assertEquals(listOf("Waiting for you", "1", "Claude Code", "Waiting for your approval", "Codex", "Working", "Gemini CLI", "Finished"), list)
         assertEquals(3, Regex("""android:minHeight="@dimen/widget_row_min"""").findAll(preview("list")).count())
-        assertTrue(text("big").contains("Claude Code is working"))
+        assertTrue(text("big").containsAll(listOf("Claude Code is waiting for you", "Claude Code", "Waiting", "Home", "Chat", "Settings", "Recent", "Top agent", "Pair again")))
+        assertEquals(listOf("2 agents are working", "Claude Code", "Working", "Codex", "Thinking", "Gemini CLI", "Idle"), text("glance"))
         assertEquals(listOf("Claude Code", "Working"), text("pill"))
+        // The pill shows its four buttons: home, chat, settings and recent, in that order.
+        assertEquals(listOf("ic_widget_home", "ic_widget_chat", "ic_widget_settings", "ic_widget_recent"), Regex("""@drawable/(ic_widget_\w+)""").findAll(preview("pill")).map { it.groupValues[1] }.toList())
         assertEquals(listOf("2 waiting", "Claude Code"), text("alert"))
         assertEquals(listOf("70%", "Claude · 5 h"), text("ring"))
         assertTrue(text("today").containsAll(listOf("5", "done today")))
@@ -139,7 +147,8 @@ class WidgetPreviewTest {
         assertTrue(preview("solo").contains("widget_tone_attention") && preview("solo").contains("preview_mochi_waiting"))
         assertTrue(preview("pill").contains("widget_tone_working"))
         assertTrue(preview("alert").contains("widget_card_attention"))
-        assertTrue(preview("big").contains("preview_mochi_working"))
+        assertTrue(preview("big").contains("preview_mochi_waiting") && preview("big").contains("widget_tile_bg_attention"))
+        assertTrue(preview("glance").contains("preview_mochi_working") && preview("glance").contains("widget_tint_working"))
         assertTrue(preview("mood").contains("preview_mochi_done") && preview("today").contains("preview_mochi_done"))
         assertTrue(preview("list").let { it.contains("preview_face_waiting") && it.contains("preview_face_working") && it.contains("preview_face_done") })
         assertTrue(preview("ring").contains("preview_ring_70"))
@@ -214,7 +223,7 @@ class WidgetPreviewTest {
     // ── The initial layout is never a blank box ────────────────────────────────────────────────────
 
     @Test fun everyInitialLayoutShowsMochiOrAFaceAndAShortLineUntilTheFirstUpdate() {
-        val real = mapOf("solo" to "solo", "list" to "list", "big" to "big", "pill" to "pill", "alert" to "alert", "ring" to "ring", "today" to "today", "mood" to "mood")
+        val real = mapOf("solo" to "solo", "list" to "list", "big" to "big", "pill" to "pill", "alert" to "alert", "ring" to "ring", "today" to "today", "mood" to "mood", "glance" to "glance")
         for ((n, layout) in real) {
             val xml = read("${res}layout/widget_$layout.xml")
             assertTrue("$n has no starting face", xml.contains("@drawable/preview_mochi_idle") || xml.contains("@drawable/preview_face_idle") || n == "pill")
@@ -225,5 +234,17 @@ class WidgetPreviewTest {
         // The List starts on its empty state, not on empty rows.
         val list = read(res + "layout/widget_list.xml")
         assertTrue(Regex("""@\+id/list_header"[^>]*android:visibility="gone"""", RegexOption.DOT_MATCHES_ALL).containsMatchIn(list.substringBefore("@+id/list_status")))
+    }
+
+    @Test fun noWidgetLayoutSaysCommandStepOrFileEvenWithButtons() {
+        val files = File(res + "layout").listFiles()!!.filter { it.name.startsWith("widget_") } + File(res + "drawable").listFiles()!!.filter { it.name.startsWith("ic_widget_") || it.name.startsWith("widget_") }
+        for (f in files) {
+            val xml = f.readText()
+            val text = xml + "\n" + Regex("""@string/(\w+)""").findAll(xml).joinToString("\n") { strings.getValue(it.groupValues[1]) }
+            for (word in listOf("statusText", "steps", ".command", "files")) assertFalse("${f.name} says $word", text.contains(word))
+        }
+        for (k in listOf("widget_btn_home", "widget_btn_chat", "widget_btn_settings", "widget_btn_recent", "widget_btn_session", "widget_btn_pair")) {
+            for (word in listOf("statusText", "steps", ".command", "files")) assertFalse("$k says $word", strings.getValue(k).contains(word) && strings.getValue(k + "_cd").contains(word))
+        }
     }
 }
