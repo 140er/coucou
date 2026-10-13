@@ -36,7 +36,10 @@ enum class WidgetTone(val rgb: Rgb) {
 }
 
 /** One agent on a widget: who it is, a plain state word and its colour. Only names, state words and colours. */
-data class WidgetTile(val pillId: String, val name: String, val state: BotState, val stateWord: String, val argb: Int)
+data class WidgetTile(val pillId: String, val name: String, val state: BotState, val stateWord: String, val argb: Int) {
+    /** The colour of its dot: the state's tone (the agent's own colour is [argb]). */
+    val tone: WidgetTone get() = WidgetTone.of(state)
+}
 
 /**
  * Everything the Solo and List widgets draw, as plain data so two pushes can be compared and the identical one skipped.
@@ -54,6 +57,13 @@ data class WidgetContent(
 ) {
     /** The agent Solo shows. */
     val top: WidgetTile? get() = tiles.firstOrNull()
+
+    /** The one clear line when there is no agent to list: the computer is not there, or nothing runs. Null when there are agents. */
+    val emptyLine: String? get() = when {
+        tiles.isNotEmpty() -> null
+        !connected -> "Waiting for your computer"
+        else -> "No agents running"
+    }
 
     /** The look of the whole widget: orange while something waits for you, else the top agent's tone, muted when nothing runs. */
     val look: WidgetTone get() = when {

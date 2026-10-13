@@ -89,4 +89,33 @@ class WidgetSurfacesTest {
         assertTrue(File("src/main/res/layout/widget_glance.xml").exists())
         assertTrue(read("src/main/res/xml/coucou_widget_info.xml").contains("""android:targetCellWidth="3""""))
     }
+
+    @Test fun theListRowsAreAtLeastFortyEightDpAndTheEmptyStateFillsTheCard() {
+        val list = read("src/main/res/layout/widget_list.xml")
+        assertEquals(5, Regex("""android:layout_height="@dimen/widget_row_min"""").findAll(list).count())
+        for (id in listOf("list_empty", "list_empty_face", "list_empty_title", "list_empty_line", "list_tint", "list_root")) assertTrue(id, list.contains("@+id/$id"))
+        val code = read(main + "app/ListWidget.kt")
+        assertTrue(code.contains("c.tiles.isEmpty()"))
+        assertTrue(code.contains("R.id.list_empty"))
+    }
+
+    @Test fun theCardsUseTheSharedLook() {
+        for (layout in listOf("widget_solo", "widget_list")) {
+            val xml = read("src/main/res/layout/$layout.xml")
+            assertTrue(layout, xml.contains("@drawable/widget_card"))
+            assertTrue(layout, xml.contains("@drawable/widget_tint_muted"))
+            // Colours and sizes come from the shared resources, never from a literal grey at 12sp.
+            assertFalse(layout, xml.contains("#FFAEAEB2"))
+        }
+        val solo = read(main + "app/SoloWidget.kt")
+        assertTrue(solo.contains("WidgetHub.paint("))
+        assertTrue(read(main + "app/ListWidget.kt").contains("WidgetHub.paint("))
+    }
+
+    @Test fun mochiHasAtLeastHalfOfTheSoloCard() {
+        val solo = read("src/main/res/layout/widget_solo.xml")
+        // Mochi takes the leftover height (weight 1) while the text rows wrap their content.
+        assertTrue(solo.contains("""android:layout_weight="1""""))
+        assertTrue(read(main + "app/SoloWidget.kt").contains("glow = true"))
+    }
 }

@@ -96,4 +96,17 @@ class WidgetDataTest {
         assertFalse(text.contains("secret"))
         assertFalse(text.contains("rm -rf"))
     }
+
+    @Test fun anEmptyCardSaysOneClearLine() {
+        assertEquals("Waiting for your computer", build(emptyList(), link = LinkState.DISCONNECTED).emptyLine)
+        assertEquals("Waiting for your computer", build(listOf(s("agent_codex", BotState.WORKING)), link = LinkState.CONNECTING).emptyLine)
+        assertEquals("No agents running", build(emptyList()).emptyLine)
+        assertNull(build(listOf(s("agent_codex", BotState.WORKING))).emptyLine)
+    }
+
+    @Test fun aTilesDotIsTheToneOfItsState() {
+        val t = build(listOf(s("agent_codex", BotState.APPROVAL), s("agent_amp", BotState.FINISHED))).tiles
+        assertEquals(com.coucou.android.core.WidgetTone.ATTENTION, t[0].tone)
+        assertEquals(com.coucou.android.core.WidgetTone.DONE, t[1].tone)
+    }
 }

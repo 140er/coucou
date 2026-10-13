@@ -10,8 +10,11 @@ import android.os.Build
 import android.util.SizeF
 import android.widget.RemoteViews
 import com.coucou.android.MainActivity
+import com.coucou.android.R
 import com.coucou.android.core.WidgetContent
 import com.coucou.android.core.WidgetData
+import com.coucou.android.core.WidgetTone
+import kotlin.math.roundToInt
 
 /**
  * The one place that pushes the Solo and List widgets. The app calls [update] on every change of sessions, requests and
@@ -58,21 +61,34 @@ object WidgetHub {
     /** The three sizes a responsive Widget is drawn for (Android 12 and later picks one by the room it has). */
     enum class Size { SMALL, MEDIUM, LARGE }
 
-    // Where each size starts, in dp. The system picks the largest entry that fits, so SMALL starts at zero.
-    private val SMALL_AT = SizeF(0f, 0f)
-    private val MEDIUM_AT = SizeF(180f, 110f)
-    private val LARGE_AT = SizeF(250f, 180f)
-
     /**
-     * One picture per size on Android 12 and later; on Android 11 (API 30) there is no size map, so the plain MEDIUM
-     * picture is the only one. [draw] builds the picture for a size from the same layout.
+     * One picture per size on Android 12 (API 31) and later; on Android 11 there is no size map, so the plain MEDIUM
+     * picture is the only one. [mediumAt] and [largeAt] are where those sizes start, in dp (the system picks the largest
+     * entry that fits, so SMALL starts at zero); [draw] builds the picture for a size from the same layout.
      */
-    fun responsive(draw: (Size) -> RemoteViews): RemoteViews =
+    fun responsive(mediumAt: SizeF, largeAt: SizeF, draw: (Size) -> RemoteViews): RemoteViews =
         if (Build.VERSION.SDK_INT >= 31) {
-            RemoteViews(mapOf(SMALL_AT to draw(Size.SMALL), MEDIUM_AT to draw(Size.MEDIUM), LARGE_AT to draw(Size.LARGE)))
+            RemoteViews(mapOf(SizeF(0f, 0f) to draw(Size.SMALL), mediumAt to draw(Size.MEDIUM), largeAt to draw(Size.LARGE)))
         } else {
             draw(Size.MEDIUM)
         }
+
+    /** dp to pixels on this screen, at least 1. */
+    fun px(context: Context, dp: Int): Int = (dp * context.resources.displayMetrics.density).roundToInt().coerceAtLeast(1)
+
+    /** The card and its gradient for a tone: an orange border while something waits, else the plain border; the tone's tint over it. */
+    fun paint(v: RemoteViews, root: Int, tint: Int, tone: WidgetTone) {
+        v.setInt(root, "setBackgroundResource", if (tone == WidgetTone.ATTENTION) R.drawable.widget_card_attention else R.drawable.widget_card)
+        v.setInt(tint, "setBackgroundResource", tintOf(tone))
+    }
+
+    private fun tintOf(tone: WidgetTone): Int = when (tone) {
+        WidgetTone.MUTED -> R.drawable.widget_tint_muted
+        WidgetTone.WORKING -> R.drawable.widget_tint_working
+        WidgetTone.ATTENTION -> R.drawable.widget_tint_attention
+        WidgetTone.DONE -> R.drawable.widget_tint_done
+        WidgetTone.TROUBLE -> R.drawable.widget_tint_trouble
+    }
 
     /** Opens the app on Home. */
     fun openApp(context: Context, code: Int): PendingIntent {
