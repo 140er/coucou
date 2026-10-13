@@ -181,4 +181,71 @@ class WidgetSurfacesTest {
         assertTrue(hub.contains("pinned = content"))
         assertTrue(hub.contains("if (pinned != null && content != pinned) return"))
     }
+
+    // ── Every Widget, at its smallest and at a large size ──────────────────────────────────────────
+
+    private fun attr(xml: String, name: String) = Regex("""android:$name="([^"]*)"""").find(xml)?.groupValues?.get(1)
+    private fun dp(v: String?) = v!!.removeSuffix("dp").toInt()
+
+    @Test fun everyProviderDeclaresItsSizeAndIsListedWithAStringLabelAndDescription() {
+        val strings = read("src/main/res/values/strings.xml")
+        val expected = mapOf(
+            "coucou_solo_widget_info" to (2 to 2), "coucou_list_widget_info" to (4 to 3), "coucou_big_widget_info" to (4 to 4),
+            "coucou_pill_widget_info" to (4 to 1), "coucou_alert_widget_info" to (2 to 2), "coucou_ring_widget_info" to (2 to 2),
+            "coucou_today_widget_info" to (2 to 2), "coucou_mood_widget_info" to (1 to 1),
+        )
+        assertEquals(widgets.map { it.second }.toSet(), expected.keys)
+        for ((info, cells) in expected) {
+            val xml = read("src/main/res/xml/$info.xml")
+            assertEquals(info, cells.first, attr(xml, "targetCellWidth")!!.toInt())
+            assertEquals(info, cells.second, attr(xml, "targetCellHeight")!!.toInt())
+            // A cell is about 70dp less 30dp of margin: the minimum size is that of its cells.
+            assertEquals(info, cells.first * 70 - 30, dp(attr(xml, "minWidth")))
+            val high = dp(attr(xml, "minHeight"))
+            // The List is a little taller than its three cells so that three rows fit; the others are exactly their cells.
+            if (info.contains("list")) assertTrue(info, high >= cells.second * 70 - 30) else assertEquals(info, cells.second * 70 - 30, high)
+            val desc = attr(xml, "description")!!.removePrefix("@string/")
+            assertTrue("$info: $desc is not a string", strings.contains("""name="$desc""""))
+            assertTrue(xml.contains("""android:initialLayout="@layout/widget_"""))
+            // Never smaller than it can be drawn: a resize may not go below the minimum.
+            attr(xml, "minResizeWidth")?.let { assertTrue(info, dp(it) <= dp(attr(xml, "minWidth"))) }
+        }
+        for ((cls, _) in widgets) {
+            val label = Regex("""android:name="\.app\.$cls"[^>]*android:label="@string/(\w+)"""").find(manifest)!!.groupValues[1]
+            assertTrue("$cls label $label", strings.contains("""name="$label""""))
+        }
+    }
+
+    @Test fun theListNeverGoesBelowTwoRowsAndTheBigOneKeepsItsBubble() {
+        val list = read("src/main/res/xml/coucou_list_widget_info.xml")
+        // Header 28 + padding 20 + two rows of 48 = 144dp.
+        assertTrue(dp(attr(list, "minResizeHeight")) >= 144)
+        assertTrue(dp(attr(list, "minHeight")) >= 28 + 20 + 3 * 48)
+        val big = read("src/main/res/xml/coucou_big_widget_info.xml")
+        assertTrue(dp(attr(big, "minResizeHeight")) >= 180)
+        val pill = read("src/main/res/xml/coucou_pill_widget_info.xml")
+        assertEquals("horizontal", attr(pill, "resizeMode"))
+        assertEquals("none", attr(read("src/main/res/xml/coucou_mood_widget_info.xml"), "resizeMode"))
+    }
+
+    @Test fun everyWidgetIsOnTheSharedCardAndOnlyUsesWhatRemoteViewsAllow() {
+        val allowed = setOf("FrameLayout", "LinearLayout", "RelativeLayout", "GridLayout", "TextView", "ImageView", "ProgressBar", "Button")
+        for (layout in File("src/main/res/layout").listFiles()!!.filter { it.name.startsWith("widget_") && it.name != "widget_glance.xml" }) {
+            val xml = layout.readText()
+            assertTrue(layout.name, xml.contains("@drawable/widget_card"))
+            assertTrue(layout.name, xml.contains("@drawable/widget_tint_muted"))
+            for (tag in Regex("""<(\w+)[\s>]""").findAll(xml).map { it.groupValues[1] }) assertTrue("${layout.name}: <$tag> in a RemoteViews layout", tag in allowed)
+            // Colours come from the shared resources (so the light variant follows the system), not from a literal.
+            assertFalse(layout.name, Regex("""android:textColor="#(?!FF1C1C1E)""").containsMatchIn(xml))
+        }
+    }
+
+    @Test fun theNamesOfTheWidgetsAreWidgetsEverywhere() {
+        val strings = File("../i18n/app-strings.json").readText()
+        val texts = listOf(strings, File("../README.md").readText(), File("../../docs/android.html").readText()).joinToString("\n")
+        assertFalse(texts.contains("Wedge", ignoreCase = true))
+        for (w in listOf("Coucou Mochi Big", "Coucou Status Pill", "Coucou Waiting Alert", "Coucou Usage Ring", "Coucou Today", "Coucou Mochi Mood", "Coucou Solo", "Coucou List")) {
+            assertTrue(w, strings.contains(w))
+        }
+    }
 }

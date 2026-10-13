@@ -20,8 +20,8 @@ class ListWidget : AppWidgetProvider() {
         WidgetHub.refresh(context, manager, ids) { c, w -> views(c, w) }
 
     companion object {
-        // Header 28dp + padding 20dp + 48dp per row: two rows fit 150dp, three 190dp, five 290dp.
-        private val MEDIUM_AT = SizeF(0f, 190f)
+        // Header 28dp + padding 20dp + 48dp per row: two rows fit 150dp, three 192dp, five 290dp.
+        private val MEDIUM_AT = SizeF(0f, 192f)
         private val LARGE_AT = SizeF(0f, 290f)
 
         private val ROWS = listOf(
