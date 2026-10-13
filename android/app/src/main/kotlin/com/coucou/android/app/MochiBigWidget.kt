@@ -9,13 +9,15 @@ import android.view.View
 import android.widget.RemoteViews
 import com.coucou.android.R
 import com.coucou.android.core.LaunchScreen
+import com.coucou.android.core.UsageRing
+import com.coucou.android.core.UsageSide
 import com.coucou.android.core.WidgetContent
 import com.coucou.android.core.WidgetTone
 
 /**
  * The Mochi Big widget (4x4). The top is in two sides. On the left, Mochi with his glow and his badge, then the agent's name and
- * state word, so the state reads without a sentence. On the right, the plan usage, or one calm message when it is off or the computer
- * is not there. Under them, rounded buttons that only open a screen of the app (Home, Chat, Settings, Recent, the top agent, Pair
+ * state word, so the state reads without a sentence. On the right, the plan usage (up to two rows: Claude and Codex, each with a big percentage and a thin bar that is green, orange above
+ * 75% and red above 90%), or one calm message when it is off or the computer is not there. Under them, rounded buttons that only open a screen of the app (Home, Chat, Settings, Recent, the top agent, Pair
  * again): none when the card is small, one row of four from the medium size, two rows of three when large. They are tinted orange
  * while something waits. Drawn by [WidgetHub] when something changes (updatePeriodMillis = 0). A tap on the card opens the top agent,
  * or the app. Nothing here changes anything.
@@ -62,7 +64,7 @@ class MochiBigWidget : AppWidgetProvider() {
             }
             v.setViewVisibility(R.id.big_state, View.VISIBLE)
 
-            bindUsage(v, context, c)
+            bindUsage(v, context, c, small)
 
             // Buttons: none when small, one row of four by default, two rows of three when large. They only open things.
             v.setViewVisibility(R.id.big_buttons, if (small) View.GONE else View.VISIBLE)
@@ -101,20 +103,44 @@ class MochiBigWidget : AppWidgetProvider() {
             }
         }
 
-        /** The right side. A calm message, never an empty area: the computer is not there, or plan usage is off. */
-        private fun bindUsage(v: RemoteViews, context: Context, c: WidgetContent) {
-            v.setViewVisibility(R.id.big_usage_a, View.GONE)
-            v.setViewVisibility(R.id.big_usage_b, View.GONE)
-            v.setViewVisibility(R.id.big_off, View.VISIBLE)
-            if (!c.connected) {
-                v.setTextViewText(R.id.big_off_title, context.getString(R.string.widget_big_not_connected))
-                v.setTextViewText(R.id.big_off_line, c.emptyLine.orEmpty())
-                v.setOnClickPendingIntent(R.id.big_right, WidgetHub.openApp(context, WidgetHub.CODE_BIG_USAGE_APP))
-            } else {
-                v.setTextViewText(R.id.big_off_title, context.getString(R.string.widget_big_usage_off))
-                v.setTextViewText(R.id.big_off_line, context.getString(R.string.widget_big_usage_off_line))
-                v.setOnClickPendingIntent(R.id.big_right, WidgetHub.openScreen(context, WidgetHub.CODE_BIG_USAGE_SETTINGS, LaunchScreen.SETTINGS))
+        /**
+         * The right side, never empty: up to two plan-usage rows (a big percentage with a thin bar; only the first when small), or a
+         * calm message when plan usage is off (a tap opens Settings) or the computer is not there (a tap opens the app).
+         */
+        private fun bindUsage(v: RemoteViews, context: Context, c: WidgetContent, small: Boolean) {
+            val rows = c.usageRows
+            when (c.usageSide) {
+                UsageSide.ROWS -> {
+                    v.setViewVisibility(R.id.big_off, View.GONE)
+                    bindRow(v, context, rows[0], R.id.big_usage_a, R.id.big_usage_a_label, R.id.big_usage_a_pct, R.id.big_usage_a_bar)
+                    val second = rows.getOrNull(1)?.takeIf { !small }
+                    if (second != null) bindRow(v, context, second, R.id.big_usage_b, R.id.big_usage_b_label, R.id.big_usage_b_pct, R.id.big_usage_b_bar)
+                    else v.setViewVisibility(R.id.big_usage_b, View.GONE)
+                    v.setOnClickPendingIntent(R.id.big_right, WidgetHub.openApp(context, WidgetHub.CODE_BIG_USAGE_APP))
+                }
+                UsageSide.OFF, UsageSide.NOT_CONNECTED -> {
+                    v.setViewVisibility(R.id.big_usage_a, View.GONE)
+                    v.setViewVisibility(R.id.big_usage_b, View.GONE)
+                    v.setViewVisibility(R.id.big_off, View.VISIBLE)
+                    if (c.usageSide == UsageSide.NOT_CONNECTED) {
+                        v.setTextViewText(R.id.big_off_title, context.getString(R.string.widget_big_not_connected))
+                        v.setTextViewText(R.id.big_off_line, c.emptyLine.orEmpty())
+                        v.setOnClickPendingIntent(R.id.big_right, WidgetHub.openApp(context, WidgetHub.CODE_BIG_USAGE_APP))
+                    } else {
+                        v.setTextViewText(R.id.big_off_title, context.getString(R.string.widget_big_usage_off))
+                        v.setTextViewText(R.id.big_off_line, context.getString(R.string.widget_big_usage_off_line))
+                        v.setOnClickPendingIntent(R.id.big_right, WidgetHub.openScreen(context, WidgetHub.CODE_BIG_USAGE_SETTINGS, LaunchScreen.SETTINGS))
+                    }
+                }
             }
+        }
+
+        private fun bindRow(v: RemoteViews, context: Context, row: UsageRing, group: Int, label: Int, pct: Int, bar: Int) {
+            v.setViewVisibility(group, View.VISIBLE)
+            v.setTextViewText(label, row.label)
+            v.setTextViewText(pct, "${row.pct}%")
+            v.setImageViewBitmap(bar, BarBitmap.of(row, WidgetHub.px(context, 180), WidgetHub.px(context, 6)))
+            v.setContentDescription(group, context.getString(R.string.widget_ring_cd, row.plan, row.pct))
         }
     }
 }

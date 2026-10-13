@@ -62,6 +62,9 @@ data class UsageRing(val plan: String, val window: String, val pct: Int) {
     /** "Claude · 5 h". */
     val label: String get() = "$plan · $window"
 
+    /** The colour of Mochi Big's bar: green, orange above 75%, red above 90% ([WidgetData.barTone]). */
+    val barTone: WidgetTone get() = WidgetData.barTone(pct)
+
     /** Green while there is room, orange from half, red from four fifths: the same rule as Home ([PlanText]). */
     val tone: WidgetTone get() = when (PlanText.level(pct)) {
         PlanText.Level.LOW -> WidgetTone.DONE
@@ -69,6 +72,9 @@ data class UsageRing(val plan: String, val window: String, val pct: Int) {
         PlanText.Level.HIGH -> WidgetTone.TROUBLE
     }
 }
+
+/** What the right side of Mochi Big shows: the plan usage rows, a calm "Plan usage is off", or "Not connected". Never nothing. */
+enum class UsageSide { ROWS, OFF, NOT_CONNECTED }
 
 /**
  * Everything the Widgets draw, as plain data so two pushes can be compared and the identical one skipped.
@@ -87,7 +93,16 @@ data class WidgetContent(
     val ring: UsageRing? = null,
     /** Agent tasks finished today, counted on this phone only. */
     val today: Int = 0,
+    /** Mochi Big's plan usage: Claude then Codex, each with its main window; empty when the computer sends none or is not connected. */
+    val usageRows: List<UsageRing> = emptyList(),
 ) {
+    /** Which of the three things Mochi Big's right side shows. */
+    val usageSide: UsageSide get() = when {
+        !connected -> UsageSide.NOT_CONNECTED
+        usageRows.isEmpty() -> UsageSide.OFF
+        else -> UsageSide.ROWS
+    }
+
     /** The agent Solo shows. */
     val top: WidgetTile? get() = tiles.firstOrNull()
 
@@ -168,7 +183,33 @@ object WidgetData {
             .take(MAX_ROWS)
             .map { WidgetTile(it.pillId, nameOf(it.pillId), it.state, GlanceBuilder.lineOf(it), colourOf(it)) }
         val ring = if (glance.connected) ring(usage, nowMs) else null
-        return WidgetContent(glance.headline, glance.tone, glance.connected, glance.waiting, tiles, ring, today.coerceAtLeast(0))
+        val rows = if (glance.connected) usageRows(usage, nowMs) else emptyList()
+        return WidgetContent(glance.headline, glance.tone, glance.connected, glance.waiting, tiles, ring, today.coerceAtLeast(0), rows)
+    }
+
+    /** Mochi Big's bar turns orange above this percentage... */
+    const val BAR_ORANGE_ABOVE = 75
+
+    /** ...and red above this one. */
+    const val BAR_RED_ABOVE = 90
+
+    /** Green up to 75%, orange above 75%, red above 90%. */
+    fun barTone(pct: Int): WidgetTone = when {
+        pct > BAR_RED_ABOVE -> WidgetTone.TROUBLE
+        pct > BAR_ORANGE_ABOVE -> WidgetTone.ATTENTION
+        else -> WidgetTone.DONE
+    }
+
+    /**
+     * Up to two rows for Mochi Big: Claude, then Codex, each with its main window (five hours, else the week). A plan the computer
+     * does not know has no row. The same data as the Usage Ring, with a window that has reset counted as zero ([PlanText]).
+     */
+    fun usageRows(usage: UsageSnapshot?, nowMs: Long): List<UsageRing> {
+        usage ?: return emptyList()
+        return listOf("Claude" to usage.claude, "Codex" to usage.codex).mapNotNull { (name, plan) ->
+            plan?.fiveHour?.let { UsageRing(name, "5 h", PlanText.effectivePct(it, nowMs)) }
+                ?: plan?.sevenDay?.let { UsageRing(name, "week", PlanText.effectivePct(it, nowMs)) }
+        }
     }
 
     /** The content a [WidgetSample] stands for, built like a real one. [nowMs] only sets when the sample plan windows reset. */
@@ -195,9 +236,11 @@ object WidgetData {
         val names = sessions.associate { it.pillId to it.agent }
         val glance = GlanceBuilder.build(true, link, "Your PC", sessions, approvals) { names[it] ?: "An agent" }
         fun plan(five: Int, week: Int) = PlanUsage(PlanWindow(five, nowMs + 2 * HOUR_MS), PlanWindow(week, nowMs + 3 * 24 * HOUR_MS))
+        // Codex has only its week here, so the second row of Mochi Big reads "Codex · week".
+        fun week(pct: Int) = PlanUsage(null, PlanWindow(pct, nowMs + 3 * 24 * HOUR_MS))
         val usage = when (which) {
-            WidgetSample.WORKING -> UsageSnapshot(plan(42, 18), null)
-            WidgetSample.WAITING -> UsageSnapshot(plan(83, 61), null)
+            WidgetSample.WORKING -> UsageSnapshot(plan(42, 18), week(41))
+            WidgetSample.WAITING -> UsageSnapshot(plan(83, 61), week(93))
             WidgetSample.DONE -> UsageSnapshot(plan(24, 9), null)
             // No plan usage on these two, so the Usage Ring shows how it asks for the switch.
             WidgetSample.DISCONNECTED, WidgetSample.EMPTY -> null
