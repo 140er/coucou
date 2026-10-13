@@ -22,6 +22,7 @@
 
         <TextView
             android:id="@+id/big_bubble"
+            android:text="@string/widget_initial_line"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:background="@drawable/widget_bubble"
@@ -44,6 +45,7 @@
 
         <ImageView
             android:id="@+id/big_mochi"
+            android:src="@drawable/preview_mochi_idle"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
@@ -52,6 +54,7 @@
 
         <LinearLayout
             android:id="@+id/big_row"
+            android:visibility="gone"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:gravity="center_vertical"
@@ -59,6 +62,7 @@
 
             <ImageView
                 android:id="@+id/big_dot"
+                android:tint="@color/widget_tone_muted"
                 android:layout_width="@dimen/widget_dot"
                 android:layout_height="@dimen/widget_dot"
                 android:importantForAccessibility="no"

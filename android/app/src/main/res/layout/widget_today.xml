@@ -22,6 +22,7 @@
 
         <ImageView
             android:id="@+id/today_face"
+            android:src="@drawable/preview_mochi_idle"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
@@ -30,6 +31,7 @@
 
         <TextView
             android:id="@+id/today_count"
+            android:text="@string/widget_initial_count"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center"
