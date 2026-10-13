@@ -58,7 +58,19 @@ The desktop side is in `windows/src-tauri/src/phone_link`; the protocol is `docs
 - **Away from home Wi-Fi** (optional): through your own Cloudflare relay, end-to-end encrypted; the direct link is always tried first.
 - **Keeping the link alive with the screen off**: an alarm every few minutes checks that the computer still answers and reconnects if not (Doze allows nothing more); Home says when and why the link was lost; Settings > Computer > *Can't connect?* checks the network, address, discovery, certificate, pairing code and relay; a calm hint suggests the battery setting ("Unrestricted", with the Samsung steps) only if it would help. Details and limits: `docs/ANDROID_LINK.md`, "Keeping the link alive".
 - **Widget, quick-settings tile, ongoing notification**: agent names and state words only. Updated when something changes, never on a timer.
-- **Widgets**: three to pick from on the home screen. *Coucou for Android* (the summary), *Coucou Solo* (Mochi in the state of your most urgent agent, with its name and a state word) and *Coucou List* (one row per agent, up to five, with a badge for what waits for you). A tap on Solo or on a row opens that agent in the app; a request is still decided in the app, behind the fingerprint, never from a widget. They show agent names, state words and colours only, are redrawn when something changes (`updatePeriodMillis` stays 0) and a redraw that would look the same is skipped. Code: `core/WidgetData.kt` (pure, tested), `app/WidgetHub.kt`, `app/SoloWidget.kt`, `app/ListWidget.kt`, `app/MochiBitmap.kt`.
+- **Widgets**: nine to pick from on the home screen, all on one card (24dp corners, a thin border, dark by default and light when the system is in day mode) with a gradient and a glow in the colour of the state: orange while something waits for you, blue while an agent works, green when it is done, muted when nothing runs or the computer is not there.
+  - *Coucou for Android*: the summary (unchanged).
+  - *Coucou Solo* (2x2): Mochi in the state of your most urgent agent, its name and a state word.
+  - *Coucou List* (4x3): one row of at least 48dp per agent (Mochi's face, name, state word, dot), up to five, with a badge for what waits for you; with no agent, a centred empty state ("Waiting for your computer" / "No agents running").
+  - *Coucou Mochi Big* (4x4): a large Mochi with a speech bubble such as "Claude Code is working" (a name and a state, never a command or a file).
+  - *Coucou Status Pill* (4x1): one slim line with a dot, the agent's name and its state.
+  - *Coucou Waiting Alert* (2x2): calm when nothing waits, a bright orange "N waiting" when something does. A tap opens the app and the sheet rises by itself.
+  - *Coucou Usage Ring* (2x2): a ring for your Claude or Codex plan usage; "Turn on plan usage in the app" when it is off.
+  - *Coucou Today* (2x2): agent tasks finished today, counted on this phone only and started again at local midnight.
+  - *Coucou Mochi Mood* (1x1): just his face.
+
+  A tap on Solo, Mochi Big, Status Pill, Mochi Mood or a List row opens that agent in the app. A request is still decided in the app, behind the fingerprint, never from a Widget. Widgets show agent names, state words and colours only, are redrawn when something changes (`updatePeriodMillis` stays 0) and a redraw that would look the same is skipped. On Android 12 and later they adapt to their size (small, medium, large). Code: `core/WidgetData.kt` (pure, tested), `app/WidgetHub.kt`, one class per Widget in `app/`, `app/MochiBitmap.kt`, `app/RingBitmap.kt`.
+- **Looking at every state without a computer** (debug builds only): `adb shell am broadcast -n com.coucou.android/.app.WidgetPreviewReceiver -a com.coucou.android.debug.WIDGET_STATE --es state <disconnected|empty|working|waiting|done|live>`; `live` goes back to the real state. The receiver is in `app/src/debug` and does not exist in a release build.
 - Mochi and his 11 outfits, sounds, wardrobe (Settings), a tap on Mochi slaps him, a long press pets him.
 
 ## Getting the phone link running on Windows
