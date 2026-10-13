@@ -1,10 +1,10 @@
 package com.coucou.android.app
 
+import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.Context
 import android.util.SizeF
-import android.util.TypedValue
 import android.view.View
 import android.widget.RemoteViews
 import com.coucou.android.R
@@ -13,30 +13,30 @@ import com.coucou.android.core.WidgetContent
 import com.coucou.android.core.WidgetTone
 
 /**
- * The Mochi Big widget: a large Mochi with a glow and a speech bubble that says who is doing what in plain words
- * ([WidgetContent.bubble]: a name and a state, never a command or a file). Drawn by [WidgetHub] when something changes
- * (updatePeriodMillis = 0). A tap on the card opens the top agent, or the app. Below the status line are buttons (Home, Chat, Settings, Recent, the top agent, Pair again): none when the card is small, one row of four, then two rows; they only open things.
+ * The Mochi Big widget (4x4). The top is in two sides. On the left, Mochi with his glow and his badge, then the agent's name and
+ * state word, so the state reads without a sentence. On the right, the plan usage, or one calm message when it is off or the computer
+ * is not there. Under them, rounded buttons that only open a screen of the app (Home, Chat, Settings, Recent, the top agent, Pair
+ * again): none when the card is small, one row of four from the medium size, two rows of three when large. They are tinted orange
+ * while something waits. Drawn by [WidgetHub] when something changes (updatePeriodMillis = 0). A tap on the card opens the top agent,
+ * or the app. Nothing here changes anything.
  */
 class MochiBigWidget : AppWidgetProvider() {
     override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) =
         WidgetHub.refresh(context, manager, ids) { c, w -> views(c, w) }
 
     companion object {
-        // Height in dp, so that Mochi keeps at least 40% of the card: under 290 no buttons, from 290 one row of four, from 400 two rows.
+        // Height in dp: under 290 no buttons, from 290 one row of four, from 400 two rows of three.
         private val MEDIUM_AT = SizeF(0f, 290f)
         private val LARGE_AT = SizeF(0f, 400f)
 
-        private class Tile(val view: Int, val screen: LaunchScreen?)
-
-        // Home, Chat, Settings, Recent; then the top agent (a session, not a screen) and Pair again.
-        private val TILES = listOf(
-            Tile(R.id.big_tile_home, LaunchScreen.HOME),
-            Tile(R.id.big_tile_chat, LaunchScreen.CHAT),
-            Tile(R.id.big_tile_settings, LaunchScreen.SETTINGS),
-            Tile(R.id.big_tile_recent, LaunchScreen.RECENT),
-            Tile(R.id.big_tile_session, null),
-            Tile(R.id.big_tile_pair, LaunchScreen.PAIR),
+        /** The six buttons, in order; null is the top agent (a session, not a screen). */
+        private val BUTTONS: List<LaunchScreen?> = listOf(
+            LaunchScreen.HOME, LaunchScreen.CHAT, LaunchScreen.SETTINGS, LaunchScreen.RECENT, null, LaunchScreen.PAIR,
         )
+
+        // The same buttons in the two arrangements: the first four in the single row, all six in the two rows of three.
+        private val ROW_TILES = listOf(R.id.big_m_home, R.id.big_m_chat, R.id.big_m_settings, R.id.big_m_recent)
+        private val GRID_TILES = listOf(R.id.big_l_home, R.id.big_l_chat, R.id.big_l_settings, R.id.big_l_recent, R.id.big_l_session, R.id.big_l_pair)
 
         fun views(context: Context, c: WidgetContent): RemoteViews =
             WidgetHub.responsive(MEDIUM_AT, LARGE_AT) { size -> render(context, c, size) }
@@ -48,11 +48,9 @@ class MochiBigWidget : AppWidgetProvider() {
             val large = size == WidgetHub.Size.LARGE
             val small = size == WidgetHub.Size.SMALL
 
-            v.setTextViewText(R.id.big_bubble, c.bubble)
-            v.setTextViewTextSize(R.id.big_bubble, TypedValue.COMPLEX_UNIT_SP, if (large) 19f else if (small) 14f else 16f)
-            v.setImageViewBitmap(R.id.big_mochi, MochiBitmap.of(c.mood, WidgetHub.px(context, if (large) 240 else if (small) 110 else 180), glow = true))
+            // Left: Mochi with his glow, then the agent and its state word.
+            v.setImageViewBitmap(R.id.big_mochi, MochiBitmap.of(c.mood, WidgetHub.px(context, if (large) 170 else if (small) 120 else 140), glow = true))
             v.setContentDescription(R.id.big_mochi, context.getString(R.string.widget_mochi_description, (top?.stateWord ?: c.headline).lowercase()))
-
             if (top != null) {
                 v.setViewVisibility(R.id.big_row, View.VISIBLE)
                 v.setInt(R.id.big_dot, "setColorFilter", top.tone.argb)
@@ -60,20 +58,22 @@ class MochiBigWidget : AppWidgetProvider() {
                 v.setTextViewText(R.id.big_state, top.stateWord)
             } else {
                 v.setViewVisibility(R.id.big_row, View.GONE)
+                v.setTextViewText(R.id.big_state, c.emptyLine.orEmpty())
             }
+            v.setViewVisibility(R.id.big_state, View.VISIBLE)
 
-            // The buttons: none when small, one row of four by default, two rows when tall. They only open things.
+            bindUsage(v, context, c)
+
+            // Buttons: none when small, one row of four by default, two rows of three when large. They only open things.
             v.setViewVisibility(R.id.big_buttons, if (small) View.GONE else View.VISIBLE)
-            v.setViewVisibility(R.id.big_buttons_b, if (large) View.VISIBLE else View.GONE)
+            v.setViewVisibility(R.id.big_buttons_m, if (large) View.GONE else View.VISIBLE)
+            v.setViewVisibility(R.id.big_buttons_l, if (large) View.VISIBLE else View.GONE)
             val tile = if (c.look == WidgetTone.ATTENTION) R.drawable.widget_tile_bg_attention else R.drawable.widget_tile_bg
-            TILES.forEachIndexed { i, t ->
-                v.setInt(t.view, "setBackgroundResource", tile)
-                val open = when {
-                    t.screen != null -> WidgetHub.openScreen(context, WidgetHub.CODE_BIG_BUTTON + i, t.screen)
-                    top != null -> WidgetHub.openSession(context, WidgetHub.CODE_BIG_BUTTON + i, top.pillId)
-                    else -> WidgetHub.openScreen(context, WidgetHub.CODE_BIG_BUTTON + i, LaunchScreen.HOME) // no agent yet: the app
+            for (tiles in listOf(ROW_TILES, GRID_TILES)) {
+                tiles.forEachIndexed { i, id ->
+                    v.setInt(id, "setBackgroundResource", tile)
+                    v.setOnClickPendingIntent(id, buttonIntent(context, c, i))
                 }
-                v.setOnClickPendingIntent(t.view, open)
             }
 
             if (c.waiting > 0) {
@@ -88,6 +88,33 @@ class MochiBigWidget : AppWidgetProvider() {
                 if (top != null) WidgetHub.openSession(context, WidgetHub.CODE_BIG, top.pillId) else WidgetHub.openApp(context, WidgetHub.CODE_BIG),
             )
             return v
+        }
+
+        /** What button [i] opens. Both arrangements use the same code for the same button, so no two buttons share one. */
+        private fun buttonIntent(context: Context, c: WidgetContent, i: Int): PendingIntent {
+            val screen = BUTTONS[i]
+            val top = c.top
+            return when {
+                screen != null -> WidgetHub.openScreen(context, WidgetHub.CODE_BIG_BUTTON + i, screen)
+                top != null -> WidgetHub.openSession(context, WidgetHub.CODE_BIG_BUTTON + i, top.pillId)
+                else -> WidgetHub.openScreen(context, WidgetHub.CODE_BIG_BUTTON + i, LaunchScreen.HOME) // no agent yet: the app
+            }
+        }
+
+        /** The right side. A calm message, never an empty area: the computer is not there, or plan usage is off. */
+        private fun bindUsage(v: RemoteViews, context: Context, c: WidgetContent) {
+            v.setViewVisibility(R.id.big_usage_a, View.GONE)
+            v.setViewVisibility(R.id.big_usage_b, View.GONE)
+            v.setViewVisibility(R.id.big_off, View.VISIBLE)
+            if (!c.connected) {
+                v.setTextViewText(R.id.big_off_title, context.getString(R.string.widget_big_not_connected))
+                v.setTextViewText(R.id.big_off_line, c.emptyLine.orEmpty())
+                v.setOnClickPendingIntent(R.id.big_right, WidgetHub.openApp(context, WidgetHub.CODE_BIG_USAGE_APP))
+            } else {
+                v.setTextViewText(R.id.big_off_title, context.getString(R.string.widget_big_usage_off))
+                v.setTextViewText(R.id.big_off_line, context.getString(R.string.widget_big_usage_off_line))
+                v.setOnClickPendingIntent(R.id.big_right, WidgetHub.openScreen(context, WidgetHub.CODE_BIG_USAGE_SETTINGS, LaunchScreen.SETTINGS))
+            }
         }
     }
 }

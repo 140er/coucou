@@ -115,28 +115,7 @@ class WidgetDataTest {
         assertEquals(com.coucou.android.core.WidgetTone.DONE, t[1].tone)
     }
 
-    // ── The speech bubble, the alert, the ring and the day's count ──────────────────────────────────
-
-    @Test fun theBubbleSaysWhoAndHowNeverWhat() {
-        fun bubble(state: BotState, approvals: Int = 0) = build(listOf(s("agent_codex", state, status = "editing secret.txt")), approvals).bubble
-        assertEquals("Codex is working", bubble(BotState.WORKING))
-        assertEquals("Codex is thinking", bubble(BotState.THINKING))
-        assertEquals("Codex is searching", bubble(BotState.SEARCHING))
-        assertEquals("Codex is waiting for you", bubble(BotState.APPROVAL, approvals = 1))
-        assertEquals("Codex has a question", bubble(BotState.QUESTION))
-        assertEquals("Codex is done", bubble(BotState.FINISHED))
-        assertEquals("Codex stopped on an error", bubble(BotState.ERROR))
-        assertEquals("Codex hit a limit", bubble(BotState.RATELIMIT))
-        assertEquals("Codex needs a look", bubble(BotState.DIZZY))
-        assertEquals("Codex is idle", bubble(BotState.IDLE))
-        for (st in BotState.values()) assertFalse(bubble(st).contains("secret"))
-    }
-
-    @Test fun theBubbleCountsWhatWaitsAndSpeaksWhenThereIsNoAgent() {
-        assertEquals("3 things are waiting for you", build(listOf(s("agent_codex", BotState.APPROVAL)), approvals = 3).bubble)
-        assertEquals("No agents running", build(emptyList()).bubble)
-        assertEquals("Waiting for your computer", build(emptyList(), link = LinkState.DISCONNECTED).bubble)
-    }
+    // ── The alert, the ring and the day's count ──────────────────────────────────
 
     @Test fun theAlertIsCalmUntilSomethingWaits() {
         assertEquals("All calm", build(emptyList()).alertLine)

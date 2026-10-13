@@ -163,4 +163,8 @@ object WidgetHub {
     const val CODE_PILL_BUTTON = 0x5A00
     const val CODE_BIG_BUTTON = 0x5B00
     const val CODE_GLANCE = 0x5C00
+
+    /** Mochi Big's usage side: Settings when plan usage is off, the app otherwise. */
+    const val CODE_BIG_USAGE_SETTINGS = 0x5D00
+    const val CODE_BIG_USAGE_APP = 0x5E00
 }

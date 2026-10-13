@@ -32,6 +32,9 @@
     <string name="widget_mood_description">Just Mochi\'s face, in your agents\' mood.</string>
     <string name="widget_today_unit">done today</string>
     <string name="widget_usage_off">Turn on plan usage in the app</string>
+    <string name="widget_big_usage_off">Plan usage is off</string>
+    <string name="widget_big_usage_off_line">Turn it on in the app</string>
+    <string name="widget_big_not_connected">Not connected</string>
     <string name="widget_ring_cd">%1$s plan usage, %2$d percent used</string>
     <string name="widget_today_cd">%1$d agent tasks finished today</string>
     <string name="widget_pill_cd">%1$s, %2$s</string>

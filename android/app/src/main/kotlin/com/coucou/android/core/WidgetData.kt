@@ -98,24 +98,6 @@ data class WidgetContent(
         else -> "No agents running"
     }
 
-    /** What Mochi says in his speech bubble: the agent's name and its state, nothing about what it is doing. */
-    val bubble: String get() {
-        val t = top ?: return emptyLine.orEmpty()
-        if (waiting > 1) return "$waiting things are waiting for you"
-        return when (t.state) {
-            BotState.APPROVAL -> "${t.name} is waiting for you"
-            BotState.QUESTION -> "${t.name} has a question"
-            BotState.WORKING -> "${t.name} is working"
-            BotState.THINKING -> "${t.name} is thinking"
-            BotState.SEARCHING -> "${t.name} is searching"
-            BotState.FINISHED -> "${t.name} is done"
-            BotState.ERROR -> "${t.name} stopped on an error"
-            BotState.RATELIMIT -> "${t.name} hit a limit"
-            BotState.DIZZY -> "${t.name} needs a look"
-            BotState.IDLE, BotState.SLEEPING -> "${t.name} is idle"
-        }
-    }
-
     /** The Waiting Alert's line: "2 waiting" in orange, or a calm word. */
     val alertLine: String get() = when {
         !connected -> "Not connected"
