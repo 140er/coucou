@@ -66,6 +66,8 @@
     <string name="widget_sample_two_agents">2 agents are working</string>
     <string name="widget_sample_thinking">Thinking</string>
     <string name="widget_sample_idle">Idle</string>
+    <string name="widget_sample_waiting">Waiting</string>
+    <string name="widget_sample_bubble_waiting">Claude Code is waiting for you</string>
     <string name="status_connected">Connected</string>
     <string name="status_connecting">Connecting…</string>
     <string name="status_not_connected">Not connected</string>

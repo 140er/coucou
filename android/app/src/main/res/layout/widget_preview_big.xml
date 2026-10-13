@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Preview of Mochi Big: a large working Mochi with a speech bubble.
-     A still picture for the Widget picker (android:previewLayout): sample text and numbers, no ids, nothing from the app, no runtime bitmap.
-     It uses the same card, border, gradient, type scale and state colours as the real Widget, so the picker shows what you will get. -->
+<!-- Preview of Mochi Big: a waiting Mochi with a speech bubble, the status line and the six buttons, tinted orange while something waits.
+     A still picture for the Widget picker (android:previewLayout): sample text, no ids, nothing from the app, no runtime bitmap.
+     It uses the same card, border, gradient, type scale, buttons and state colours as the real Widget, so the picker shows what you will get. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -11,14 +11,14 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_margin="1dp"
-        android:background="@drawable/widget_tint_working" />
+        android:background="@drawable/widget_tint_attention" />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:gravity="center_horizontal"
         android:orientation="vertical"
-        android:padding="14dp">
+        android:padding="12dp">
 
         <TextView
             android:layout_width="wrap_content"
@@ -28,10 +28,10 @@
             android:gravity="center"
             android:maxLines="2"
             android:paddingStart="16dp"
-            android:paddingTop="10dp"
+            android:paddingTop="8dp"
             android:paddingEnd="16dp"
-            android:paddingBottom="10dp"
-            android:text="@string/widget_sample_bubble"
+            android:paddingBottom="8dp"
+            android:text="@string/widget_sample_bubble_waiting"
             android:textColor="@color/widget_bubble_text"
             android:textSize="@dimen/widget_text_name"
             android:textStyle="bold" />
@@ -48,7 +48,7 @@
             android:layout_weight="1"
             android:importantForAccessibility="no"
             android:scaleType="fitCenter"
-            android:src="@drawable/preview_mochi_working" />
+            android:src="@drawable/preview_mochi_waiting" />
 
         <LinearLayout
             android:layout_width="wrap_content"
@@ -61,26 +61,217 @@
                 android:layout_height="@dimen/widget_dot"
                 android:importantForAccessibility="no"
                 android:src="@drawable/widget_dot"
-                android:tint="@color/widget_tone_working" />
+                android:tint="@color/widget_tone_attention" />
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
                 android:ellipsize="end"
                 android:maxLines="1"
                 android:text="@string/widget_sample_claude"
                 android:textColor="@color/widget_text"
                 android:textSize="@dimen/widget_text_name"
-                android:textStyle="bold"
-                android:layout_marginStart="8dp" />
+                android:textStyle="bold" />
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
                 android:ellipsize="end"
                 android:maxLines="1"
-                android:text="@string/widget_sample_working"
+                android:text="@string/widget_sample_waiting"
                 android:textColor="@color/widget_text_secondary"
-                android:textSize="@dimen/widget_text_state"
-                android:layout_marginStart="8dp" />
+                android:textSize="@dimen/widget_text_state" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/widget_tile_height"
+                android:orientation="horizontal">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginStart="3dp"
+                android:layout_marginEnd="3dp"
+                android:layout_weight="1"
+                android:background="@drawable/widget_tile_bg_attention"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/ic_widget_home" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text="@string/widget_btn_home"
+                    android:textColor="@color/widget_text"
+                    android:textSize="@dimen/widget_text_secondary" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginStart="3dp"
+                android:layout_marginEnd="3dp"
+                android:layout_weight="1"
+                android:background="@drawable/widget_tile_bg_attention"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/ic_widget_chat" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text="@string/widget_btn_chat"
+                    android:textColor="@color/widget_text"
+                    android:textSize="@dimen/widget_text_secondary" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginStart="3dp"
+                android:layout_marginEnd="3dp"
+                android:layout_weight="1"
+                android:background="@drawable/widget_tile_bg_attention"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/ic_widget_settings" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text="@string/widget_btn_settings"
+                    android:textColor="@color/widget_text"
+                    android:textSize="@dimen/widget_text_secondary" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginStart="3dp"
+                android:layout_marginEnd="3dp"
+                android:layout_weight="1"
+                android:background="@drawable/widget_tile_bg_attention"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/ic_widget_recent" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text="@string/widget_btn_recent"
+                    android:textColor="@color/widget_text"
+                    android:textSize="@dimen/widget_text_secondary" />
+            </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/widget_tile_height"
+                android:layout_marginTop="6dp"
+                android:orientation="horizontal">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginStart="3dp"
+                android:layout_marginEnd="3dp"
+                android:layout_weight="1"
+                android:background="@drawable/widget_tile_bg_attention"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/ic_widget_session" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text="@string/widget_btn_session"
+                    android:textColor="@color/widget_text"
+                    android:textSize="@dimen/widget_text_secondary" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginStart="3dp"
+                android:layout_marginEnd="3dp"
+                android:layout_weight="1"
+                android:background="@drawable/widget_tile_bg_attention"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/ic_widget_pair" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text="@string/widget_btn_pair"
+                    android:textColor="@color/widget_text"
+                    android:textSize="@dimen/widget_text_secondary" />
+            </LinearLayout>
+            </LinearLayout>
         </LinearLayout>
     </LinearLayout>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|end"
+        android:layout_margin="12dp"
+        android:background="@drawable/widget_badge_bg"
+        android:gravity="center"
+        android:minWidth="22dp"
+        android:paddingStart="6dp"
+        android:paddingEnd="6dp"
+        android:text="@string/widget_sample_one"
+        android:textColor="#FF1C1C1E"
+        android:textSize="@dimen/widget_text_secondary"
+        android:textStyle="bold" />
 </FrameLayout>

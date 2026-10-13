@@ -66,6 +66,8 @@
     "widget_sample_two_agents": "2 agents are working",
     "widget_sample_thinking": "Thinking",
     "widget_sample_idle": "Idle",
+    "widget_sample_waiting": "Waiting",
+    "widget_sample_bubble_waiting": "Claude Code is waiting for you",
     "status_connected": "Connected",
     "status_connecting": "Connecting…",
     "status_not_connected": "Not connected",
