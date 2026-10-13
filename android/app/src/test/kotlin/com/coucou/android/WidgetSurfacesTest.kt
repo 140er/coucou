@@ -22,7 +22,7 @@ class WidgetSurfacesTest {
     )
     private val sources = (
         widgets.map { "app/${it.first}.kt" } +
-            listOf("app/WidgetHub.kt", "app/MochiBitmap.kt", "app/RingBitmap.kt", "app/TodayStore.kt", "core/WidgetData.kt", "core/TodayCounter.kt", "core/LaunchScreen.kt")
+            listOf("app/WidgetHub.kt", "app/MochiBitmap.kt", "app/RingBitmap.kt", "app/BarBitmap.kt", "app/TodayStore.kt", "core/WidgetData.kt", "core/TodayCounter.kt", "core/LaunchScreen.kt")
         ).associateWith { read(main + it) }
 
     @Test fun theWidgetsAreRegisteredAndNeverWakeOnATimer() {
@@ -73,7 +73,7 @@ class WidgetSurfacesTest {
     @Test fun everyRowAndEveryWidgetHasItsOwnRequestCode() {
         val hub = sources.getValue("app/WidgetHub.kt")
         val codes = Regex("""const val CODE_\w+ = (0x[0-9A-Fa-f]+)""").findAll(hub).map { it.groupValues[1] }.toList()
-        assertEquals(12, codes.size)
+        assertEquals(14, codes.size)
         assertEquals(codes.size, codes.toSet().size)
         // The rows use CODE_LIST_ROW + index: the ranges must not run into the next code.
         val values = codes.map { it.removePrefix("0x").toInt(16) }.sorted()

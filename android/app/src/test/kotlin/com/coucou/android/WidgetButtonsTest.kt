@@ -127,53 +127,141 @@ class WidgetButtonsTest {
 
     // ── Mochi Big ───────────────────────────────────────────────────────────────────────────────────
 
-    @Test fun mochiBigHasSixTilesAndEachOpensOneThing() {
-        val layout = read(res + "layout/widget_big.xml")
-        val ids = Regex("""@\+id/(big_tile_\w+)""").findAll(layout).map { it.groupValues[1] }.toList()
-        assertEquals(listOf("big_tile_home", "big_tile_chat", "big_tile_settings", "big_tile_recent", "big_tile_session", "big_tile_pair"), ids)
-        // Icon above a 12sp label, on a rounded tile.
-        assertEquals(6, Regex("""@drawable/widget_tile_bg"""").findAll(layout).count())
-        assertEquals(6, Regex("""android:textSize="@dimen/widget_text_secondary"[^>]*/>""").findAll(layout.substringAfter("big_buttons").substringBefore("big_badge")).count())
+    private val bigLayout get() = read(res + "layout/widget_big.xml")
+    private val bigSource get() = read(main + "app/MochiBigWidget.kt")
+    private fun byId(root: org.w3c.dom.Element, id: String) = root.descendants().first { it.getAttribute("android:id") == "@+id/$id" }
+
+    @Test fun theSpeechBubbleIsGoneFromEverywhere() {
+        val files = listOf(
+            res + "layout/widget_big.xml", res + "layout/widget_preview_big.xml", main + "app/MochiBigWidget.kt", main + "core/WidgetData.kt",
+            res + "values/strings.xml", res + "values/colors.xml", res + "values-notnight/colors.xml", "../i18n/app-strings.json",
+        )
+        for (f in files) assertFalse("$f still says bubble", read(f).contains("bubble", ignoreCase = true))
+        assertFalse(File(res + "drawable/widget_bubble.xml").exists())
+        assertFalse(File(res + "drawable/widget_bubble_tail.xml").exists())
+        assertFalse(strings.keys.any { it.contains("bubble") })
+        for (id in listOf("big_bubble")) assertFalse(id, bigLayout.contains(id) || bigSource.contains(id))
+        assertFalse(bigSource.contains(".bubble"))
+        // And so are its sentences ("Claude Code is waiting for you").
+        assertFalse(strings.values.any { it.contains("is waiting for you") || it.startsWith("Claude Code is ") })
+    }
+
+    @Test fun theTopIsMochiOnTheLeftAndThePlanUsageOnTheRight() {
+        val root = element(bigLayout)
+        val top = byId(root, "big_top")
+        assertEquals("horizontal", top.getAttribute("android:orientation"))
+        val sides = top.children()
+        assertEquals(listOf("@+id/big_left", "@+id/big_right"), sides.map { it.getAttribute("android:id") })
+        assertEquals("Mochi's side is about 45% of the width", listOf("45", "55"), sides.map { it.getAttribute("android:layout_weight") })
+        val left = byId(root, "big_left").descendants().mapNotNull { it.getAttribute("android:id").takeIf { id -> id.isNotEmpty() } }
+        assertEquals(listOf("@+id/big_mochi", "@+id/big_row", "@+id/big_dot", "@+id/big_name", "@+id/big_state"), left)
+        assertEquals("the badge stays in the top-right corner", "top|end", byId(root, "big_badge").getAttribute("android:layout_gravity"))
+    }
+
+    @Test fun thePercentageAndTheBarExist() {
+        val root = element(bigLayout)
+        for (k in listOf("a", "b")) {
+            val label = byId(root, "big_usage_${k}_label")
+            val pct = byId(root, "big_usage_${k}_pct")
+            val bar = byId(root, "big_usage_${k}_bar")
+            assertEquals("12sp label", "@dimen/widget_text_secondary", label.getAttribute("android:textSize"))
+            assertEquals("28sp bold percentage", "@dimen/widget_text_big", pct.getAttribute("android:textSize"))
+            assertEquals("bold", pct.getAttribute("android:textStyle"))
+            assertEquals("ImageView", bar.tagName)
+            assertEquals("6dp", bar.getAttribute("android:layout_height"))
+        }
+        assertEquals(28.0, dimens.getValue("widget_text_big"), 0.0)
         assertEquals(12.0, dimens.getValue("widget_text_secondary"), 0.0)
-        val src = read(main + "app/MochiBigWidget.kt")
-        val tiles = Regex("""Tile\(R\.id\.(big_tile_\w+), (LaunchScreen\.\w+|null)\)""").findAll(src).map { it.groupValues[1] to it.groupValues[2] }.toList()
+        // The code puts the percentage and a bar bitmap in each row, and Claude and Codex are the two rows.
+        assertTrue(bigSource.contains("""v.setTextViewText(pct, "${'$'}{row.pct}%")"""))
+        assertTrue(bigSource.contains("BarBitmap.of(row,"))
+        assertTrue(bigSource.contains("R.id.big_usage_a_bar") && bigSource.contains("R.id.big_usage_b_bar"))
+        assertTrue(File(main + "app/BarBitmap.kt").readText().contains("row.barTone"))
+    }
+
+    @Test fun thePlanUsageIsOffAndNotConnectedStatesExist() {
+        assertEquals("Plan usage is off", strings["widget_big_usage_off"])
+        assertEquals("Turn it on in the app", strings["widget_big_usage_off_line"])
+        assertEquals("Not connected", strings["widget_big_not_connected"])
+        val root = element(bigLayout)
+        assertTrue("one block for both calm messages", byId(root, "big_off").children().map { it.getAttribute("android:id") } == listOf("@+id/big_off_title", "@+id/big_off_line"))
+        for (st in listOf("UsageSide.ROWS", "UsageSide.OFF", "UsageSide.NOT_CONNECTED")) assertTrue(st, bigSource.contains(st))
+        assertTrue(bigSource.contains("R.string.widget_big_usage_off") && bigSource.contains("R.string.widget_big_usage_off_line") && bigSource.contains("R.string.widget_big_not_connected"))
+        // "Plan usage is off" opens Settings through the whitelist; "Not connected" and the rows open the app.
+        assertTrue(bigSource.contains("WidgetHub.openScreen(context, WidgetHub.CODE_BIG_USAGE_SETTINGS, LaunchScreen.SETTINGS)"))
+        assertTrue(bigSource.contains("WidgetHub.openApp(context, WidgetHub.CODE_BIG_USAGE_APP)"))
+        // The layout starts on the calm message, so an unpainted Widget is never an empty area.
+        assertTrue(byId(root, "big_off").getAttribute("android:visibility").isEmpty())
+        for (k in listOf("a", "b")) assertEquals("gone", byId(root, "big_usage_$k").getAttribute("android:visibility"))
+    }
+
+    @Test fun mochiBigHasTwoArrangementsOfTheSixButtons() {
+        val root = element(bigLayout)
+        val row = byId(root, "big_buttons_m").children().map { it.getAttribute("android:id") }
+        assertEquals("one row of four", listOf("@+id/big_m_home", "@+id/big_m_chat", "@+id/big_m_settings", "@+id/big_m_recent"), row)
+        val grid = byId(root, "big_buttons_l").children()
+        assertEquals("two rows", 2, grid.size)
         assertEquals(
             listOf(
-                "big_tile_home" to "LaunchScreen.HOME", "big_tile_chat" to "LaunchScreen.CHAT", "big_tile_settings" to "LaunchScreen.SETTINGS",
-                "big_tile_recent" to "LaunchScreen.RECENT", "big_tile_session" to "null", "big_tile_pair" to "LaunchScreen.PAIR",
+                listOf("@+id/big_l_home", "@+id/big_l_chat", "@+id/big_l_settings"),
+                listOf("@+id/big_l_recent", "@+id/big_l_session", "@+id/big_l_pair"),
             ),
-            tiles,
+            grid.map { r -> r.children().map { it.getAttribute("android:id") } },
         )
-        // The top agent goes through the session slot; everything else through the screen slot; each tile has its own code.
+        // Every tile: an icon over a 12sp label, on the rounded tile.
+        val tiles = root.descendants().filter { it.getAttribute("android:id").startsWith("@+id/big_m_") || it.getAttribute("android:id").startsWith("@+id/big_l_") }
+        assertEquals(10, tiles.size)
+        for (t in tiles) {
+            assertEquals(t.getAttribute("android:id"), "@drawable/widget_tile_bg", t.getAttribute("android:background"))
+            assertEquals(listOf("ImageView", "TextView"), t.children().map { it.tagName })
+            assertEquals("@dimen/widget_text_secondary", t.children()[1].getAttribute("android:textSize"))
+        }
+        assertEquals(12.0, dimens.getValue("widget_text_secondary"), 0.0)
+        assertEquals("rounded 16dp", 16.0, dimens.getValue("widget_tile_radius"), 0.0)
+    }
+
+    @Test fun eachButtonOpensOneThingAndBothArrangementsAgree() {
+        val src = bigSource
+        assertTrue(src.contains("LaunchScreen.HOME, LaunchScreen.CHAT, LaunchScreen.SETTINGS, LaunchScreen.RECENT, null, LaunchScreen.PAIR"))
+        assertTrue(src.contains("listOf(R.id.big_m_home, R.id.big_m_chat, R.id.big_m_settings, R.id.big_m_recent)"))
+        assertTrue(src.contains("listOf(R.id.big_l_home, R.id.big_l_chat, R.id.big_l_settings, R.id.big_l_recent, R.id.big_l_session, R.id.big_l_pair)"))
+        // The same button has the same code in the row and in the grid; each of the six has its own.
+        assertTrue(src.contains("for (tiles in listOf(ROW_TILES, GRID_TILES))"))
+        assertTrue(src.contains("WidgetHub.CODE_BIG_BUTTON + i"))
+        // The top agent goes through the session slot, everything else through the screen slot.
         assertTrue(src.contains("WidgetHub.openSession(context, WidgetHub.CODE_BIG_BUTTON + i, top.pillId)"))
-        assertTrue(src.contains("WidgetHub.openScreen(context, WidgetHub.CODE_BIG_BUTTON + i, t.screen)"))
+        assertTrue(src.contains("WidgetHub.openScreen(context, WidgetHub.CODE_BIG_BUTTON + i, screen)"))
         assertTrue(src.contains("R.drawable.widget_tile_bg_attention"))
     }
 
     @Test fun theBigOnesButtonsGoFromTwoRowsToOneRowToNone() {
-        val layout = read(res + "layout/widget_big.xml")
-        assertEquals("a row of four then a row of two", 2, Regex("""@\+id/big_buttons_[ab]""").findAll(layout).count())
-        assertEquals(4, Regex("""@\+id/big_tile_(home|chat|settings|recent)"""").findAll(layout).count())
-        val src = read(main + "app/MochiBigWidget.kt")
+        val src = bigSource
         assertTrue(src.contains("R.id.big_buttons, if (small) View.GONE else View.VISIBLE"))
-        assertTrue(src.contains("R.id.big_buttons_b, if (large) View.VISIBLE else View.GONE"))
+        assertTrue(src.contains("R.id.big_buttons_m, if (large) View.GONE else View.VISIBLE"))
+        assertTrue(src.contains("R.id.big_buttons_l, if (large) View.VISIBLE else View.GONE"))
+        // Small: Mochi and the first row of usage only.
+        assertTrue(src.contains("rows.getOrNull(1)?.takeIf { !small }"))
     }
 
-    @Test fun mochiKeepsAtLeastFortyPercentOfTheBigCardWheneverButtonsShow() {
-        val src = read(main + "app/MochiBigWidget.kt")
-        val medium = Regex("""MEDIUM_AT = SizeF\(0f, (\d+)f""").find(src)!!.groupValues[1].toDouble()
-        val large = Regex("""LARGE_AT = SizeF\(0f, (\d+)f""").find(src)!!.groupValues[1].toDouble()
-        val tile = dimens.getValue("widget_tile_height")
-        // dp: padding 12 + 12, the bubble in two lines (8 + 2 x 20 + 8 = 56) and its tail 10, the status line 20, then the buttons.
-        val fixed = 24 + 56 + 10 + 20
-        val rowA = 8 + tile
-        val rowB = 6 + tile
-        assertTrue("one row from $medium dp: Mochi ${medium - fixed - rowA}", (medium - fixed - rowA) / medium >= 0.40)
-        assertTrue("two rows from $large dp: Mochi ${large - fixed - rowA - rowB}", (large - fixed - rowA - rowB) / large >= 0.40)
-        // And with no buttons there is more room still.
+    @Test fun mochiKeepsAtLeastFortyPercentOfTheTopAreaWheneverButtonsShow() {
+        val medium = Regex("""MEDIUM_AT = SizeF\(0f, (\d+)f""").find(bigSource)!!.groupValues[1].toDouble()
+        val large = Regex("""LARGE_AT = SizeF\(0f, (\d+)f""").find(bigSource)!!.groupValues[1].toDouble()
         val minHeight = Regex("""android:minHeight="(\d+)dp"""").find(read(res + "xml/coucou_big_widget_info.xml"))!!.groupValues[1].toDouble()
-        assertTrue((minHeight - fixed) / minHeight >= 0.40)
-        assertTrue("the steps are in order", medium < large && minHeight < medium)
+        val tile = dimens.getValue("widget_tile_height")
+        val padding = 24.0
+        // The top area is what the buttons leave; under Mochi sit the name row and the state word (about 20 + 16).
+        val status = 36.0
+        val small = minHeight - padding
+        val withRow = medium - padding - (8 + tile)
+        val withGrid = large - padding - (8 + tile + 6 + tile)
+        for ((what, top) in listOf("small" to small, "one row" to withRow, "two rows" to withGrid)) {
+            assertTrue("$what: the top area is ${top.toInt()}dp", top >= 100)
+            assertTrue("$what: Mochi has ${(top - status).toInt()} of ${top.toInt()}dp", (top - status) / top >= 0.40)
+        }
+        // The two usage rows (label 15, percentage 35, bar 6, gaps) fit beside him at every size where both show.
+        val twoRows = 2 * (15 + 35 + 2 + 6) + 8
+        assertTrue("two usage rows need ${twoRows.toInt()}dp of ${withRow.toInt()}", twoRows <= withRow)
+        assertTrue("the steps are in order", minHeight < medium && medium < large)
     }
 
     // ── Nothing here can approve, deny or send ──────────────────────────────────────────────────────

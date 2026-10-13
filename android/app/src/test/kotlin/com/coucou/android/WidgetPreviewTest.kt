@@ -134,7 +134,11 @@ class WidgetPreviewTest {
         assertEquals("Waiting for you", list.first())
         assertEquals(listOf("Waiting for you", "1", "Claude Code", "Waiting for your approval", "Codex", "Working", "Gemini CLI", "Finished"), list)
         assertEquals(3, Regex("""android:minHeight="@dimen/widget_row_min"""").findAll(preview("list")).count())
-        assertTrue(text("big").containsAll(listOf("Claude Code is waiting for you", "Claude Code", "Waiting", "Home", "Chat", "Settings", "Recent", "Top agent", "Pair again")))
+        // Mochi Big: Mochi, the agent and its state on the left; Claude 68% and Codex 41% on the right; the six tiles.
+        assertEquals(
+            listOf("Claude Code", "Working", "Claude · 5 h", "68%", "Codex · week", "41%", "Home", "Chat", "Settings", "Recent", "Top agent", "Pair again"),
+            text("big"),
+        )
         assertEquals(listOf("2 agents working", "Claude Code", "Working", "Codex", "Thinking", "Gemini CLI", "Idle"), text("glance"))
         assertEquals(listOf("Claude", "Working"), text("pill"))
         // The pill shows its four buttons: home, chat, settings and recent, in that order.
@@ -147,7 +151,10 @@ class WidgetPreviewTest {
         assertTrue(preview("solo").contains("widget_tone_attention") && preview("solo").contains("preview_mochi_waiting"))
         assertTrue(preview("pill").contains("widget_tone_working"))
         assertTrue(preview("alert").contains("widget_card_attention"))
-        assertTrue(preview("big").contains("preview_mochi_waiting") && preview("big").contains("widget_tile_bg_attention"))
+        assertTrue(preview("big").contains("preview_mochi_working") && preview("big").contains("widget_tint_working"))
+        assertEquals("six tiles", 6, Regex("""@drawable/widget_tile_bg"""").findAll(preview("big")).count())
+        assertEquals("two thin bars", 2, Regex("""@drawable/preview_bar_done"""").findAll(preview("big")).count())
+        assertFalse("no speech bubble", preview("big").contains("bubble", ignoreCase = true))
         assertTrue(preview("glance").contains("preview_mochi_working") && preview("glance").contains("widget_tint_working"))
         assertTrue(preview("mood").contains("preview_mochi_done") && preview("today").contains("preview_mochi_done"))
         assertTrue(preview("list").let { it.contains("preview_face_waiting") && it.contains("preview_face_working") && it.contains("preview_face_done") })
@@ -271,5 +278,15 @@ class WidgetPreviewTest {
             val line = 8 + 6 + width(sample(name), 13.0, true) + 6 + width(sample(state), 12.0, false)
             assertTrue("$name line needs ${line.toInt()}dp of $room", line <= room)
         }
+    }
+
+    @Test fun theMochiBigPreviewFitsItsTwoSidesAtTheWidthOfA4x4() {
+        // A 4x4 about 300dp wide: padding 12 + 12, so 276; Mochi's side is 45% of it, the usage side 55% less its 8dp margin.
+        val left = 0.45 * (300 - 24)
+        val right = 0.55 * (300 - 24) - 8
+        val name = 10 + 6 + width(sample("widget_sample_claude"), 16.0, true)
+        assertTrue("dot and name need ${name.toInt()}dp of ${left.toInt()}", name <= left)
+        for (k in listOf("widget_sample_ring_label", "widget_sample_codex_week")) assertTrue(k, width(sample(k), 12.0, false) <= right)
+        for (k in listOf("widget_sample_pct_a", "widget_sample_pct_b")) assertTrue(k, width(sample(k), 28.0, true) <= right)
     }
 }
