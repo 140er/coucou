@@ -233,7 +233,9 @@ class WidgetSurfacesTest {
         for (layout in File("src/main/res/layout").listFiles()!!.filter { it.name.startsWith("widget_") && it.name != "widget_glance.xml" }) {
             val xml = layout.readText()
             assertTrue(layout.name, xml.contains("@drawable/widget_card"))
-            assertTrue(layout.name, xml.contains("@drawable/widget_tint_muted"))
+            // A real layout starts muted and is repainted by WidgetHub; a preview is already in the tone of its sample.
+            if (layout.name.startsWith("widget_preview_")) assertTrue(layout.name, xml.contains("@drawable/widget_tint_"))
+            else assertTrue(layout.name, xml.contains("@drawable/widget_tint_muted"))
             for (tag in Regex("""<(\w+)[\s>]""").findAll(xml).map { it.groupValues[1] }) assertTrue("${layout.name}: <$tag> in a RemoteViews layout", tag in allowed)
             // Colours come from the shared resources (so the light variant follows the system), not from a literal.
             assertFalse(layout.name, Regex("""android:textColor="#(?!FF1C1C1E)""").containsMatchIn(xml))
@@ -244,8 +246,11 @@ class WidgetSurfacesTest {
         val strings = File("../i18n/app-strings.json").readText()
         val texts = listOf(strings, File("../README.md").readText(), File("../../docs/android.html").readText()).joinToString("\n")
         assertFalse(texts.contains("Wedge", ignoreCase = true))
-        for (w in listOf("Coucou Mochi Big", "Coucou Status Pill", "Coucou Waiting Alert", "Coucou Usage Ring", "Coucou Today", "Coucou Mochi Mood", "Coucou Solo", "Coucou List")) {
+        // The picker names: short, and the same ones in the README.
+        val readme = File("../README.md").readText()
+        for (w in listOf("Mochi at a glance", "All your agents", "Mochi, big", "One-line status", "Approvals waiting", "Plan usage", "Finished today", "Mochi's mood")) {
             assertTrue(w, strings.contains(w))
+            assertTrue("$w is not in the README", readme.contains(w))
         }
     }
 }
