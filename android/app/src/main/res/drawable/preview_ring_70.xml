@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A plan-usage ring at 70 %, drawn with a vector arc for the Widget picker: a faint track and an orange arc from the top
+     (from 50 % the usage is orange, from 80 % red, like Home). The real ring is drawn to a bitmap by RingBitmap. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="100dp"
+    android:height="100dp"
+    android:viewportWidth="100"
+    android:viewportHeight="100">
+    <path
+        android:pathData="M50,6 A44,44 0 1 1 50,94 A44,44 0 1 1 50,6"
+        android:strokeColor="#40808080"
+        android:strokeWidth="12" />
+    <path
+        android:pathData="M50,6 A44,44 0 1 1 8.2,63.6"
+        android:strokeColor="#F5A524"
+        android:strokeWidth="12"
+        android:strokeLineCap="round" />
+</vector>
