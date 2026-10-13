@@ -188,6 +188,7 @@ class WidgetSurfacesTest {
         }
         assertTrue(src.contains("adb shell am broadcast -n com.coucou.android/.app.WidgetPreviewReceiver -a com.coucou.android.debug.WIDGET_STATE"))
         assertTrue(src.contains("DEBUG BUILDS ONLY"))
+        assertTrue(src.contains("--ei usage 92"))
         // It only redraws Widgets with a made-up state.
         assertTrue(src.contains("WidgetSample.parse"))
         for (word in listOf("PendingLaunch", "approve", "AppModel", "SecureStore")) assertFalse(word, src.contains(word))

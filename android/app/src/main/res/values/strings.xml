@@ -19,7 +19,7 @@
     <string name="widget_mochi_description">Mochi, %1$s</string>
     <string name="widget_badge_description">%1$d waiting for you</string>
     <string name="widget_big_label">Mochi, big</string>
-    <string name="widget_big_description">A big Mochi that says what your agent is doing.</string>
+    <string name="widget_big_description">Mochi, your plan usage and quick buttons.</string>
     <string name="widget_pill_label">One-line status</string>
     <string name="widget_pill_description">Your most urgent agent on one line.</string>
     <string name="widget_alert_label">Approvals waiting</string>

@@ -1,5 +1,6 @@
 package com.coucou.android
 
+import com.coucou.android.core.UsageTone
 import com.coucou.android.core.WidgetData
 import com.coucou.android.core.WidgetSample
 import com.coucou.android.core.WidgetTone
@@ -48,6 +49,23 @@ class WidgetSampleTest {
         assertEquals(42, c.ring!!.pct)
         assertEquals(com.coucou.android.core.UsageTone.CALM, c.ring!!.tone)
         assertEquals(3, c.today)
+    }
+
+    @Test fun theUsageOverrideShowsTheNearLimitLook() {
+        val now = 1_000_000L
+        val c = WidgetData.sample(WidgetSample.WORKING, now, 92)
+        assertEquals(92, c.ring?.pct)
+        assertEquals(UsageTone.LIMIT, c.ring?.tone)
+        assertEquals("Near limit · resets in 2 h", c.ring?.note)
+        assertEquals(92, c.usageRows.first().pct)
+        assertEquals("Claude", c.usageRows.first().plan)
+        assertEquals(null, WidgetData.sample(WidgetSample.WORKING, now, 60).ring?.note)
+        assertEquals(WidgetData.sample(WidgetSample.WORKING, now), WidgetData.sample(WidgetSample.WORKING, now, null))
+        assertEquals(null, WidgetData.sample(WidgetSample.DISCONNECTED, now, 92).ring)
+    }
+
+    @Test fun theDisconnectedAlertFitsOneLine() {
+        assertEquals("Waiting for your PC", sample(WidgetSample.DISCONNECTED).alertSub)
     }
 
     @Test fun waiting() {

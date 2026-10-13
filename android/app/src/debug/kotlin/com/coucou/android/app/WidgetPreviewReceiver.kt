@@ -19,12 +19,18 @@ import com.coucou.android.core.WidgetSample
  *   adb shell am broadcast -n com.coucou.android/.app.WidgetPreviewReceiver -a com.coucou.android.debug.WIDGET_STATE --es state done
  *   adb shell am broadcast -n com.coucou.android/.app.WidgetPreviewReceiver -a com.coucou.android.debug.WIDGET_STATE --es state live
  *
+ * Optional `--ei usage <percent>` sets Claude's plan usage on Mochi Big and the Usage Ring (reset in 2 h), to see the near-limit look
+ * (red from 90, large rate, "Near limit", reset time). Without `--es state` it uses `working`; ignored for `disconnected` and `live`:
+ *
+ *   adb shell am broadcast -n com.coucou.android/.app.WidgetPreviewReceiver -a com.coucou.android.debug.WIDGET_STATE --es state working --ei usage 92
+ *
  * `live` goes back to the real state. A chosen state stays on the Widgets (real changes wait) until `live` or until the app
  * process is killed. The states are made up by [WidgetSample]; nothing is read from, or sent to, a computer.
  */
 class WidgetPreviewReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        val key = intent.getStringExtra("state")?.trim()?.lowercase()
+        val usage = if (intent.hasExtra("usage")) intent.getIntExtra("usage", 0) else null
+        val key = intent.getStringExtra("state")?.trim()?.lowercase() ?: if (usage != null) "working" else null
         if (key == "live") {
             WidgetHub.preview(context, null)
             return
@@ -34,6 +40,6 @@ class WidgetPreviewReceiver : BroadcastReceiver() {
             Log.w("CoucouWidgets", "unknown state '$key': use disconnected, empty, working, waiting, done or live")
             return
         }
-        WidgetHub.preview(context, WidgetData.sample(sample, System.currentTimeMillis()))
+        WidgetHub.preview(context, WidgetData.sample(sample, System.currentTimeMillis(), usage))
     }
 }

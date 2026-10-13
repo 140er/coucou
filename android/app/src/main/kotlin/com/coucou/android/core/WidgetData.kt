@@ -181,7 +181,7 @@ data class WidgetContent(
 
     /** The line under the alert: who is waiting, or why there is nothing to say. */
     val alertSub: String get() = when {
-        !connected -> "Waiting for your computer"
+        !connected -> "Waiting for your PC"
         waiting > 0 -> top?.name.orEmpty()
         else -> "Nothing needs you"
     }
@@ -268,8 +268,11 @@ object WidgetData {
         }
     }
 
-    /** The content a [WidgetSample] stands for, built like a real one. [nowMs] only sets when the sample plan windows reset. */
-    fun sample(which: WidgetSample, nowMs: Long = 0L): WidgetContent {
+    /**
+     * The content a [WidgetSample] stands for, built like a real one. [nowMs] only sets when the sample plan windows reset.
+     * [usagePct], when given, replaces Claude's five-hour usage (Mochi Big and the Usage Ring); null keeps the sample's own.
+     */
+    fun sample(which: WidgetSample, nowMs: Long = 0L, usagePct: Int? = null): WidgetContent {
         val link = if (which == WidgetSample.DISCONNECTED) LinkState.DISCONNECTED else LinkState.CONNECTED
         val sessions = when (which) {
             WidgetSample.DISCONNECTED, WidgetSample.EMPTY -> emptyList()
@@ -294,7 +297,10 @@ object WidgetData {
         fun plan(five: Int, week: Int) = PlanUsage(PlanWindow(five, nowMs + 2 * HOUR_MS), PlanWindow(week, nowMs + 3 * 24 * HOUR_MS))
         // Codex has only its week here, so the second row of Mochi Big reads "Codex · week".
         fun week(pct: Int) = PlanUsage(null, PlanWindow(pct, nowMs + 3 * 24 * HOUR_MS))
-        val usage = when (which) {
+        val usage = if (usagePct != null && which != WidgetSample.DISCONNECTED) {
+            // Debug preview of the near-limit look: Claude's five-hour window at [usagePct], reset in two hours; Codex stays as in the sample.
+            UsageSnapshot(plan(usagePct, usagePct * 2 / 3), week(41))
+        } else when (which) {
             WidgetSample.WORKING -> UsageSnapshot(plan(42, 18), week(41))
             WidgetSample.WAITING -> UsageSnapshot(plan(83, 61), week(93))
             WidgetSample.DONE -> UsageSnapshot(plan(24, 9), null)
