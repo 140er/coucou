@@ -123,7 +123,7 @@ class WidgetDataTest {
         assertEquals("3 waiting", build(listOf(s("agent_codex", BotState.QUESTION)), approvals = 2).alertLine)
         assertEquals("Not connected", build(emptyList(), link = LinkState.DISCONNECTED).alertLine)
         assertEquals(WidgetTone.ATTENTION, build(listOf(s("agent_codex", BotState.APPROVAL)), approvals = 1).look)
-        assertEquals(WidgetTone.MUTED, build(emptyList()).look)
+        assertEquals("connected with nothing to list is calm", WidgetTone.IDLE, build(emptyList()).look)
     }
 
     private val now = 1_000_000L
@@ -138,7 +138,7 @@ class WidgetDataTest {
     @Test fun theRingPrefersClaudesFiveHoursThenItsWeekThenCodex() {
         assertEquals(UsageRing("Claude", "5 h", 42), built(usage(claude5 = 42, claudeWeek = 10, codex5 = 90)).ring)
         assertEquals(UsageRing("Claude", "week", 10), built(usage(claudeWeek = 10, codex5 = 90)).ring)
-        assertEquals(UsageRing("Codex", "5 h", 90), built(usage(codex5 = 90)).ring)
+        assertEquals(UsageRing("Codex", "5 h", 90, "Near limit · resets in 1 h"), built(usage(codex5 = 90)).ring)
         assertNull(built(usage()).ring)
         assertNull("the switch is off", built(null).ring)
     }
@@ -148,13 +148,15 @@ class WidgetDataTest {
         assertNull(built(usage(claude5 = 42), LinkState.DISCONNECTED).ring)
     }
 
-    @Test fun theRingIsGreenThenOrangeThenRedLikeHome() {
-        assertEquals(WidgetTone.DONE, UsageRing("Claude", "5 h", 49).tone)
-        assertEquals(WidgetTone.ATTENTION, UsageRing("Claude", "5 h", 50).tone)
-        assertEquals(WidgetTone.ATTENTION, UsageRing("Claude", "5 h", 79).tone)
-        assertEquals(WidgetTone.TROUBLE, UsageRing("Claude", "5 h", 80).tone)
+    @Test fun theRingIsTealThenYellowThenRedInItsOwnPalette() {
+        assertEquals(com.coucou.android.core.UsageTone.CALM, UsageRing("Claude", "5 h", 49).tone)
+        assertEquals(com.coucou.android.core.UsageTone.CALM, UsageRing("Claude", "5 h", 74).tone)
+        assertEquals(com.coucou.android.core.UsageTone.CLOSE, UsageRing("Claude", "5 h", 75).tone)
+        assertEquals(com.coucou.android.core.UsageTone.LIMIT, UsageRing("Claude", "5 h", 90).tone)
         assertEquals(0.42f, UsageRing("Claude", "5 h", 42).fraction, 0.0001f)
         assertEquals(1f, UsageRing("Claude", "5 h", 140).fraction, 0f)
+        assertEquals(100, UsageRing("Claude", "5 h", 140).shown)
+        assertEquals(0, UsageRing("Claude", "5 h", -3).shown)
         assertEquals(0f, UsageRing("Claude", "5 h", -3).fraction, 0f)
         assertEquals("Claude · 5 h", UsageRing("Claude", "5 h", 1).label)
     }

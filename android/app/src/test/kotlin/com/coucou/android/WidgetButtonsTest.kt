@@ -154,7 +154,7 @@ class WidgetButtonsTest {
         assertEquals(listOf("@+id/big_left", "@+id/big_right"), sides.map { it.getAttribute("android:id") })
         assertEquals("Mochi's side is about 45% of the width", listOf("45", "55"), sides.map { it.getAttribute("android:layout_weight") })
         val left = byId(root, "big_left").descendants().mapNotNull { it.getAttribute("android:id").takeIf { id -> id.isNotEmpty() } }
-        assertEquals(listOf("@+id/big_mochi", "@+id/big_row", "@+id/big_dot", "@+id/big_name", "@+id/big_state"), left)
+        assertEquals(listOf("@+id/big_mochi", "@+id/big_row", "@+id/big_offline", "@+id/big_dot", "@+id/big_name", "@+id/big_state"), left)
         assertEquals("the badge stays in the top-right corner", "top|end", byId(root, "big_badge").getAttribute("android:layout_gravity"))
     }
 
@@ -163,20 +163,30 @@ class WidgetButtonsTest {
         for (k in listOf("a", "b")) {
             val label = byId(root, "big_usage_${k}_label")
             val pct = byId(root, "big_usage_${k}_pct")
+            val big = byId(root, "big_usage_${k}_pct_big")
+            val note = byId(root, "big_usage_${k}_note")
             val bar = byId(root, "big_usage_${k}_bar")
             assertEquals("12sp label", "@dimen/widget_text_secondary", label.getAttribute("android:textSize"))
-            assertEquals("28sp bold percentage", "@dimen/widget_text_big", pct.getAttribute("android:textSize"))
-            assertEquals("bold", pct.getAttribute("android:textStyle"))
+            // Under the red line: small and normal, no warning line. From the red line: big and bold, with the line under it.
+            assertEquals("@dimen/widget_text_pct", pct.getAttribute("android:textSize"))
+            assertTrue("the small percentage is not bold", pct.getAttribute("android:textStyle").isEmpty())
+            assertEquals("@dimen/widget_text_pct_big", big.getAttribute("android:textSize"))
+            assertEquals("bold", big.getAttribute("android:textStyle"))
+            assertEquals("gone", big.getAttribute("android:visibility"))
+            assertEquals("gone", note.getAttribute("android:visibility"))
             assertEquals("ImageView", bar.tagName)
             assertEquals("6dp", bar.getAttribute("android:layout_height"))
         }
-        assertEquals(28.0, dimens.getValue("widget_text_big"), 0.0)
+        assertEquals(18.0, dimens.getValue("widget_text_pct"), 0.0)
+        assertEquals(32.0, dimens.getValue("widget_text_pct_big"), 0.0)
         assertEquals(12.0, dimens.getValue("widget_text_secondary"), 0.0)
+        assertFalse("the old 28sp bold percentage is gone", dimens.containsKey("widget_text_big"))
         // The code puts the percentage and a bar bitmap in each row, and Claude and Codex are the two rows.
-        assertTrue(bigSource.contains("""v.setTextViewText(pct, "${'$'}{row.pct}%")"""))
+        assertTrue(bigSource.contains("""v.setTextViewText(if (near) r.pctBig else r.pct, "${'$'}{row.shown}%")"""))
+        assertTrue(bigSource.contains("val near = row.nearLimit"))
         assertTrue(bigSource.contains("BarBitmap.of(row,"))
         assertTrue(bigSource.contains("R.id.big_usage_a_bar") && bigSource.contains("R.id.big_usage_b_bar"))
-        assertTrue(File(main + "app/BarBitmap.kt").readText().contains("row.barTone"))
+        assertTrue(File(main + "app/BarBitmap.kt").readText().contains("row.tone"))
     }
 
     @Test fun thePlanUsageIsOffAndNotConnectedStatesExist() {

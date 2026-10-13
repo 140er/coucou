@@ -194,7 +194,7 @@ data class WidgetContent(
 
     /**
      * The look of the whole widget. Not connected: muted. Something waits for you: orange. Otherwise the most urgent agent's tone, and
-     * the tiles are already in the order of [GlanceBuilder.rank] (waiting, then trouble, working, happy, idle): the top one decides.
+     * the tiles are already in the order of [GlanceBuilder.rank] (waiting, then trouble, working, happy, idle): the top one sets the look.
      * Connected with nothing to list: idle grey.
      */
     val look: WidgetTone get() = when {

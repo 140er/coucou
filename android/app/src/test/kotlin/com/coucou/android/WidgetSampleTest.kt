@@ -46,7 +46,7 @@ class WidgetSampleTest {
         assertEquals(0, c.waiting)
         assertEquals("Claude", c.ring!!.plan)
         assertEquals(42, c.ring!!.pct)
-        assertEquals(WidgetTone.DONE, c.ring!!.tone)
+        assertEquals(com.coucou.android.core.UsageTone.CALM, c.ring!!.tone)
         assertEquals(3, c.today)
     }
 
@@ -58,7 +58,7 @@ class WidgetSampleTest {
         assertEquals("Claude Code", c.alertSub)
         assertEquals(BotState.APPROVAL, c.mood)
         assertEquals("a request on top, then the others by urgency", listOf("Claude Code", "Codex", "Gemini CLI"), c.tiles.map { it.name })
-        assertEquals(WidgetTone.TROUBLE, c.ring!!.tone)
+        assertEquals(com.coucou.android.core.UsageTone.CLOSE, c.ring!!.tone)
     }
 
     @Test fun done() {
@@ -80,7 +80,7 @@ class WidgetSampleTest {
             assertTrue(c.tiles.size <= WidgetData.MAX_ROWS)
         }
         // The four tones that matter are all on show somewhere.
-        assertEquals(setOf(WidgetTone.MUTED, WidgetTone.WORKING, WidgetTone.ATTENTION, WidgetTone.DONE), all.map { it.look }.toSet())
+        assertEquals(setOf(WidgetTone.MUTED, WidgetTone.IDLE, WidgetTone.WORKING, WidgetTone.ATTENTION, WidgetTone.DONE), all.map { it.look }.toSet())
     }
 
     @Test fun theSamePreviewTwiceIsTheSameContentSoAPushCanBeSkipped() {

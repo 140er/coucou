@@ -127,7 +127,8 @@ class WidgetSurfacesTest {
         for (word in listOf("openScreen", "openSession", "LaunchScreen")) assertFalse(word, src.contains(word))
         val layout = read("src/main/res/layout/widget_glance.xml")
         assertFalse(layout.contains("<Button"))
-        assertFalse("no icon button in the summary", layout.contains("ic_widget_"))
+        assertFalse("no icon button in the summary", Regex("ic_widget_(home|chat|settings|recent|session|pair)").containsMatchIn(layout))
+        assertTrue("it shows the not-connected icon", layout.contains("@drawable/ic_widget_offline"))
     }
 
     @Test fun theListRowsAreAtLeastFortyEightDpAndTheEmptyStateFillsTheCard() {

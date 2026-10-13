@@ -144,7 +144,7 @@ class WidgetPreviewTest {
         // The pill shows its four buttons: home, chat, settings and recent, in that order.
         assertEquals(listOf("ic_widget_home", "ic_widget_chat", "ic_widget_settings", "ic_widget_recent"), Regex("""@drawable/(ic_widget_\w+)""").findAll(preview("pill")).map { it.groupValues[1] }.toList())
         assertEquals(listOf("2 waiting", "Claude Code"), text("alert"))
-        assertEquals(listOf("70%", "Claude · 5 h"), text("ring"))
+        assertEquals(listOf("68%", "Claude · 5 h"), text("ring"))
         assertTrue(text("today").containsAll(listOf("5", "done today")))
         assertTrue("the Mood preview shows only a face", text("mood").isEmpty())
         // The tones of the samples: waiting orange, working blue, finished green.
@@ -153,18 +153,19 @@ class WidgetPreviewTest {
         assertTrue(preview("alert").contains("widget_card_attention"))
         assertTrue(preview("big").contains("preview_mochi_working") && preview("big").contains("widget_tint_working"))
         assertEquals("six tiles", 6, Regex("""@drawable/widget_tile_bg"""").findAll(preview("big")).count())
-        assertEquals("two thin bars", 2, Regex("""@drawable/preview_bar_done"""").findAll(preview("big")).count())
+        assertEquals("two thin bars", 2, Regex("""@drawable/preview_bar_calm"""").findAll(preview("big")).count())
         assertFalse("no speech bubble", preview("big").contains("bubble", ignoreCase = true))
         assertTrue(preview("glance").contains("preview_mochi_working") && preview("glance").contains("widget_tint_working"))
         assertTrue(preview("mood").contains("preview_mochi_done") && preview("today").contains("preview_mochi_done"))
         assertTrue(preview("list").let { it.contains("preview_face_waiting") && it.contains("preview_face_working") && it.contains("preview_face_done") })
-        assertTrue(preview("ring").contains("preview_ring_70"))
+        assertTrue(preview("ring").contains("preview_ring_68"))
     }
 
     @Test fun theBadgeAndTheAlertAreOrange() {
         for (n in listOf("solo", "list")) assertTrue(n, preview(n).contains("@drawable/widget_badge_bg"))
-        assertTrue(File(res + "drawable/widget_badge_bg.xml").readText().contains("#FFFF9F0A"))
-        assertTrue(preview("alert").contains("""android:textColor="@color/widget_tone_attention""""))
+        // The badge is the waiting tone from the shared palette, not a literal of its own.
+        assertTrue(File(res + "drawable/widget_badge_bg.xml").readText().contains("@color/widget_tone_attention"))
+        assertTrue(preview("alert").contains("""android:textColor="@color/widget_tone_attention_text""""))
     }
 
     // ── The vector Mochi ───────────────────────────────────────────────────────────────────────────
@@ -199,15 +200,24 @@ class WidgetPreviewTest {
         assertFalse("calm: no badge", read(res + "drawable/preview_face_idle.xml").contains("""android:fillColor="#000000""""))
     }
 
-    @Test fun theRingIsAnArcAtSeventyPercentInTheMediumTone() {
-        val ring = read(res + "drawable/preview_ring_70.xml")
+    @Test fun theRingIsANormalTealArcAtSixtyEightPercent() {
+        val ring = read(res + "drawable/preview_ring_68.xml")
+        assertFalse(File(res + "drawable/preview_ring_70.xml").exists())
         assertTrue(ring.contains("""android:strokeLineCap="round""""))
-        assertTrue(ring.contains("#" + hex(WidgetTone.ATTENTION)))
-        // 70 % of the circle from the top, clockwise: it ends at 252 degrees (x = 50 + 44 sin, y = 50 - 44 cos).
+        // Plan usage has its own palette: teal under 75%, never a state colour.
+        assertTrue(ring.contains("#" + usageHex(com.coucou.android.core.UsageTone.CALM)))
+        assertFalse(ring.contains("#" + hex(WidgetTone.ATTENTION)))
+        // 68 % of the circle from the top, clockwise: it ends at 244.8 degrees (x = 50 + 44 sin, y = 50 - 44 cos).
         val end = Regex("""M50,6 A44,44 0 1 1 (?!50,)([\d.]+),([\d.]+)""").find(ring)!!.groupValues
-        assertEquals(50 + 44 * Math.sin(Math.toRadians(252.0)), end[1].toDouble(), 0.1)
-        assertEquals(50 - 44 * Math.cos(Math.toRadians(252.0)), end[2].toDouble(), 0.1)
+        val deg = 0.68 * 360
+        assertEquals(50 + 44 * Math.sin(Math.toRadians(deg)), end[1].toDouble(), 0.1)
+        assertEquals(50 - 44 * Math.cos(Math.toRadians(deg)), end[2].toDouble(), 0.1)
+        // A normal look under the red line: the ring's percentage is small and not bold.
+        val layout = preview("ring")
+        assertTrue(layout.contains("@dimen/widget_text_pct") && !layout.contains("android:textStyle=\"bold\""))
     }
+
+    private fun usageHex(t: com.coucou.android.core.UsageTone) = t.argb.toUInt().toString(16).uppercase().padStart(8, '0').substring(2)
 
     @Test fun nothingInThePreviewsIsABitmap() {
         for (dir in File(res).listFiles()!!.filter { it.name.startsWith("drawable") || it.name.startsWith("mipmap") }) {

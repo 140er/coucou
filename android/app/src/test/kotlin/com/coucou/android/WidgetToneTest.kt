@@ -3,6 +3,7 @@ package com.coucou.android
 import com.coucou.android.core.Glance
 import com.coucou.android.core.GlanceTone
 import com.coucou.android.core.GlanceLine
+import com.coucou.android.core.look
 import com.coucou.android.core.mood
 import com.coucou.android.core.WidgetContent
 import com.coucou.android.core.WidgetTile
@@ -33,7 +34,7 @@ class WidgetToneTest {
         for (s in listOf(BotState.WORKING, BotState.THINKING, BotState.SEARCHING)) assertEquals(WidgetTone.WORKING, WidgetTone.of(s))
         assertEquals(WidgetTone.DONE, WidgetTone.of(BotState.FINISHED))
         for (s in listOf(BotState.ERROR, BotState.RATELIMIT, BotState.DIZZY)) assertEquals(WidgetTone.TROUBLE, WidgetTone.of(s))
-        for (s in listOf(BotState.IDLE, BotState.SLEEPING)) assertEquals(WidgetTone.MUTED, WidgetTone.of(s))
+        for (s in listOf(BotState.IDLE, BotState.SLEEPING)) assertEquals("calm is soft grey, not the muted grey of 'not connected'", WidgetTone.IDLE, WidgetTone.of(s))
     }
 
     @Test fun aComputerThatIsNotConnectedIsAlwaysMuted() {
@@ -46,6 +47,7 @@ class WidgetToneTest {
         assertEquals(0xFF34D499.toInt(), WidgetTone.DONE.argb)
         assertEquals(0xFFF4505E.toInt(), WidgetTone.TROUBLE.argb)
         assertEquals(0xFF94A2B8.toInt(), WidgetTone.MUTED.argb)
+        assertEquals(0xFFB8BDC7.toInt(), WidgetTone.IDLE.argb)
     }
 
     @Test fun theResourcesCarryTheSamePalette() {
@@ -98,22 +100,25 @@ class WidgetToneTest {
         assertEquals(WidgetTone.ATTENTION, content(waiting = 1, states = arrayOf(BotState.WORKING)).look)
         assertEquals(WidgetTone.WORKING, content(states = arrayOf(BotState.WORKING, BotState.IDLE)).look)
         assertEquals(WidgetTone.DONE, content(states = arrayOf(BotState.FINISHED)).look)
-        assertEquals(WidgetTone.MUTED, content().look)
+        assertEquals("connected with nothing to list is calm", WidgetTone.IDLE, content().look)
     }
 
     // ── The summary widget: the existing Glance, in the shared look ──────────────────────────────────
 
-    @Test fun theFiveToneOfTheGlanceBecomeTheFiveToneOfTheWidgets() {
-        assertEquals(WidgetTone.MUTED, WidgetTone.of(GlanceTone.CALM))
-        assertEquals(WidgetTone.DONE, WidgetTone.of(GlanceTone.OK))
-        assertEquals(WidgetTone.WORKING, WidgetTone.of(GlanceTone.BUSY))
-        assertEquals(WidgetTone.ATTENTION, WidgetTone.of(GlanceTone.ATTENTION))
-        assertEquals(WidgetTone.TROUBLE, WidgetTone.of(GlanceTone.TROUBLE))
-        for (t in GlanceTone.values()) WidgetTone.of(t)
-    }
-
     private fun glance(connected: Boolean, vararg states: BotState) =
         Glance("h", "d", GlanceTone.CALM, connected, states.map { GlanceLine("A", "t", it) }, 0)
+
+    @Test fun theSummaryLooksLikeEveryOtherWidgetForTheSameAgents() {
+        assertEquals(WidgetTone.MUTED, glance(false, BotState.WORKING).look())
+        assertEquals(WidgetTone.IDLE, glance(true).look())
+        assertEquals(WidgetTone.IDLE, glance(true, BotState.IDLE, BotState.SLEEPING).look())
+        assertEquals(WidgetTone.DONE, glance(true, BotState.FINISHED, BotState.IDLE).look())
+        assertEquals(WidgetTone.WORKING, glance(true, BotState.WORKING, BotState.FINISHED).look())
+        assertEquals(WidgetTone.ATTENTION, glance(true, BotState.APPROVAL, BotState.WORKING).look())
+        assertEquals(WidgetTone.TROUBLE, glance(true, BotState.ERROR, BotState.WORKING).look())
+        // Something waiting wins even when its session is not the first line.
+        assertEquals(WidgetTone.ATTENTION, Glance("h", "d", GlanceTone.ATTENTION, true, listOf(GlanceLine("A", "t", BotState.WORKING)), 1).look())
+    }
 
     @Test fun mochiOnTheSummaryFollowsTheMostUrgentLine() {
         assertEquals(BotState.APPROVAL, glance(true, BotState.APPROVAL, BotState.WORKING).mood())

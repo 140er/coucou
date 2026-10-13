@@ -2,7 +2,9 @@ package com.coucou.android
 
 import com.coucou.android.core.Glance
 import com.coucou.android.core.GlanceBuilder
+import com.coucou.android.core.PlanUsageLook
 import com.coucou.android.core.UsageRing
+import com.coucou.android.core.UsageTone
 import com.coucou.android.core.UsageSide
 import com.coucou.android.core.WidgetData
 import com.coucou.android.core.WidgetSample
@@ -25,26 +27,13 @@ class WidgetUsageSideTest {
     private fun glance(link: LinkState = LinkState.CONNECTED): Glance = GlanceBuilder.build(true, link, "PC", emptyList(), 0) { "x" }
     private fun build(u: UsageSnapshot?, link: LinkState = LinkState.CONNECTED) = WidgetData.build(glance(link), emptyList(), { "x" }, u, today = 0, nowMs = now)
 
-    // ── The colour: green, then orange above 75%, then red above 90% ────────────────────────────────
+    // ── The colour comes from one function (PlanUsageLook, tested at its boundaries in PlanUsageLookTest) ──
 
-    @Test fun theThresholdsAre75And90() {
-        assertEquals(75, WidgetData.BAR_ORANGE_ABOVE)
-        assertEquals(90, WidgetData.BAR_RED_ABOVE)
-    }
-
-    @Test fun greenUpToSeventyFiveThenOrangeThenRed() {
-        for (p in listOf(-5, 0, 1, 50, 74, 75)) assertEquals("$p%", WidgetTone.DONE, WidgetData.barTone(p))
-        for (p in listOf(76, 80, 89, 90)) assertEquals("$p%", WidgetTone.ATTENTION, WidgetData.barTone(p))
-        for (p in listOf(91, 95, 100, 140)) assertEquals("$p%", WidgetTone.TROUBLE, WidgetData.barTone(p))
-    }
-
-    @Test fun theBarOfARowUsesIt() {
-        assertEquals(WidgetTone.DONE, UsageRing("Claude", "5 h", 75).barTone)
-        assertEquals(WidgetTone.ATTENTION, UsageRing("Claude", "5 h", 76).barTone)
-        assertEquals(WidgetTone.TROUBLE, UsageRing("Codex", "week", 91).barTone)
-        // The Usage Ring widget keeps its own rule (Home's 50% and 80%); only Mochi Big's bar changes.
-        assertEquals(WidgetTone.ATTENTION, UsageRing("Claude", "5 h", 60).tone)
-        assertEquals(WidgetTone.DONE, UsageRing("Claude", "5 h", 60).barTone)
+    @Test fun theBarAndTheRingUseThePlanUsagePalette() {
+        assertEquals(UsageTone.CALM, UsageRing("Claude", "5 h", 74).tone)
+        assertEquals(UsageTone.CLOSE, UsageRing("Claude", "5 h", 75).tone)
+        assertEquals(UsageTone.LIMIT, UsageRing("Codex", "week", 90).tone)
+        assertEquals(PlanUsageLook.tone(60), UsageRing("Claude", "5 h", 60).tone)
     }
 
     // ── The rows ────────────────────────────────────────────────────────────────────────────────────
@@ -123,9 +112,12 @@ class WidgetUsageSideTest {
         val working = WidgetData.sample(WidgetSample.WORKING, now)
         assertEquals(UsageSide.ROWS, working.usageSide)
         assertEquals(listOf("Claude · 5 h" to 42, "Codex · week" to 41), working.usageRows.map { it.label to it.pct })
-        assertEquals(listOf(WidgetTone.DONE, WidgetTone.DONE), working.usageRows.map { it.barTone })
+        assertEquals(listOf(UsageTone.CALM, UsageTone.CALM), working.usageRows.map { it.tone })
         val waiting = WidgetData.sample(WidgetSample.WAITING, now)
-        assertEquals(listOf(WidgetTone.ATTENTION, WidgetTone.TROUBLE), waiting.usageRows.map { it.barTone })
+        assertEquals(listOf(UsageTone.CLOSE, UsageTone.LIMIT), waiting.usageRows.map { it.tone })
+        // The second row is at the limit: it says so, and when it resets.
+        assertEquals("Near limit · resets in 3 d", waiting.usageRows[1].note)
+        assertEquals("no warning below the red line", null, waiting.usageRows[0].note)
         assertEquals(UsageSide.ROWS, WidgetData.sample(WidgetSample.DONE, now).usageSide)
         assertEquals(1, WidgetData.sample(WidgetSample.DONE, now).usageRows.size)
         assertEquals(UsageSide.OFF, WidgetData.sample(WidgetSample.EMPTY, now).usageSide)
