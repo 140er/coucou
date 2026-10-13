@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Widgets: one scale for every card. -->
+<resources>
+    <dimen name="widget_radius">24dp</dimen>
+    <dimen name="widget_border_width">1dp</dimen>
+    <dimen name="widget_pad">12dp</dimen>
+    <dimen name="widget_row_min">48dp</dimen>
+    <dimen name="widget_dot">10dp</dimen>
+    <dimen name="widget_icon">18dp</dimen>
+    <dimen name="widget_text_name">16sp</dimen>
+    <dimen name="widget_text_state">13sp</dimen>
+    <dimen name="widget_text_secondary">12sp</dimen>
+    <dimen name="widget_text_note">14sp</dimen>
+</resources>

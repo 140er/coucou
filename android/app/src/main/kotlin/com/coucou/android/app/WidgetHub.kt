@@ -6,6 +6,8 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.os.Build
+import android.util.SizeF
 import android.widget.RemoteViews
 import com.coucou.android.MainActivity
 import com.coucou.android.core.WidgetContent
@@ -52,6 +54,25 @@ object WidgetHub {
         val rendered = views(context, content)
         for (id in ids) runCatching { manager.updateAppWidget(id, rendered) }
     }
+
+    /** The three sizes a responsive Widget is drawn for (Android 12 and later picks one by the room it has). */
+    enum class Size { SMALL, MEDIUM, LARGE }
+
+    // Where each size starts, in dp. The system picks the largest entry that fits, so SMALL starts at zero.
+    private val SMALL_AT = SizeF(0f, 0f)
+    private val MEDIUM_AT = SizeF(180f, 110f)
+    private val LARGE_AT = SizeF(250f, 180f)
+
+    /**
+     * One picture per size on Android 12 and later; on Android 11 (API 30) there is no size map, so the plain MEDIUM
+     * picture is the only one. [draw] builds the picture for a size from the same layout.
+     */
+    fun responsive(draw: (Size) -> RemoteViews): RemoteViews =
+        if (Build.VERSION.SDK_INT >= 31) {
+            RemoteViews(mapOf(SMALL_AT to draw(Size.SMALL), MEDIUM_AT to draw(Size.MEDIUM), LARGE_AT to draw(Size.LARGE)))
+        } else {
+            draw(Size.MEDIUM)
+        }
 
     /** Opens the app on Home. */
     fun openApp(context: Context, code: Int): PendingIntent {

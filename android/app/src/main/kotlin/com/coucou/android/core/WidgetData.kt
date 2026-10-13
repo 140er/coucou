@@ -2,6 +2,38 @@ package com.coucou.android.core
 
 import com.coucou.android.link.SessionInfo
 import com.coucou.android.mochi.BotState
+import com.coucou.android.mochi.MochiConst
+import com.coucou.android.mochi.Rgb
+import kotlin.math.roundToInt
+
+/**
+ * How loud a widget looks: the colour of its dot, badge, glow and gradient. Taken from the app's own state colours
+ * ([MochiConst]), so a Widget and Mochi on Home always agree. Waiting is orange, working blue, done green.
+ */
+enum class WidgetTone(val rgb: Rgb) {
+    MUTED(MochiConst.C_SLEEPING),
+    WORKING(MochiConst.C_WORKING),
+    ATTENTION(MochiConst.C_APPROVAL),
+    DONE(MochiConst.C_FINISHED),
+    TROUBLE(MochiConst.C_ERROR),
+    ;
+
+    /** Opaque ARGB. */
+    val argb: Int get() = 0xFF000000.toInt() or (c(rgb.r) shl 16) or (c(rgb.g) shl 8) or c(rgb.b)
+
+    companion object {
+        private fun c(v: Double) = (v.coerceIn(0.0, 1.0) * 255).roundToInt()
+
+        /** The tone of one agent's state; a computer that is not connected is always muted. */
+        fun of(state: BotState, connected: Boolean = true): WidgetTone = if (!connected) MUTED else when (state) {
+            BotState.APPROVAL, BotState.QUESTION -> ATTENTION
+            BotState.WORKING, BotState.THINKING, BotState.SEARCHING -> WORKING
+            BotState.FINISHED -> DONE
+            BotState.ERROR, BotState.RATELIMIT, BotState.DIZZY -> TROUBLE
+            BotState.IDLE, BotState.SLEEPING -> MUTED
+        }
+    }
+}
 
 /** One agent on a widget: who it is, a plain state word and its colour. Only names, state words and colours. */
 data class WidgetTile(val pillId: String, val name: String, val state: BotState, val stateWord: String, val argb: Int)
@@ -22,6 +54,13 @@ data class WidgetContent(
 ) {
     /** The agent Solo shows. */
     val top: WidgetTile? get() = tiles.firstOrNull()
+
+    /** The look of the whole widget: orange while something waits for you, else the top agent's tone, muted when nothing runs. */
+    val look: WidgetTone get() = when {
+        !connected -> WidgetTone.MUTED
+        waiting > 0 -> WidgetTone.ATTENTION
+        else -> top?.let { WidgetTone.of(it.state) } ?: WidgetTone.MUTED
+    }
 
     /** The state Mochi is drawn in: the top agent's, else calm when connected and asleep when not. */
     val mood: BotState get() = top?.state ?: if (connected) BotState.IDLE else BotState.SLEEPING

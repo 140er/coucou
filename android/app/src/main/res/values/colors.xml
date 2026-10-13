@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Widgets: dark by default; values-notnight/colors.xml is the light variant that follows the system day/night mode. -->
+<resources>
+    <color name="widget_card">#FF17181C</color>
+    <color name="widget_border">#FF3A3C44</color>
+    <color name="widget_text">#FFFFFFFF</color>
+    <color name="widget_text_soft">#D9FFFFFF</color>
+    <color name="widget_text_secondary">#B3FFFFFF</color>
+    <color name="widget_bubble">#FFFFFFFF</color>
+    <color name="widget_bubble_text">#FF1C1C1E</color>
+
+    <!-- The state palette: the same colours as Mochi's states (MochiConst) and WidgetTone. -->
+    <color name="widget_tone_muted">#FF94A2B8</color>
+    <color name="widget_tone_working">#FF3B9EFF</color>
+    <color name="widget_tone_attention">#FFF5A524</color>
+    <color name="widget_tone_done">#FF34D499</color>
+    <color name="widget_tone_trouble">#FFF4505E</color>
+
+    <!-- The gradient of a card: the tone at 15 to 25 % alpha, fading into the card. -->
+    <color name="widget_tint_muted">#2694A2B8</color>
+    <color name="widget_tint_working">#333B9EFF</color>
+    <color name="widget_tint_attention">#40F5A524</color>
+    <color name="widget_tint_done">#3334D499</color>
+    <color name="widget_tint_trouble">#33F4505E</color>
+</resources>
