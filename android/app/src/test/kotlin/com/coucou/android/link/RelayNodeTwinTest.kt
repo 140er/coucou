@@ -106,9 +106,11 @@ class RelayNodeTwinTest {
                 // A larger line, several frames in a row, and both directions interleaved.
                 val big = "{\"x\":\"" + "a".repeat(40_000) + "\"}"
                 repeat(5) { phone.getOutputStream().write((big + "\n").toByteArray()) }
-                repeat(5) { assertEquals(big, host.lines.poll(20, TimeUnit.SECONDS)) }
+                repeat(5) { n -> assertEquals("big line $n, computer side", big, host.lines.poll(20, TimeUnit.SECONDS)) }
                 repeat(5) { host.send(big) }
-                repeat(5) { assertEquals(big, readLine(phone)) }
+                // A read that ends the stream (null) or runs out of time says so, instead of a bare AssertionError.
+                phone.soTimeout = 20_000
+                repeat(5) { n -> assertEquals("big line $n, phone side (null = the relay ended the stream)", big, readLine(phone)) }
             } finally {
                 phone.close()
             }
