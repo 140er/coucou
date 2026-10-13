@@ -6,7 +6,5 @@
     <color name="widget_text">#FF1C1C1E</color>
     <color name="widget_text_soft">#D91C1C1E</color>
     <color name="widget_text_secondary">#B31C1C1E</color>
-    <color name="widget_bubble">#FFFFFFFF</color>
-    <color name="widget_bubble_text">#FF1C1C1E</color>
     <color name="widget_button">#14000000</color>
 </resources>

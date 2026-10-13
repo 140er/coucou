@@ -7,12 +7,12 @@
         android:top="1dp"
         android:right="1dp"
         android:bottom="1dp"
-        android:drawable="@drawable/widget_tint_attention" />
+        android:drawable="@drawable/widget_tint_working" />
     <item
         android:width="170dp"
         android:height="170dp"
         android:left="0dp"
         android:top="10dp"
         android:gravity="center"
-        android:drawable="@drawable/preview_mochi_waiting" />
+        android:drawable="@drawable/preview_mochi_working" />
 </layer-list>
