@@ -8,6 +8,11 @@ import com.coucou.android.link.UsageSnapshot
 import com.coucou.android.mochi.BotState
 import com.coucou.android.mochi.MochiConst
 import com.coucou.android.mochi.Rgb
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.TextStyle
+import java.time.temporal.ChronoUnit
+import java.util.Locale
 import kotlin.math.roundToInt
 
 /**
@@ -76,7 +81,7 @@ enum class UsageTone(val rgb: Rgb) {
 /**
  * How a plan-usage percentage looks, in one place: the colour of the ring and of the bar, and the "Near limit" line. Below the red line
  * the percentage is shown small and normal with no warning; from [LIMIT_FROM] it is shown big and bold with "Near limit" and, when the
- * usage snapshot has one, when the window resets ("resets in 2 h"). Pure, so every boundary is a unit test.
+ * usage snapshot has one, when the window resets ("resets at 14:30"). Pure, so every boundary is a unit test.
  */
 object PlanUsageLook {
     /** From this percentage (included) the usage is "getting close": yellow. */
@@ -97,21 +102,25 @@ object PlanUsageLook {
     /** True from the red line: the Widget then shows the rate prominently. */
     fun nearLimit(pct: Int): Boolean = clamp(pct) >= LIMIT_FROM
 
-    /** "resets in 2 h", "resets in 40 min", "resets in 3 d"; null when there is no reset time (0) or it has passed. */
-    fun resetLine(resetsAtMs: Long, nowMs: Long): String? {
+    /**
+     * When the window resets, as a clock time that stays true while nothing redraws the Widget: "resets at 14:30" today, "resets Fri 14:30"
+     * within the next week, "resets Oct 21 14:30" later. Null when there is no reset time (0) or it has passed. [zone] is the phone's.
+     */
+    fun resetLine(resetsAtMs: Long, nowMs: Long, zone: ZoneId = ZoneId.systemDefault()): String? {
         if (resetsAtMs <= 0 || resetsAtMs <= nowMs) return null
-        val minutes = (resetsAtMs - nowMs) / 60_000
-        val hours = minutes / 60
+        val at = Instant.ofEpochMilli(resetsAtMs).atZone(zone)
+        val days = ChronoUnit.DAYS.between(Instant.ofEpochMilli(nowMs).atZone(zone).toLocalDate(), at.toLocalDate())
+        val clock = "%02d:%02d".format(at.hour, at.minute)
         return when {
-            minutes < 60 -> "resets in ${maxOf(minutes, 1)} min"
-            hours < 48 -> "resets in $hours h"
-            else -> "resets in ${hours / 24} d"
+            days == 0L -> "resets at $clock"
+            days < 7 -> "resets ${at.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.ENGLISH)} $clock"
+            else -> "resets ${at.month.getDisplayName(TextStyle.SHORT, Locale.ENGLISH)} ${at.dayOfMonth} $clock"
         }
     }
 
     /** "Near limit" (with the reset time when known) from the red line; null below it, where there is no warning. */
-    fun note(pct: Int, resetsAtMs: Long, nowMs: Long): String? =
-        if (!nearLimit(pct)) null else listOfNotNull("Near limit", resetLine(resetsAtMs, nowMs)).joinToString(" · ")
+    fun note(pct: Int, resetsAtMs: Long, nowMs: Long, zone: ZoneId = ZoneId.systemDefault()): String? =
+        if (!nearLimit(pct)) null else listOfNotNull("Near limit", resetLine(resetsAtMs, nowMs, zone)).joinToString(" · ")
 }
 
 /** The plan usage a ring or a bar shows: which plan and window, how much of it is used, and the warning line when it is near the limit. */

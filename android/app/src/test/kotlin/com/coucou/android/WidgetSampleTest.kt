@@ -1,6 +1,7 @@
 package com.coucou.android
 
 import com.coucou.android.core.UsageTone
+import com.coucou.android.core.PlanUsageLook
 import com.coucou.android.core.WidgetData
 import com.coucou.android.core.WidgetSample
 import com.coucou.android.core.WidgetTone
@@ -56,7 +57,7 @@ class WidgetSampleTest {
         val c = WidgetData.sample(WidgetSample.WORKING, now, 92)
         assertEquals(92, c.ring?.pct)
         assertEquals(UsageTone.LIMIT, c.ring?.tone)
-        assertEquals("Near limit · resets in 2 h", c.ring?.note)
+        assertEquals("Near limit · " + PlanUsageLook.resetLine(now + 2 * 3_600_000L, now), c.ring?.note)
         assertEquals(92, c.usageRows.first().pct)
         assertEquals("Claude", c.usageRows.first().plan)
         assertEquals(null, WidgetData.sample(WidgetSample.WORKING, now, 60).ring?.note)

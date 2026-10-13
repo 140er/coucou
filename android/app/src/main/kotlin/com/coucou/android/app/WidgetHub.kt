@@ -1,5 +1,6 @@
 package com.coucou.android.app
 
+import android.app.AlarmManager
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
@@ -12,6 +13,7 @@ import android.widget.RemoteViews
 import com.coucou.android.MainActivity
 import com.coucou.android.R
 import com.coucou.android.core.LaunchScreen
+import com.coucou.android.core.TodayMidnight
 import com.coucou.android.core.UsageTone
 import com.coucou.android.core.WidgetContent
 import com.coucou.android.core.WidgetTone
@@ -20,7 +22,8 @@ import kotlin.math.roundToInt
 /**
  * The one place that pushes the Widgets (Solo, List, Mochi Big, Status Pill, Waiting Alert, Usage Ring, Today and Mochi Mood). The app calls [update] on every change of sessions, requests and
  * link (from AppModel.pushGlance); a push whose content is the same as the last one is dropped, so a change that does not
- * show on a widget costs nothing. There is no timer: a widget is drawn when something changes or when it is added.
+ * show on a widget costs nothing. There is no timer: a widget is drawn when something changes or when it is added, and the Today
+ * widget once at local midnight (one inexact alarm, see [scheduleMidnight]).
  */
 object WidgetHub {
     private class Kind(val provider: Class<out AppWidgetProvider>, val views: (Context, WidgetContent) -> RemoteViews)
@@ -144,6 +147,32 @@ object WidgetHub {
         update(context, current(context))
     }
 
+    /** The one alarm of the Widgets: the Today widget's redraw at the next local midnight (see [scheduleMidnight]). */
+    const val ACTION_MIDNIGHT = "com.coucou.android.action.WIDGET_MIDNIGHT"
+
+    private fun midnightIntent(context: Context): PendingIntent =
+        PendingIntent.getBroadcast(
+            context, CODE_MIDNIGHT, Intent(ACTION_MIDNIGHT).setClass(context, TodayWidget::class.java),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+
+    /**
+     * Asks the system to redraw the Today widget once, at the next local midnight, so the count starts again at 0 even if nothing else
+     * redraws it (Android no longer delivers "the date changed" to manifest receivers). One inexact alarm that does not wake the phone
+     * and needs no permission; it replaces itself each time, and is set again when the alarm fires and whenever the Widget is updated.
+     */
+    fun scheduleMidnight(context: Context) {
+        runCatching {
+            val alarms = context.getSystemService(AlarmManager::class.java) ?: return
+            alarms.set(AlarmManager.RTC, TodayMidnight.nextAfter(System.currentTimeMillis()), midnightIntent(context))
+        }
+    }
+
+    /** No Today widget is left on the home screen: the alarm is not needed. */
+    fun cancelMidnight(context: Context) {
+        runCatching { context.getSystemService(AlarmManager::class.java)?.cancel(midnightIntent(context)) }
+    }
+
     /** Opens the app on Home. */
     fun openApp(context: Context, code: Int): PendingIntent {
         val open = Intent(context, MainActivity::class.java)
@@ -192,4 +221,5 @@ object WidgetHub {
     /** Mochi Big's usage side: Settings when plan usage is off, the app otherwise. */
     const val CODE_BIG_USAGE_SETTINGS = 0x5D00
     const val CODE_BIG_USAGE_APP = 0x5E00
+    const val CODE_MIDNIGHT = 0x5F00
 }

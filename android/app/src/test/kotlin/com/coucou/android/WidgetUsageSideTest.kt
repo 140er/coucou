@@ -116,7 +116,7 @@ class WidgetUsageSideTest {
         val waiting = WidgetData.sample(WidgetSample.WAITING, now)
         assertEquals(listOf(UsageTone.CLOSE, UsageTone.LIMIT), waiting.usageRows.map { it.tone })
         // The second row is at the limit: it says so, and when it resets.
-        assertEquals("Near limit · resets in 3 d", waiting.usageRows[1].note)
+        assertEquals("Near limit · " + PlanUsageLook.resetLine(now + 3 * 24 * 3_600_000L, now), waiting.usageRows[1].note)
         assertEquals("no warning below the red line", null, waiting.usageRows[0].note)
         assertEquals(UsageSide.ROWS, WidgetData.sample(WidgetSample.DONE, now).usageSide)
         assertEquals(1, WidgetData.sample(WidgetSample.DONE, now).usageRows.size)

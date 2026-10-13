@@ -1,6 +1,7 @@
 package com.coucou.android
 
 import com.coucou.android.core.TodayCounter
+import com.coucou.android.core.TodayMidnight
 import com.coucou.android.core.TodayStorage
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -44,6 +45,30 @@ class TodayCounterTest {
         counter.increment()
         day = "2026-10-12"
         assertEquals("a day that is not today is not today", 0, counter.count())
+    }
+
+    @Test fun theMidnightAlarmIsSetForTheNextLocalMidnight() {
+        val utc = java.time.ZoneOffset.UTC
+        val noon = 12 * 3_600_000L // 12:00 on 1 January 1970
+        assertEquals(24 * 3_600_000L, TodayMidnight.nextAfter(noon, utc))
+        assertEquals("exactly at midnight, the next one", 48 * 3_600_000L, TodayMidnight.nextAfter(24 * 3_600_000L, utc))
+        assertEquals(24 * 3_600_000L, TodayMidnight.nextAfter(24 * 3_600_000L - 1, utc))
+        // Local time, not UTC: in Kolkata (UTC+5:30) 12:00 UTC is 17:30, and the next midnight is 18:30 UTC.
+        assertEquals(18 * 3_600_000L + 30 * 60_000L, TodayMidnight.nextAfter(noon, java.time.ZoneId.of("Asia/Kolkata")))
+    }
+
+    @Test fun onlyAPairedComputerCountsNotTheDemo() {
+        val model = File("src/main/kotlin/com/coucou/android/app/AppModel.kt").readText()
+        val line = model.lines().first { it.contains("todayCounter.increment()") }
+        assertTrue("the demo loops every 20 s and must not add to the day", line.contains("mode == Mode.PAIRED"))
+    }
+
+    @Test fun midnightIsOurOwnAlarmBecauseTheSystemNoLongerSendsDateChanged() {
+        val manifest = File("src/main/AndroidManifest.xml").readText()
+        assertTrue(!manifest.contains("DATE_CHANGED"))
+        assertTrue(manifest.contains("android.intent.action.TIME_SET") && manifest.contains("android.intent.action.TIMEZONE_CHANGED"))
+        val widget = File("src/main/kotlin/com/coucou/android/app/TodayWidget.kt").readText()
+        assertTrue(widget.contains("WidgetHub.scheduleMidnight") && widget.contains("onDisabled") && widget.contains("ACTION_MIDNIGHT"))
     }
 
     @Test fun itIsKeptOnThePhoneOnly() {

@@ -13,6 +13,7 @@ import org.junit.Test
 /** One function decides how plan usage looks: its colour, whether it is shown prominently, and the "Near limit" line. */
 class PlanUsageLookTest {
     private val now = 10_000_000L
+    private val utc = java.time.ZoneOffset.UTC
     private fun inMinutes(m: Long) = now + m * 60_000
 
     @Test fun theThresholdsAreNamedConstants() {
@@ -58,14 +59,15 @@ class PlanUsageLookTest {
     }
 
     @Test fun belowTheRedLineThereIsNoWarningLine() {
-        for (p in listOf(0, 42, 74, 75, 89)) assertNull("$p%", PlanUsageLook.note(p, inMinutes(120), now))
+        for (p in listOf(0, 42, 74, 75, 89)) assertNull("$p%", PlanUsageLook.note(p, inMinutes(120), now, utc))
     }
 
     @Test fun fromTheRedLineItSaysNearLimitAndWhenItResets() {
-        assertEquals("Near limit · resets in 2 h", PlanUsageLook.note(90, inMinutes(120), now))
-        assertEquals("Near limit · resets in 2 h", PlanUsageLook.note(100, inMinutes(125), now))
-        assertEquals("Near limit · resets in 40 min", PlanUsageLook.note(95, inMinutes(40), now))
-        assertEquals("Near limit · resets in 3 d", PlanUsageLook.note(93, inMinutes(3 * 24 * 60), now))
+        // 10,000,000 ms after the epoch is 02:46 UTC.
+        assertEquals("Near limit · resets at 04:46", PlanUsageLook.note(90, inMinutes(120), now, utc))
+        assertEquals("Near limit · resets at 04:51", PlanUsageLook.note(100, inMinutes(125), now, utc))
+        assertEquals("Near limit · resets at 03:26", PlanUsageLook.note(95, inMinutes(40), now, utc))
+        assertEquals("Near limit · resets Sun 02:46", PlanUsageLook.note(93, inMinutes(3 * 24 * 60), now, utc))
     }
 
     @Test fun withoutAResetTimeItJustSaysNearLimit() {
@@ -73,19 +75,30 @@ class PlanUsageLookTest {
         assertEquals("a reset time in the past is no reset time", "Near limit", PlanUsageLook.note(95, now - 1, now))
     }
 
-    @Test fun theResetLineReadsInTheRightUnit() {
-        assertEquals("resets in 1 min", PlanUsageLook.resetLine(now + 1_000, now))
-        assertEquals("resets in 59 min", PlanUsageLook.resetLine(inMinutes(59), now))
-        assertEquals("resets in 1 h", PlanUsageLook.resetLine(inMinutes(60), now))
-        assertEquals("resets in 47 h", PlanUsageLook.resetLine(inMinutes(47 * 60 + 59), now))
-        assertEquals("resets in 2 d", PlanUsageLook.resetLine(inMinutes(48 * 60), now))
-        assertNull(PlanUsageLook.resetLine(0L, now))
-        assertNull(PlanUsageLook.resetLine(now, now))
+    @Test fun theResetLineIsAClockTimeThatStaysTrue() {
+        assertEquals("resets at 02:47", PlanUsageLook.resetLine(inMinutes(1), now, utc))
+        assertEquals("same day: just the time", "resets at 23:59", PlanUsageLook.resetLine(inMinutes(21 * 60 + 13), now, utc))
+        assertEquals("next day: the day of the week", "resets Fri 00:00", PlanUsageLook.resetLine(inMinutes(21 * 60 + 14), now, utc))
+        assertEquals("resets Wed 02:46", PlanUsageLook.resetLine(inMinutes(6 * 24 * 60), now, utc))
+        assertEquals("a week or more: the date", "resets Jan 8 02:46", PlanUsageLook.resetLine(inMinutes(7 * 24 * 60), now, utc))
+        assertNull(PlanUsageLook.resetLine(0L, now, utc))
+        assertNull(PlanUsageLook.resetLine(now, now, utc))
+    }
+
+    @Test fun theClockTimeIsThePhonesOwn() {
+        // The same moment reads differently in another time zone: 04:46 UTC is 10:16 in India.
+        assertEquals("resets at 10:16", PlanUsageLook.resetLine(inMinutes(120), now, java.time.ZoneId.of("Asia/Kolkata")))
+    }
+
+    @Test fun theTextDoesNotChangeWhileTimePasses() {
+        // Nothing redraws a Widget while the usage stays the same, so the line must not depend on "now".
+        val at = inMinutes(120)
+        assertEquals(PlanUsageLook.resetLine(at, now, utc), PlanUsageLook.resetLine(at, now + 60 * 60_000, utc))
     }
 
     @Test fun theRingAndTheTextComeFromTheSameFunction() {
         for (p in listOf(0, 74, 75, 89, 90, 100, 140)) {
-            val row = UsageRing("Claude", "5 h", p, PlanUsageLook.note(p, inMinutes(120), now))
+            val row = UsageRing("Claude", "5 h", p, PlanUsageLook.note(p, inMinutes(120), now, utc))
             assertEquals(PlanUsageLook.tone(p), row.tone)
             assertEquals(PlanUsageLook.nearLimit(p), row.nearLimit)
             assertEquals("a note exactly when it is near the limit: $p%", row.nearLimit, row.note != null)

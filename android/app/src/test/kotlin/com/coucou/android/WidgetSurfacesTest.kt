@@ -51,7 +51,16 @@ class WidgetSurfacesTest {
 
     @Test fun noTimerAndNoLibrary() {
         for ((name, src) in sources) {
-            for (word in listOf("AlarmManager", "WorkManager", "postDelayed", "Handler(", "Timer", "androidx.glance")) assertFalse("$name uses $word", src.contains(word))
+            for (word in listOf("WorkManager", "postDelayed", "Handler(", "Timer", "androidx.glance")) assertFalse("$name uses $word", src.contains(word))
+            if (name != "app/WidgetHub.kt") assertFalse("$name uses AlarmManager", src.contains("AlarmManager"))
+        }
+        // The one alarm: the Today widget at local midnight. Inexact and not waking the phone, so no exact-alarm permission and no wake-ups.
+        val hub = sources.getValue("app/WidgetHub.kt")
+        assertEquals(1, Regex("alarms\\.set\\(").findAll(hub).count())
+        assertTrue(hub.contains("alarms.set(AlarmManager.RTC,"))
+        for (word in listOf("RTC_WAKEUP", "setExact", "setAlarmClock", "setRepeating", "setInexactRepeating", "SCHEDULE_EXACT_ALARM", "USE_EXACT_ALARM")) {
+            assertFalse(word, hub.contains(word))
+            assertFalse("manifest asks for $word", manifest.contains(word))
         }
         assertFalse(read("build.gradle.kts").contains("androidx.glance"))
     }
@@ -60,7 +69,10 @@ class WidgetSurfacesTest {
         val hub = sources.getValue("app/WidgetHub.kt")
         // Open the app, open a session, open a screen: three, all immutable, the last two through LaunchActivity.
         assertEquals(3, Regex("PendingIntent.getActivity").findAll(hub).count())
-        assertEquals(3, Regex("FLAG_IMMUTABLE").findAll(hub).count())
+        // Plus the midnight alarm: one explicit, immutable broadcast to the Today widget.
+        assertEquals(1, Regex("PendingIntent.getBroadcast").findAll(hub).count())
+        assertTrue(hub.contains("Intent(ACTION_MIDNIGHT).setClass(context, TodayWidget::class.java)"))
+        assertEquals(4, Regex("FLAG_IMMUTABLE").findAll(hub).count())
         assertEquals(2, Regex("Intent\\(context, LaunchActivity::class.java\\)").findAll(hub).count())
         assertTrue(hub.contains("Intent(context, MainActivity::class.java)"))
         for ((name, src) in sources) {
@@ -73,7 +85,7 @@ class WidgetSurfacesTest {
     @Test fun everyRowAndEveryWidgetHasItsOwnRequestCode() {
         val hub = sources.getValue("app/WidgetHub.kt")
         val codes = Regex("""const val CODE_\w+ = (0x[0-9A-Fa-f]+)""").findAll(hub).map { it.groupValues[1] }.toList()
-        assertEquals(14, codes.size)
+        assertEquals(15, codes.size)
         assertEquals(codes.size, codes.toSet().size)
         // The rows use CODE_LIST_ROW + index: the ranges must not run into the next code.
         val values = codes.map { it.removePrefix("0x").toInt(16) }.sorted()

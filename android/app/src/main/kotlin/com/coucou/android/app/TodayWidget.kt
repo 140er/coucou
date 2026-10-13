@@ -10,19 +10,27 @@ import com.coucou.android.core.WidgetContent
 
 /**
  * The Today widget: how many agent tasks finished today. The count is kept on this phone only ([TodayStore]) and starts
- * again at local midnight: the system's "the date changed" broadcast redraws it, so nothing runs on a timer. A tap opens the app.
+ * again at local midnight: one inexact alarm ([WidgetHub.scheduleMidnight]) redraws it, and so does a change of time or time zone. A tap opens the app.
  */
 class TodayWidget : AppWidgetProvider() {
-    override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) =
+    override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) {
         WidgetHub.refresh(context, manager, ids) { c, w -> views(c, w) }
+        WidgetHub.scheduleMidnight(context)
+    }
+
+    override fun onDisabled(context: Context) = WidgetHub.cancelMidnight(context)
 
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
-        if (intent.action in DAY_CHANGED) WidgetHub.refreshAll(context)
+        if (intent.action in DAY_CHANGED) {
+            WidgetHub.refreshAll(context)
+            WidgetHub.scheduleMidnight(context)
+        }
     }
 
     companion object {
-        private val DAY_CHANGED = setOf(Intent.ACTION_DATE_CHANGED, Intent.ACTION_TIME_CHANGED, Intent.ACTION_TIMEZONE_CHANGED)
+        // Midnight (our alarm), and the clock or the time zone being changed: the day may be another one.
+        private val DAY_CHANGED = setOf(WidgetHub.ACTION_MIDNIGHT, Intent.ACTION_TIME_CHANGED, Intent.ACTION_TIMEZONE_CHANGED)
 
         fun views(context: Context, c: WidgetContent): RemoteViews {
             val v = RemoteViews(context.packageName, R.layout.widget_today)

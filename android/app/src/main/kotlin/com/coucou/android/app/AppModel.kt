@@ -722,8 +722,8 @@ class AppModel(private val context: Context) : LinkListener {
             val minute = java.time.LocalTime.now().let { it.hour * 60 + it.minute }
             for (s in sessions) {
                 val prev = lastState.put(s.pillId, s.state)
-                // A task just finished (not one already finished when the link came back).
-                if (prev != null && prev != BotState.FINISHED && s.state == BotState.FINISHED) todayCounter.increment()
+                // A task just finished (not one already finished when the link came back), on a real computer: the demo loops and never counts.
+                if (mode == Mode.PAIRED && prev != null && prev != BotState.FINISHED && s.state == BotState.FINISHED) todayCounter.increment()
                 val name = agentName(s.pillId)
                 val sound = com.coucou.android.mochi.MochiConst.STATE_SOUND[s.state]
                 if (sound != null && StatusPolicy.stateSoundWanted(prev, s.state, settings)) sounds.play(sound)

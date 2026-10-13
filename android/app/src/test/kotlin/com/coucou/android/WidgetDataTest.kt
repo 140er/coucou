@@ -9,6 +9,7 @@ import com.coucou.android.link.PlanUsage
 import com.coucou.android.link.PlanWindow
 import com.coucou.android.link.SessionInfo
 import com.coucou.android.link.UsageSnapshot
+import com.coucou.android.core.PlanUsageLook
 import com.coucou.android.core.UsageRing
 import com.coucou.android.core.WidgetTone
 import com.coucou.android.mochi.BotState
@@ -138,7 +139,7 @@ class WidgetDataTest {
     @Test fun theRingPrefersClaudesFiveHoursThenItsWeekThenCodex() {
         assertEquals(UsageRing("Claude", "5 h", 42), built(usage(claude5 = 42, claudeWeek = 10, codex5 = 90)).ring)
         assertEquals(UsageRing("Claude", "week", 10), built(usage(claudeWeek = 10, codex5 = 90)).ring)
-        assertEquals(UsageRing("Codex", "5 h", 90, "Near limit · resets in 1 h"), built(usage(codex5 = 90)).ring)
+        assertEquals(UsageRing("Codex", "5 h", 90, "Near limit · " + PlanUsageLook.resetLine(now + 3_600_000L, now)), built(usage(codex5 = 90)).ring)
         assertNull(built(usage()).ring)
         assertNull("the switch is off", built(null).ring)
     }

@@ -116,8 +116,7 @@
         <receiver android:name=".app.TodayWidget" android:exported="true" android:label="@string/widget_today_label">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-                <!-- The day changed: the count starts again at zero. System broadcasts, no timer. -->
-                <action android:name="android.intent.action.DATE_CHANGED" />
+                <!-- The clock or the time zone changed: the day may be another one. (Midnight itself is our own alarm: the system no longer tells manifest receivers that the date changed.) -->
                 <action android:name="android.intent.action.TIME_SET" />
                 <action android:name="android.intent.action.TIMEZONE_CHANGED" />
             </intent-filter>
