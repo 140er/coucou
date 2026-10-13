@@ -263,6 +263,8 @@ class MainActivity : ComponentActivity() {
             // A tap on a widget row. The session screen says so itself if it has ended, and fills in when the link is back.
             if (model.isPaired || model.mode != Mode.NONE) { detailPill = pill; screen = Screen.SESSION }
         }
+        // A tap on a widget button: a screen of the closed list ([LaunchScreen]), even when the app is locked, not connected or not paired.
+        model.launch.takeScreen()?.let { screen = it.screen }
         val launch = model.launch.take() ?: return
         val fp = launch.fingerprint
         if (launch.allow) {

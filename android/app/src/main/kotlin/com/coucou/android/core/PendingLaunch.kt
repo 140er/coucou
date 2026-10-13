@@ -16,6 +16,9 @@ class PendingLaunch(private val clock: () -> Long = System::currentTimeMillis) {
     private var session: String? = null
     private var sessionAt = 0L
 
+    private var screen: LaunchScreen? = null
+    private var screenAt = 0L
+
     @Synchronized
     fun request(fp: String?, allow: Boolean) {
         val clean = fp?.takeIf { it.isNotBlank() && it.length <= MAX_FP }
@@ -52,6 +55,26 @@ class PendingLaunch(private val clock: () -> Long = System::currentTimeMillis) {
         val fresh = clock() - sessionAt <= TTL_MS
         session = null
         return if (fresh) id else null
+    }
+
+    /**
+     * "Open this screen", from a Widget button. A slot of its own, holding a value of the closed [LaunchScreen] list and
+     * nothing else: it never carries an Allow or a session, and they never carry a screen. Only the non-exported
+     * LaunchActivity calls it.
+     */
+    @Synchronized
+    fun requestScreen(which: LaunchScreen?) {
+        screen = which
+        screenAt = clock()
+    }
+
+    /** The screen to open, once, if the tap is fresh; null for everything else (nothing asked, already taken, too old). */
+    @Synchronized
+    fun takeScreen(): LaunchScreen? {
+        val s = screen ?: return null
+        val fresh = clock() - screenAt <= TTL_MS
+        screen = null
+        return if (fresh) s else null
     }
 
     companion object {

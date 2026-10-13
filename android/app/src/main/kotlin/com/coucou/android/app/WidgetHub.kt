@@ -11,6 +11,7 @@ import android.util.SizeF
 import android.widget.RemoteViews
 import com.coucou.android.MainActivity
 import com.coucou.android.R
+import com.coucou.android.core.LaunchScreen
 import com.coucou.android.core.WidgetContent
 import com.coucou.android.core.WidgetTone
 import kotlin.math.roundToInt
@@ -136,6 +137,17 @@ object WidgetHub {
         return PendingIntent.getActivity(context, code, open, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
     }
 
+    /**
+     * Opens one screen of the closed [LaunchScreen] list, for a button. Through LaunchActivity like [openSession]: explicit
+     * component, immutable, one [code] of its own per button, and only the key of the screen travels. Nothing is approved.
+     */
+    fun openScreen(context: Context, code: Int, screen: LaunchScreen): PendingIntent {
+        val open = Intent(context, LaunchActivity::class.java)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            .putExtra(LaunchActivity.EXTRA_SCREEN, screen.key)
+        return PendingIntent.getActivity(context, code, open, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+    }
+
     /** Request codes: one range per widget, one code per row, so no two PendingIntents are the same. */
     const val CODE_SOLO = 0x5100
     const val CODE_LIST_HEADER = 0x5200
@@ -146,4 +158,9 @@ object WidgetHub {
     const val CODE_RING = 0x5700
     const val CODE_TODAY = 0x5800
     const val CODE_MOOD = 0x5900
+
+    /** The buttons: one code each, from these bases (the Status Pill has 4, Mochi Big 6, the summary none). */
+    const val CODE_PILL_BUTTON = 0x5A00
+    const val CODE_BIG_BUTTON = 0x5B00
+    const val CODE_GLANCE = 0x5C00
 }
