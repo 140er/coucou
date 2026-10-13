@@ -57,6 +57,7 @@ android {
     }
     kotlinOptions { jvmTarget = "17" }
     sourceSets["main"].java.srcDirs("src/main/kotlin")
+    sourceSets["debug"].java.srcDirs("src/debug/kotlin") // the Widgets preview receiver: debug builds only
     sourceSets["test"].java.srcDirs("src/test/kotlin")
 }
 

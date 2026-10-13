@@ -36,9 +36,13 @@ object WidgetHub {
 
     private var last: WidgetContent? = null
 
+    /** A sample pinned by the debug build's preview receiver (null in a release build, and in a debug one until asked). */
+    private var pinned: WidgetContent? = null
+
     /** Pushes [content] to every Widget of the family on the home screen (none: nothing happens). */
     @Synchronized
     fun update(context: Context, content: WidgetContent) {
+        if (pinned != null && content != pinned) return // a preview is on screen: real pushes wait
         if (content == last) return
         runCatching {
             val manager = AppWidgetManager.getInstance(context)
@@ -93,8 +97,19 @@ object WidgetHub {
         WidgetTone.TROUBLE -> R.drawable.widget_tint_trouble
     }
 
-    /** What the app says now. */
-    private fun current(context: Context): WidgetContent = (context.applicationContext as CoucouApp).model.widgetContent()
+    /** What the Widgets show now: the pinned preview if there is one, else what the app says. */
+    private fun current(context: Context): WidgetContent = pinned ?: (context.applicationContext as CoucouApp).model.widgetContent()
+
+    /**
+     * Shows [content] on every Widget and keeps it there (real pushes wait), or with null goes back to the real thing. Only the
+     * debug build calls this, from its preview receiver; nothing in a release build does.
+     */
+    @Synchronized
+    fun preview(context: Context, content: WidgetContent?) {
+        pinned = content
+        last = null
+        update(context, current(context))
+    }
 
     /** Draws every Widget again from what the app says now, even if nothing looks different (a new day, a new time zone). */
     @Synchronized

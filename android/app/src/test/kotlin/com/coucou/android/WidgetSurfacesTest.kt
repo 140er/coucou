@@ -141,4 +141,44 @@ class WidgetSurfacesTest {
         assertTrue(solo.contains("""android:layout_weight="1""""))
         assertTrue(read(main + "app/SoloWidget.kt").contains("glow = true"))
     }
+
+    // ── The debug preview: it must exist in debug builds and nowhere else ──────────────────────────
+
+    @Test fun thePreviewReceiverLivesInTheDebugSourceSetOnly() {
+        assertTrue(File("src/debug/kotlin/com/coucou/android/app/WidgetPreviewReceiver.kt").exists())
+        val debugManifest = read("src/debug/AndroidManifest.xml")
+        assertTrue(debugManifest.contains(".app.WidgetPreviewReceiver"))
+        assertTrue(debugManifest.contains("com.coucou.android.debug.WIDGET_STATE"))
+        // Not in the main source set, not in the manifest every build gets.
+        assertFalse(File(main + "app/WidgetPreviewReceiver.kt").exists())
+        assertFalse(manifest.contains("WidgetPreviewReceiver"))
+        assertFalse(manifest.contains("com.coucou.android.debug"))
+        assertFalse(File("src/release").exists() && File("src/release").walkTopDown().any { it.readText().contains("WidgetPreviewReceiver") })
+        // Nothing in the main code calls it, and nothing outside the debug receiver pins a preview.
+        for (f in File(main).walkTopDown().filter { it.extension == "kt" }) {
+            val text = f.readText()
+            assertFalse("${f.name} refers to the preview receiver", text.contains("WidgetPreviewReceiver") && f.name != "WidgetHub.kt")
+            if (f.name != "WidgetHub.kt") assertFalse("${f.name} pins a preview", text.contains("WidgetHub.preview("))
+        }
+        assertTrue(read("build.gradle.kts").contains("""sourceSets["debug"]"""))
+    }
+
+    @Test fun thePreviewReceiverDocumentsEveryCommand() {
+        val src = read("src/debug/kotlin/com/coucou/android/app/WidgetPreviewReceiver.kt")
+        for (state in listOf("disconnected", "empty", "working", "waiting", "done", "live")) {
+            assertTrue(state, src.contains("--es state $state"))
+        }
+        assertTrue(src.contains("adb shell am broadcast -n com.coucou.android/.app.WidgetPreviewReceiver -a com.coucou.android.debug.WIDGET_STATE"))
+        assertTrue(src.contains("DEBUG BUILDS ONLY"))
+        // It only redraws Widgets with a made-up state.
+        assertTrue(src.contains("WidgetSample.parse"))
+        for (word in listOf("PendingLaunch", "approve", "AppModel", "SecureStore")) assertFalse(word, src.contains(word))
+    }
+
+    @Test fun aPreviewWaitsForNothingElseAndLiveGoesBack() {
+        val hub = sources.getValue("app/WidgetHub.kt")
+        assertTrue(hub.contains("fun preview(context: Context, content: WidgetContent?)"))
+        assertTrue(hub.contains("pinned = content"))
+        assertTrue(hub.contains("if (pinned != null && content != pinned) return"))
+    }
 }

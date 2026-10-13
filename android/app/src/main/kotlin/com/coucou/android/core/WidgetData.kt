@@ -1,5 +1,8 @@
 package com.coucou.android.core
 
+import com.coucou.android.link.LinkState
+import com.coucou.android.link.PlanUsage
+import com.coucou.android.link.PlanWindow
 import com.coucou.android.link.SessionInfo
 import com.coucou.android.link.UsageSnapshot
 import com.coucou.android.mochi.BotState
@@ -135,6 +138,24 @@ data class WidgetContent(
     val mood: BotState get() = top?.state ?: if (connected) BotState.IDLE else BotState.SLEEPING
 }
 
+/**
+ * A made-up state to look at every Widget without a computer: the debug build can pin one of these (see the preview receiver in
+ * the debug source set). They go through the same [WidgetData.build] as the real thing, so a preview cannot drift from it.
+ */
+enum class WidgetSample(val key: String) {
+    DISCONNECTED("disconnected"),
+    EMPTY("empty"),
+    WORKING("working"),
+    WAITING("waiting"),
+    DONE("done"),
+    ;
+
+    companion object {
+        /** The sample called [key] (any case, spaces around ignored); null for anything else. */
+        fun parse(key: String?): WidgetSample? = values().firstOrNull { it.key == key?.trim()?.lowercase() }
+    }
+}
+
 object WidgetData {
     /** Rows on the List widget. */
     const val MAX_ROWS = 5
@@ -155,6 +176,47 @@ object WidgetData {
         val ring = if (glance.connected) ring(usage, nowMs) else null
         return WidgetContent(glance.headline, glance.tone, glance.connected, glance.waiting, tiles, ring, today.coerceAtLeast(0))
     }
+
+    /** The content a [WidgetSample] stands for, built like a real one. [nowMs] only sets when the sample plan windows reset. */
+    fun sample(which: WidgetSample, nowMs: Long = 0L): WidgetContent {
+        val link = if (which == WidgetSample.DISCONNECTED) LinkState.DISCONNECTED else LinkState.CONNECTED
+        val sessions = when (which) {
+            WidgetSample.DISCONNECTED, WidgetSample.EMPTY -> emptyList()
+            WidgetSample.WORKING -> listOf(
+                SessionInfo("integration_claude", "Claude Code", BotState.WORKING, "", 0, 0, 0L),
+                SessionInfo("agent_codex", "Codex", BotState.THINKING, "", 0, 0, 0L),
+                SessionInfo("agent_gemini", "Gemini CLI", BotState.IDLE, "", 0, 0, 0L),
+            )
+            WidgetSample.WAITING -> listOf(
+                SessionInfo("integration_claude", "Claude Code", BotState.APPROVAL, "", 0, 0, 0L),
+                SessionInfo("agent_codex", "Codex", BotState.WORKING, "", 0, 0, 0L),
+                SessionInfo("agent_gemini", "Gemini CLI", BotState.FINISHED, "", 0, 0, 0L),
+            )
+            WidgetSample.DONE -> listOf(
+                SessionInfo("integration_claude", "Claude Code", BotState.FINISHED, "", 0, 0, 0L),
+                SessionInfo("agent_codex", "Codex", BotState.FINISHED, "", 0, 0, 0L),
+            )
+        }
+        val approvals = if (which == WidgetSample.WAITING) 1 else 0
+        val names = sessions.associate { it.pillId to it.agent }
+        val glance = GlanceBuilder.build(true, link, "Your PC", sessions, approvals) { names[it] ?: "An agent" }
+        fun plan(five: Int, week: Int) = PlanUsage(PlanWindow(five, nowMs + 2 * HOUR_MS), PlanWindow(week, nowMs + 3 * 24 * HOUR_MS))
+        val usage = when (which) {
+            WidgetSample.WORKING -> UsageSnapshot(plan(42, 18), null)
+            WidgetSample.WAITING -> UsageSnapshot(plan(83, 61), null)
+            WidgetSample.DONE -> UsageSnapshot(plan(24, 9), null)
+            // No plan usage on these two, so the Usage Ring shows how it asks for the switch.
+            WidgetSample.DISCONNECTED, WidgetSample.EMPTY -> null
+        }
+        val today = when (which) {
+            WidgetSample.DISCONNECTED, WidgetSample.EMPTY -> 0
+            WidgetSample.WORKING, WidgetSample.WAITING -> 3
+            WidgetSample.DONE -> 5
+        }
+        return build(glance, sessions, { names[it] ?: "An agent" }, usage, today, nowMs)
+    }
+
+    private const val HOUR_MS = 3_600_000L
 
     /** Claude's five-hour window first, then its week, then Codex; null when the computer sent none of them. */
     fun ring(usage: UsageSnapshot?, nowMs: Long): UsageRing? {
