@@ -63,7 +63,7 @@
     <string name="widget_sample_header">Waiting for you</string>
     <string name="widget_sample_one">1</string>
     <string name="widget_sample_two_waiting">2 waiting</string>
-    <string name="widget_sample_ring_pct">70%</string>
+    <string name="widget_sample_ring_pct">68%</string>
     <string name="widget_sample_ring_label">Claude · 5 h</string>
     <string name="widget_sample_pct_a">68%</string>
     <string name="widget_sample_pct_b">41%</string>

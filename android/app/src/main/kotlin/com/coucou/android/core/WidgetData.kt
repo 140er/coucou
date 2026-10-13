@@ -56,23 +56,80 @@ data class WidgetTile(val pillId: String, val name: String, val state: BotState,
     val tone: WidgetTone get() = WidgetTone.of(state)
 }
 
-/** The plan usage a ring shows: which plan and window, and how much of it is used. */
-data class UsageRing(val plan: String, val window: String, val pct: Int) {
-    /** 0 to 1, for the arc. */
-    val fraction: Float get() = pct.coerceIn(0, 100) / 100f
+/**
+ * The colours of plan usage: their own palette, so that a plan close to its limit never looks like "waiting for you" (orange) or like a
+ * working agent (blue). Teal while there is room, yellow when getting close, red at the limit. In res/values/colors.xml as
+ * `widget_usage_<name>`; a test keeps the two in step.
+ */
+enum class UsageTone(val rgb: Rgb) {
+    CALM(Rgb(0.055, 0.561, 0.604)),
+    CLOSE(Rgb(0.949, 0.816, 0.141)),
+    LIMIT(Rgb(0.851, 0.176, 0.125)),
+    ;
+
+    /** Opaque ARGB. */
+    val argb: Int get() = 0xFF000000.toInt() or (c(rgb.r) shl 16) or (c(rgb.g) shl 8) or c(rgb.b)
+
+    private fun c(v: Double) = (v.coerceIn(0.0, 1.0) * 255).roundToInt()
+}
+
+/**
+ * How a plan-usage percentage looks, in one place: the colour of the ring and of the bar, and the "Near limit" line. Below the red line
+ * the percentage is shown small and normal with no warning; from [LIMIT_FROM] it is shown big and bold with "Near limit" and, when the
+ * usage snapshot has one, when the window resets ("resets in 2 h"). Pure, so every boundary is a unit test.
+ */
+object PlanUsageLook {
+    /** From this percentage (included) the usage is "getting close": yellow. */
+    const val CLOSE_FROM = 75
+
+    /** From this percentage (included) the usage is at the limit: red, with the warning. */
+    const val LIMIT_FROM = 90
+
+    /** What is shown and drawn: a percentage under 0 or over 100 is clamped. */
+    fun clamp(pct: Int): Int = pct.coerceIn(0, 100)
+
+    fun tone(pct: Int): UsageTone = when {
+        clamp(pct) >= LIMIT_FROM -> UsageTone.LIMIT
+        clamp(pct) >= CLOSE_FROM -> UsageTone.CLOSE
+        else -> UsageTone.CALM
+    }
+
+    /** True from the red line: the Widget then shows the rate prominently. */
+    fun nearLimit(pct: Int): Boolean = clamp(pct) >= LIMIT_FROM
+
+    /** "resets in 2 h", "resets in 40 min", "resets in 3 d"; null when there is no reset time (0) or it has passed. */
+    fun resetLine(resetsAtMs: Long, nowMs: Long): String? {
+        if (resetsAtMs <= 0 || resetsAtMs <= nowMs) return null
+        val minutes = (resetsAtMs - nowMs) / 60_000
+        val hours = minutes / 60
+        return when {
+            minutes < 60 -> "resets in ${maxOf(minutes, 1)} min"
+            hours < 48 -> "resets in $hours h"
+            else -> "resets in ${hours / 24} d"
+        }
+    }
+
+    /** "Near limit" (with the reset time when known) from the red line; null below it, where there is no warning. */
+    fun note(pct: Int, resetsAtMs: Long, nowMs: Long): String? =
+        if (!nearLimit(pct)) null else listOfNotNull("Near limit", resetLine(resetsAtMs, nowMs)).joinToString(" · ")
+}
+
+/** The plan usage a ring or a bar shows: which plan and window, how much of it is used, and the warning line when it is near the limit. */
+data class UsageRing(val plan: String, val window: String, val pct: Int, val note: String? = null) {
+    /** The percentage to show, 0 to 100. */
+    val shown: Int get() = PlanUsageLook.clamp(pct)
+
+    /** 0 to 1, for the arc and the bar. */
+    val fraction: Float get() = shown / 100f
 
     /** "Claude · 5 h". */
     val label: String get() = "$plan · $window"
 
-    /** The colour of Mochi Big's bar: green, orange above 75%, red above 90% ([WidgetData.barTone]). */
-    val barTone: WidgetTone get() = WidgetData.barTone(pct)
+    /** The colour of the ring and of the bar ([PlanUsageLook]). */
+    val tone: UsageTone get() = PlanUsageLook.tone(pct)
 
-    /** Green while there is room, orange from half, red from four fifths: the same rule as Home ([PlanText]). */
-    val tone: WidgetTone get() = when (PlanText.level(pct)) {
-        PlanText.Level.LOW -> WidgetTone.DONE
-        PlanText.Level.MEDIUM -> WidgetTone.ATTENTION
-        PlanText.Level.HIGH -> WidgetTone.TROUBLE
-    }
+    /** True from the red line: big and bold, with [note] under it. */
+    val nearLimit: Boolean get() = PlanUsageLook.nearLimit(pct)
 }
 
 /** What the right side of Mochi Big shows: the plan usage rows, a calm "Plan usage is off", or "Not connected". Never nothing. */
@@ -200,19 +257,6 @@ object WidgetData {
         return WidgetContent(glance.headline, glance.tone, glance.connected, glance.waiting, tiles, ring, today.coerceAtLeast(0), rows)
     }
 
-    /** Mochi Big's bar turns orange above this percentage... */
-    const val BAR_ORANGE_ABOVE = 75
-
-    /** ...and red above this one. */
-    const val BAR_RED_ABOVE = 90
-
-    /** Green up to 75%, orange above 75%, red above 90%. */
-    fun barTone(pct: Int): WidgetTone = when {
-        pct > BAR_RED_ABOVE -> WidgetTone.TROUBLE
-        pct > BAR_ORANGE_ABOVE -> WidgetTone.ATTENTION
-        else -> WidgetTone.DONE
-    }
-
     /**
      * Up to two rows for Mochi Big: Claude, then Codex, each with its main window (five hours, else the week). A plan the computer
      * does not know has no row. The same data as the Usage Ring, with a window that has reset counted as zero ([PlanText]).
@@ -220,8 +264,7 @@ object WidgetData {
     fun usageRows(usage: UsageSnapshot?, nowMs: Long): List<UsageRing> {
         usage ?: return emptyList()
         return listOf("Claude" to usage.claude, "Codex" to usage.codex).mapNotNull { (name, plan) ->
-            plan?.fiveHour?.let { UsageRing(name, "5 h", PlanText.effectivePct(it, nowMs)) }
-                ?: plan?.sevenDay?.let { UsageRing(name, "week", PlanText.effectivePct(it, nowMs)) }
+            plan?.fiveHour?.let { row(name, "5 h", it, nowMs) } ?: plan?.sevenDay?.let { row(name, "week", it, nowMs) }
         }
     }
 
@@ -268,13 +311,19 @@ object WidgetData {
 
     private const val HOUR_MS = 3_600_000L
 
+    /** One row: the percentage counted as zero once the window has reset, and the "Near limit" line with its reset time. */
+    private fun row(plan: String, window: String, w: PlanWindow, nowMs: Long): UsageRing {
+        val pct = PlanText.effectivePct(w, nowMs)
+        return UsageRing(plan, window, pct, PlanUsageLook.note(pct, w.resetsAtMs, nowMs))
+    }
+
     /** Claude's five-hour window first, then its week, then Codex; null when the computer sent none of them. */
     fun ring(usage: UsageSnapshot?, nowMs: Long): UsageRing? {
         usage ?: return null
         for ((name, plan) in listOf("Claude" to usage.claude, "Codex" to usage.codex)) {
             plan ?: continue
-            plan.fiveHour?.let { return UsageRing(name, "5 h", PlanText.effectivePct(it, nowMs)) }
-            plan.sevenDay?.let { return UsageRing(name, "week", PlanText.effectivePct(it, nowMs)) }
+            plan.fiveHour?.let { return row(name, "5 h", it, nowMs) }
+            plan.sevenDay?.let { return row(name, "week", it, nowMs) }
         }
         return null
     }

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Preview of Mochi Big: on the left a working Mochi with his glow, Claude Code and Working; on the right plan usage (Claude 68% and Codex
-     41%, each with a thin bar); under them the six button tiles.
+     41%, each small with a thin teal bar: under the red line there is no warning); under them the six button tiles.
      A still picture for the Widget picker (android:previewLayout): sample text, no ids, nothing from the app, no runtime bitmap.
      It uses the same card, border, gradient, type scale, buttons and state colours as the real Widget, so the picker shows what you will get. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
@@ -106,8 +106,7 @@
                     android:maxLines="1"
                     android:text="@string/widget_sample_pct_a"
                     android:textColor="@color/widget_text"
-                    android:textSize="@dimen/widget_text_big"
-                    android:textStyle="bold" />
+                    android:textSize="@dimen/widget_text_pct" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -122,7 +121,7 @@
                         android:layout_height="match_parent"
                         android:layout_weight="68"
                         android:importantForAccessibility="no"
-                        android:src="@drawable/preview_bar_done" />
+                        android:src="@drawable/preview_bar_calm" />
                 </LinearLayout>
             </LinearLayout>
 
@@ -147,8 +146,7 @@
                     android:maxLines="1"
                     android:text="@string/widget_sample_pct_b"
                     android:textColor="@color/widget_text"
-                    android:textSize="@dimen/widget_text_big"
-                    android:textStyle="bold" />
+                    android:textSize="@dimen/widget_text_pct" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -163,7 +161,7 @@
                         android:layout_height="match_parent"
                         android:layout_weight="41"
                         android:importantForAccessibility="no"
-                        android:src="@drawable/preview_bar_done" />
+                        android:src="@drawable/preview_bar_calm" />
                 </LinearLayout>
             </LinearLayout>
             </LinearLayout>

@@ -12,6 +12,7 @@ import android.widget.RemoteViews
 import com.coucou.android.MainActivity
 import com.coucou.android.R
 import com.coucou.android.core.LaunchScreen
+import com.coucou.android.core.UsageTone
 import com.coucou.android.core.WidgetContent
 import com.coucou.android.core.WidgetTone
 import kotlin.math.roundToInt
@@ -88,6 +89,20 @@ object WidgetHub {
     fun paint(v: RemoteViews, root: Int, tint: Int, tone: WidgetTone) {
         v.setInt(root, "setBackgroundResource", cardOf(tone))
         v.setInt(tint, "setBackgroundResource", tintOf(tone))
+    }
+
+    /** The same for a plan-usage Widget: the usage palette (teal, yellow, red), never a state colour. */
+    fun paintUsage(v: RemoteViews, root: Int, tint: Int, tone: UsageTone) {
+        v.setInt(root, "setBackgroundResource", when (tone) {
+            UsageTone.CALM -> R.drawable.widget_card_usage_calm
+            UsageTone.CLOSE -> R.drawable.widget_card_usage_close
+            UsageTone.LIMIT -> R.drawable.widget_card_usage_limit
+        })
+        v.setInt(tint, "setBackgroundResource", when (tone) {
+            UsageTone.CALM -> R.drawable.widget_tint_usage_calm
+            UsageTone.CLOSE -> R.drawable.widget_tint_usage_close
+            UsageTone.LIMIT -> R.drawable.widget_tint_usage_limit
+        })
     }
 
     private fun cardOf(tone: WidgetTone): Int = when (tone) {

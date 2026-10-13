@@ -32,7 +32,7 @@ object RingBitmap {
     /** The ring for [ring], [sizePx] pixels square. */
     @Synchronized
     fun of(ring: UsageRing, sizePx: Int): Bitmap {
-        val key = Key(ring.pct.coerceIn(0, 100), ring.tone.argb, sizePx)
+        val key = Key(ring.shown, ring.tone.argb, sizePx)
         return cache.getOrPut(key) { draw(ring, sizePx) }
     }
 

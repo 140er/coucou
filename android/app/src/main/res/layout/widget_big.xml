@@ -127,8 +127,27 @@
                     android:layout_height="wrap_content"
                     android:maxLines="1"
                     android:textColor="@color/widget_text"
-                    android:textSize="@dimen/widget_text_big"
-                    android:textStyle="bold" />
+                    android:textSize="@dimen/widget_text_pct" />
+
+                <TextView
+                    android:id="@+id/big_usage_a_pct_big"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:maxLines="1"
+                    android:textColor="@color/widget_text"
+                    android:textSize="@dimen/widget_text_pct_big"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
+
+                <TextView
+                    android:id="@+id/big_usage_a_note"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:textColor="@color/widget_text_soft"
+                    android:textSize="@dimen/widget_text_secondary"
+                    android:visibility="gone" />
 
                 <ImageView
                     android:id="@+id/big_usage_a_bar"
@@ -162,8 +181,27 @@
                     android:layout_height="wrap_content"
                     android:maxLines="1"
                     android:textColor="@color/widget_text"
-                    android:textSize="@dimen/widget_text_big"
-                    android:textStyle="bold" />
+                    android:textSize="@dimen/widget_text_pct" />
+
+                <TextView
+                    android:id="@+id/big_usage_b_pct_big"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:maxLines="1"
+                    android:textColor="@color/widget_text"
+                    android:textSize="@dimen/widget_text_pct_big"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
+
+                <TextView
+                    android:id="@+id/big_usage_b_note"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:textColor="@color/widget_text_soft"
+                    android:textSize="@dimen/widget_text_secondary"
+                    android:visibility="gone" />
 
                 <ImageView
                     android:id="@+id/big_usage_b_bar"

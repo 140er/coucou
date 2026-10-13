@@ -11,7 +11,9 @@
     <dimen name="widget_tile_height">52dp</dimen>
     <dimen name="widget_dot">10dp</dimen>
     <dimen name="widget_icon">18dp</dimen>
-    <dimen name="widget_text_big">28sp</dimen>
+    <dimen name="widget_text_pct">18sp</dimen>
+    <dimen name="widget_text_pct_big">32sp</dimen>
+    <dimen name="widget_text_ring_big">26sp</dimen>
     <dimen name="widget_text_name">16sp</dimen>
     <dimen name="widget_text_state">13sp</dimen>
     <dimen name="widget_text_secondary">12sp</dimen>

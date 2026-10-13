@@ -16,11 +16,13 @@ import com.coucou.android.core.WidgetTone
 
 /**
  * The Mochi Big widget (4x4). The top is in two sides. On the left, Mochi with his glow and his badge, then the agent's name and
- * state word, so the state reads without a sentence. On the right, the plan usage (up to two rows: Claude and Codex, each with a big percentage and a thin bar that is green, orange above
- * 75% and red above 90%), or one calm message when it is off or the computer is not there. Under them, rounded buttons that only open a screen of the app (Home, Chat, Settings, Recent, the top agent, Pair
- * again): none when the card is small, one row of four from the medium size, two rows of three when large. They are tinted orange
- * while something waits. Drawn by [WidgetHub] when something changes (updatePeriodMillis = 0). A tap on the card opens the top agent,
- * or the app. Nothing here changes anything.
+ * state word, so the state reads without a sentence. On the right, the plan usage: up to two rows (Claude and Codex), each with a thin
+ * bar that is teal, yellow from 75% and red from 90%. Under the red line the percentage is small and normal; from 90% it is big and
+ * bold with "Near limit" and, when known, when it resets. When plan usage is off or the computer is not there, one calm message.
+ * Under them, rounded buttons that only open a screen of the app (Home, Chat, Settings, Recent, the top agent, Pair again): none
+ * when the card is small, one row of four from the medium size, two rows of three when large; tinted orange while something waits.
+ * Drawn by [WidgetHub] when something changes (updatePeriodMillis = 0). A tap on the card opens the top agent, or the app.
+ * Nothing here changes anything.
  */
 class MochiBigWidget : AppWidgetProvider() {
     override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) =
@@ -117,9 +119,9 @@ class MochiBigWidget : AppWidgetProvider() {
             when (c.usageSide) {
                 UsageSide.ROWS -> {
                     v.setViewVisibility(R.id.big_off, View.GONE)
-                    bindRow(v, context, rows[0], R.id.big_usage_a, R.id.big_usage_a_label, R.id.big_usage_a_pct, R.id.big_usage_a_bar)
+                    bindRow(v, context, rows[0], BigRow(R.id.big_usage_a, R.id.big_usage_a_label, R.id.big_usage_a_pct, R.id.big_usage_a_pct_big, R.id.big_usage_a_note, R.id.big_usage_a_bar))
                     val second = rows.getOrNull(1)?.takeIf { !small }
-                    if (second != null) bindRow(v, context, second, R.id.big_usage_b, R.id.big_usage_b_label, R.id.big_usage_b_pct, R.id.big_usage_b_bar)
+                    if (second != null) bindRow(v, context, second, BigRow(R.id.big_usage_b, R.id.big_usage_b_label, R.id.big_usage_b_pct, R.id.big_usage_b_pct_big, R.id.big_usage_b_note, R.id.big_usage_b_bar))
                     else v.setViewVisibility(R.id.big_usage_b, View.GONE)
                     v.setOnClickPendingIntent(R.id.big_right, WidgetHub.openApp(context, WidgetHub.CODE_BIG_USAGE_APP))
                 }
@@ -140,12 +142,23 @@ class MochiBigWidget : AppWidgetProvider() {
             }
         }
 
-        private fun bindRow(v: RemoteViews, context: Context, row: UsageRing, group: Int, label: Int, pct: Int, bar: Int) {
-            v.setViewVisibility(group, View.VISIBLE)
-            v.setTextViewText(label, row.label)
-            v.setTextViewText(pct, "${row.pct}%")
-            v.setImageViewBitmap(bar, BarBitmap.of(row, WidgetHub.px(context, 180), WidgetHub.px(context, 6)))
-            v.setContentDescription(group, context.getString(R.string.widget_ring_cd, row.plan, row.pct))
+        private class BigRow(val group: Int, val label: Int, val pct: Int, val pctBig: Int, val note: Int, val bar: Int)
+
+        /**
+         * One plan-usage row. Under the red line the percentage is small and normal, with no warning. From the red line it is big and
+         * bold, with "Near limit" (and when it resets) under it. The bar is teal, yellow from 75% and red from 90%.
+         */
+        private fun bindRow(v: RemoteViews, context: Context, row: UsageRing, r: BigRow) {
+            v.setViewVisibility(r.group, View.VISIBLE)
+            v.setTextViewText(r.label, row.label)
+            val near = row.nearLimit
+            v.setViewVisibility(r.pct, if (near) View.GONE else View.VISIBLE)
+            v.setViewVisibility(r.pctBig, if (near) View.VISIBLE else View.GONE)
+            v.setTextViewText(if (near) r.pctBig else r.pct, "${row.shown}%")
+            v.setViewVisibility(r.note, if (row.note != null) View.VISIBLE else View.GONE)
+            v.setTextViewText(r.note, row.note.orEmpty())
+            v.setImageViewBitmap(r.bar, BarBitmap.of(row, WidgetHub.px(context, 180), WidgetHub.px(context, 6)))
+            v.setContentDescription(r.group, context.getString(R.string.widget_ring_cd, row.plan, row.shown))
         }
     }
 }

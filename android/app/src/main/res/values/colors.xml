@@ -37,4 +37,16 @@
     <color name="widget_on_tone">#FF1C1C1E</color>
     <!-- The tone as text colour: the tone itself on the dark card; in day mode a deeper one (see values-notnight). -->
     <color name="widget_tone_attention_text">#FFF5A524</color>
+
+    <!-- Plan usage has its own colours, so it never looks like a state: teal while there is room, yellow from 75 %, red from 90 %.
+         The same colours as UsageTone in core/WidgetData.kt. -->
+    <color name="widget_usage_calm">#FF0E8F9A</color>
+    <color name="widget_usage_close">#FFF2D024</color>
+    <color name="widget_usage_limit">#FFD92D20</color>
+    <color name="widget_tint_usage_calm">#330E8F9A</color>
+    <color name="widget_tint_usage_close">#40F2D024</color>
+    <color name="widget_tint_usage_limit">#33D92D20</color>
+    <color name="widget_border_usage_calm">#990E8F9A</color>
+    <color name="widget_border_usage_close">#99F2D024</color>
+    <color name="widget_border_usage_limit">#99D92D20</color>
 </resources>

@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Preview of Usage Ring: a ring at about 70 percent with its label.
+<!-- Preview of Usage Ring: a normal teal ring at about 68 percent, with a small percentage and its label.
      A still picture for the Widget picker (android:previewLayout): sample text and numbers, no ids, nothing from the app, no runtime bitmap.
      It uses the same card, border, gradient, type scale and state colours as the real Widget, so the picker shows what you will get. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/widget_card">
+    android:background="@drawable/widget_card_usage_calm">
 
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_margin="1dp"
-        android:background="@drawable/widget_tint_attention" />
+        android:background="@drawable/widget_tint_usage_calm" />
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -30,7 +30,7 @@
                 android:layout_height="match_parent"
                 android:importantForAccessibility="no"
                 android:scaleType="fitCenter"
-                android:src="@drawable/preview_ring_70" />
+                android:src="@drawable/preview_ring_68" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -39,8 +39,7 @@
                 android:maxLines="1"
                 android:text="@string/widget_sample_ring_pct"
                 android:textColor="@color/widget_text"
-                android:textSize="24sp"
-                android:textStyle="bold" />
+                android:textSize="@dimen/widget_text_pct" />
         </FrameLayout>
 
         <TextView

@@ -16,7 +16,7 @@ import kotlin.math.max
 
 /**
  * The thin bar of a plan-usage row on Mochi Big, drawn once into a bitmap like [RingBitmap] draws the Usage Ring's ring: a faint
- * track and a rounded fill in the colour of the usage (green, orange above 75%, red above 90%). A few are kept so a push that changes
+ * track and a rounded fill in the colour of the usage (teal, yellow from 75%, red from 90%: [com.coucou.android.core.PlanUsageLook]). A few are kept so a push that changes
  * nothing about a bar draws nothing. No timer, no frame loop.
  */
 object BarBitmap {
@@ -32,7 +32,7 @@ object BarBitmap {
     /** The bar for [row], [widthPx] by [heightPx]. */
     @Synchronized
     fun of(row: UsageRing, widthPx: Int, heightPx: Int): Bitmap {
-        val key = Key(row.pct.coerceIn(0, 100), row.barTone.argb, widthPx, heightPx)
+        val key = Key(row.shown, row.tone.argb, widthPx, heightPx)
         return cache.getOrPut(key) { draw(row, widthPx, heightPx) }
     }
 
@@ -44,7 +44,7 @@ object BarBitmap {
             if (row.fraction > 0f) {
                 // Never narrower than its own height, so a small value still shows a round dot.
                 val fill = max(heightPx.toFloat(), widthPx * row.fraction)
-                drawRoundRect(Color(row.barTone.argb), Offset.Zero, Size(fill, heightPx.toFloat()), round)
+                drawRoundRect(Color(row.tone.argb), Offset.Zero, Size(fill, heightPx.toFloat()), round)
             }
         }
         return image.asAndroidBitmap()
