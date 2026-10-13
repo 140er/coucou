@@ -20,6 +20,13 @@ class WidgetButtonsTest {
     private val dimens: Map<String, Double> =
         Regex("""<dimen name="(\w+)">([\d.]+)(?:dp|sp)</dimen>""").findAll(read(res + "values/dimens.xml")).associate { it.groupValues[1] to it.groupValues[2].toDouble() }
 
+    // A tiny reader for layout files: attributes keep their android: prefix (the parser is not namespace aware).
+    private fun element(xml: String): org.w3c.dom.Element =
+        javax.xml.parsers.DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(xml.byteInputStream()).documentElement
+    private fun org.w3c.dom.Element.children(): List<org.w3c.dom.Element> =
+        (0 until childNodes.length).map { childNodes.item(it) }.filterIsInstance<org.w3c.dom.Element>()
+    private fun org.w3c.dom.Element.descendants(): List<org.w3c.dom.Element> = children().flatMap { listOf(it) + it.descendants() }
+
     // ── The icons ────────────────────────────────────────────────────────────────────────────────────
 
     private val icons = listOf("home", "chat", "settings", "recent", "session", "pair")
@@ -79,11 +86,29 @@ class WidgetButtonsTest {
 
     @Test fun theStatusPillKeepsTheTextOffTheButtons() {
         val layout = read(res + "layout/widget_pill.xml")
-        // The text group is the weighted child, so the buttons (wrap) are measured first and never move.
-        assertTrue(layout.contains("""android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:gravity="center_vertical""""))
+        // The text group is the one weighted child of the row, so the buttons (fixed size) are measured first and never move.
+        val row = element(layout).descendants().first { it.tagName == "LinearLayout" && it.getAttribute("android:orientation") == "horizontal" && it.children().any { c -> c.getAttribute("android:layout_weight").isNotEmpty() } }
+        val weighted = row.children().filter { it.getAttribute("android:layout_weight").isNotEmpty() }
+        assertEquals("exactly one weighted child: the text group", 1, weighted.size)
+        val group = weighted.single()
+        assertEquals("0dp", group.getAttribute("android:layout_width"))
+        assertEquals("1", group.getAttribute("android:layout_weight"))
+        assertEquals(listOf("LinearLayout"), listOf(group.tagName))
+        val inside = group.descendants().mapNotNull { it.getAttribute("android:id").takeIf { id -> id.isNotEmpty() } }
+        assertEquals(listOf("@+id/pill_dot", "@+id/pill_name", "@+id/pill_state"), inside)
+        val others = row.children().filter { it !== group }
+        assertEquals("the four buttons are the other children", listOf("@+id/pill_btn_home", "@+id/pill_btn_chat", "@+id/pill_btn_settings", "@+id/pill_btn_recent"), others.map { it.getAttribute("android:id") })
+        for (b in others) {
+            assertEquals(b.getAttribute("android:id"), "ImageView", b.tagName)
+            assertEquals("a button has a fixed width", "@dimen/widget_button", b.getAttribute("android:layout_width"))
+            assertTrue("a button has no weight, so it is never squeezed", b.getAttribute("android:layout_weight").isEmpty())
+        }
+        // The text inside the group: the state word is the weighted one (it shrinks first), the name wraps its content.
+        val name = group.descendants().first { it.getAttribute("android:id") == "@+id/pill_name" }
+        val state = group.descendants().first { it.getAttribute("android:id") == "@+id/pill_state" }
+        assertEquals("wrap_content", name.getAttribute("android:layout_width"))
+        assertEquals("0dp", state.getAttribute("android:layout_width"))
+        assertEquals("1", state.getAttribute("android:layout_weight"))
         assertEquals("every text on the pill is one line, ellipsized", 2, Regex("""android:maxLines="1"""").findAll(layout).count())
         // Width budget in dp: padding 16 + 8, four buttons of 36 with 6 between.
         val buttons = 4 * dimens.getValue("widget_button") + 4 * 6 + 16 + 8
