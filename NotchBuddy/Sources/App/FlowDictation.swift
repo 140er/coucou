@@ -84,6 +84,8 @@ final class FlowDictation: ObservableObject {
     private var tickTask: Task<Void, Never>?
     private var trustTask: Task<Void, Never>?
     private let bands = FlowAudioBands()
+    /// The system's Accessibility prompt is shown at most once per launch, when a paste could not happen.
+    private var promptedThisRun = false
     let pill = FlowPillController()
 
     private init() {}
@@ -106,6 +108,18 @@ final class FlowDictation: ObservableObject {
     func askForAccessibility() {
         let options = ["AXTrustedCheckOptionPrompt": true] as CFDictionary
         trusted = AXIsProcessTrustedWithOptions(options)
+    }
+
+    /// Reads the permission again (Settings shows it; a new build of Coucou loses it, see flow.accessibility).
+    /// Once it is there, the monitors are reinstalled so the global one starts getting Esc and the other keys.
+    func recheckTrust() {
+        let now = AXIsProcessTrusted()
+        guard now != trusted else { return }
+        trusted = now
+        guard isEnabled else { return }
+        removeMonitors()
+        installMonitors()
+        if !now { waitForTrust() }
     }
 
     func openAccessibilitySettings() {
@@ -196,6 +210,8 @@ final class FlowDictation: ObservableObject {
     }
 
     private func begin() {
+        // After this key event is handled: a permission granted meanwhile reinstalls the monitors.
+        Task { @MainActor [weak self] in self?.recheckTrust() }
         let listen = Listen()
         current = listen
         bands.reset()
@@ -228,8 +244,14 @@ final class FlowDictation: ObservableObject {
             if latest { self.current = nil }
             guard !text.isEmpty else { if latest { self.pill.hide() }; return }
             let pasted = FlowPaste.insert(text)
+            if !pasted {
+                // No Accessibility: the words wait on the clipboard, and macOS is asked once.
+                self.trusted = false
+                if !self.promptedThisRun { self.promptedThisRun = true; self.askForAccessibility() }
+                self.waitForTrust()
+            }
             guard latest else { return }
-            if pasted { self.pill.hide() } else { self.pill.flash(.copied) }   // no Accessibility: on the clipboard
+            if pasted { self.pill.hide() } else { self.pill.flash(.copied) }
         }
     }
 

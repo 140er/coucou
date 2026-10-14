@@ -81,61 +81,126 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "يحتاج Coucou إلى إذن تسهيلات الاستخدام لرؤية المفتاح ولصق كلماتك: فعّل Coucou في إعدادات النظام ← الخصوصية والأمن ← تسهيلات الاستخدام."
+            "value" : "لا يستطيع Coucou اللصق بعد ولا رؤية Esc: يحتاج إلى إذن تسهيلات الاستخدام. فعّل Coucou في إعدادات النظام ← الخصوصية والأمن ← تسهيلات الاستخدام. إذا كان مفعّلًا، احذفه بزر − ثم أضفه من جديد: كل إصدار جديد من Coucou يحتاج الإذن مرة أخرى."
           }
         },
         "bn" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "কী দেখতে আর আপনার কথা পেস্ট করতে Coucou-এর অ্যাক্সেসিবিলিটি অনুমতি দরকার: সিস্টেম সেটিংস → গোপনীয়তা ও নিরাপত্তা → অ্যাক্সেসিবিলিটিতে Coucou চালু করুন।"
+            "value" : "Coucou এখনও পেস্ট করতে বা Esc দেখতে পারে না: এর অ্যাক্সেসিবিলিটি অনুমতি দরকার। সিস্টেম সেটিংস → গোপনীয়তা ও নিরাপত্তা → অ্যাক্সেসিবিলিটিতে Coucou চালু করুন। আগে থেকেই চালু থাকলে − দিয়ে সরিয়ে আবার যোগ করুন: Coucou-এর নতুন সংস্করণের আবার অনুমতি লাগে।"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Coucou needs the Accessibility permission to see the key and paste your words: turn on Coucou in System Settings → Privacy & Security → Accessibility."
+            "value" : "Coucou can't paste yet, or see Esc: it needs the Accessibility permission. Turn on Coucou in System Settings → Privacy & Security → Accessibility. If it is already on, remove it with − and add it again: a new build of Coucou needs it again."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Coucou necesita el permiso de Accesibilidad para ver la tecla y pegar tus palabras: activa Coucou en Ajustes del Sistema → Privacidad y seguridad → Accesibilidad."
+            "value" : "Coucou aún no puede pegar ni ver Esc: necesita el permiso de Accesibilidad. Activa Coucou en Ajustes del Sistema → Privacidad y seguridad → Accesibilidad. Si ya está activado, quítalo con − y vuelve a añadirlo: una nueva versión de Coucou lo necesita de nuevo."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Coucou a besoin de l'autorisation Accessibilité pour voir la touche et coller tes mots : active Coucou dans Réglages Système → Confidentialité et sécurité → Accessibilité."
+            "value" : "Coucou ne peut pas encore coller, ni voir Échap : il lui faut l'autorisation Accessibilité. Active Coucou dans Réglages Système → Confidentialité et sécurité → Accessibilité. S'il y est déjà, retire-le avec − puis rajoute-le : une nouvelle version de Coucou doit être autorisée à nouveau."
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "कुंजी देखने और आपके शब्द चिपकाने के लिए Coucou को एक्सेसिबिलिटी अनुमति चाहिए: सिस्टम सेटिंग्स → गोपनीयता और सुरक्षा → एक्सेसिबिलिटी में Coucou चालू करें।"
+            "value" : "Coucou अभी न चिपका सकता है, न Esc देख सकता है: इसे एक्सेसिबिलिटी अनुमति चाहिए। सिस्टम सेटिंग्स → गोपनीयता और सुरक्षा → एक्सेसिबिलिटी में Coucou चालू करें। अगर यह पहले से चालू है, तो − से हटाकर फिर जोड़ें: Coucou के नए संस्करण को फिर से अनुमति चाहिए।"
           }
         },
         "id" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Coucou butuh izin Aksesibilitas untuk melihat tombol dan menempel kata-katamu: aktifkan Coucou di Pengaturan Sistem → Privasi & Keamanan → Aksesibilitas."
+            "value" : "Coucou belum bisa menempel atau melihat Esc: ia butuh izin Aksesibilitas. Aktifkan Coucou di Pengaturan Sistem → Privasi & Keamanan → Aksesibilitas. Jika sudah aktif, hapus dengan − lalu tambahkan lagi: versi baru Coucou perlu izin lagi."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "O Coucou precisa da permissão de Acessibilidade para ver a tecla e colar suas palavras: ative o Coucou em Ajustes do Sistema → Privacidade e Segurança → Acessibilidade."
+            "value" : "O Coucou ainda não consegue colar nem ver o Esc: ele precisa da permissão de Acessibilidade. Ative o Coucou em Ajustes do Sistema → Privacidade e Segurança → Acessibilidade. Se já estiver ativado, remova com − e adicione de novo: uma nova versão do Coucou precisa da permissão outra vez."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Coucou нужен доступ к Универсальному доступу, чтобы видеть клавишу и вставлять слова: включите Coucou в Системных настройках → Конфиденциальность и безопасность → Универсальный доступ."
+            "value" : "Coucou пока не может вставлять текст и видеть Esc: нужен доступ к Универсальному доступу. Включите Coucou в Системных настройках → Конфиденциальность и безопасность → Универсальный доступ. Если он уже включён, удалите его кнопкой − и добавьте снова: новой версии Coucou нужно разрешение заново."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Coucou 需要“辅助功能”权限才能识别按键并粘贴你的话：请在“系统设置”→“隐私与安全性”→“辅助功能”中打开 Coucou。"
+            "value" : "Coucou 还不能粘贴，也无法识别 Esc：它需要“辅助功能”权限。请在“系统设置”→“隐私与安全性”→“辅助功能”中打开 Coucou。如果已经打开，请用“−”移除后重新添加：新版本的 Coucou 需要重新授权。"
+          }
+        }
+      }
+    },
+    "flow.access-ok" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تم السماح بتسهيلات الاستخدام: يلصق Coucou حيث تكتب."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অ্যাক্সেসিবিলিটি অনুমোদিত: আপনি যেখানে লেখেন Coucou সেখানে পেস্ট করে।"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accessibility allowed: Coucou pastes where you type."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accesibilidad permitida: Coucou pega donde escribes."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accessibilité autorisée : Coucou colle là où tu écris."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "एक्सेसिबिलिटी की अनुमति है: Coucou वहीं चिपकाता है जहाँ आप टाइप करते हैं।"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aksesibilitas diizinkan: Coucou menempel di tempat kamu mengetik."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Acessibilidade permitida: o Coucou cola onde você digita."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Универсальный доступ разрешён: Coucou вставляет текст туда, где вы печатаете."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已允许辅助功能：Coucou 会粘贴到你输入的位置。"
           }
         }
       }
@@ -205,67 +270,67 @@
         }
       }
     },
-    "flow.copied" : {
+    "flow.copied-noaccess" : {
       "extractionState" : "manual",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "تم النسخ · اضغط ⌘V"
+            "value" : "تم النسخ · اسمح بتسهيلات الاستخدام للصق"
           }
         },
         "bn" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "কপি হয়েছে · ⌘V চাপুন"
+            "value" : "কপি হয়েছে · পেস্ট করতে অ্যাক্সেসিবিলিটি অনুমতি দিন"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Copied · press ⌘V"
+            "value" : "Copied · allow Accessibility to paste"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Copiado · pulsa ⌘V"
+            "value" : "Copiado · permite Accesibilidad para pegar"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Copié · fais ⌘V"
+            "value" : "Copié · autorise l'Accessibilité pour coller"
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "कॉपी हुआ · ⌘V दबाएँ"
+            "value" : "कॉपी हुआ · चिपकाने के लिए एक्सेसिबिलिटी की अनुमति दें"
           }
         },
         "id" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Disalin · tekan ⌘V"
+            "value" : "Disalin · izinkan Aksesibilitas untuk menempel"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Copiado · pressione ⌘V"
+            "value" : "Copiado · permita a Acessibilidade para colar"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Скопировано · нажмите ⌘V"
+            "value" : "Скопировано · разрешите Универсальный доступ для вставки"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "已复制 · 按 ⌘V"
+            "value" : "已复制 · 允许辅助功能以粘贴"
           }
         }
       }
