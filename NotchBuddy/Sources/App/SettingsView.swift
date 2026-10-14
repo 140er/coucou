@@ -213,18 +213,13 @@ struct SettingsView: View {
                         .padding(.horizontal, 20)
                         .padding(.top, 20)
                         .padding(.bottom, 12)
-                } else {
-                    Text(sectionTitle)
-                        .font(.system(size: 28, weight: .bold))
-                        .padding(.horizontal, 40)
-                        .padding(.top, 38)
-                        .padding(.bottom, 18)
                 }
                 ScrollView {
                     VStack(alignment: .leading, spacing: 18) {
                         sectionContent
                     }
-                    .padding(.horizontal, embeddedSection == nil ? 20 : 40)
+                    .padding(.horizontal, embeddedSection == nil ? 20 : 28)
+                    .padding(.top, embeddedSection == nil ? 0 : 20)
                     .padding(.bottom, 16)
                     .frame(maxWidth: embeddedSection == nil ? .infinity : 760, alignment: .leading)
                 }
