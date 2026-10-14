@@ -79,6 +79,11 @@ final class ChannelRecorder: @unchecked Sendable {
         }
     }
 
+    /// Closes the file at once, waiting for what is queued (when Coucou quits).
+    func closeNow() {
+        queue.sync { file = nil }
+    }
+
     /// Closes the file once everything queued is written.
     func close() async {
         await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
@@ -142,6 +147,8 @@ final class SystemAudioTap: @unchecked Sendable {
     private var tapID = AudioObjectID(kAudioObjectUnknown)
     private var aggregateID = AudioObjectID(kAudioObjectUnknown)
     private var procID: AudioDeviceIOProcID?
+    /// The tap's own buffers, when the aggregate also brings the output device's inputs (a headset's mic).
+    private var tapList: UnsafeMutableAudioBufferListPointer?
     private let queue = DispatchQueue(label: "fr.louisraille.NotchBuddy.notetaker.system", qos: .userInitiated)
 
     func start(sink: @escaping @Sendable ([Float]) -> Void) throws {
@@ -188,9 +195,20 @@ final class SystemAudioTap: @unchecked Sendable {
         }
         aggregateID = device
 
+        // The aggregate's input is the output device's own inputs (a headset's microphone), if it has
+        // any, then the tap: the tap's buffers are the last ones.
+        let tapBuffers = format.isInterleaved ? 1 : Int(format.channelCount)
+        let scratch = AudioBufferList.allocate(maximumBuffers: tapBuffers)
+        tapList = scratch
         var proc: AudioDeviceIOProcID?
         status = AudioDeviceCreateIOProcIDWithBlock(&proc, device, queue) { _, input, _, _, _ in
-            guard let buffer = AVAudioPCMBuffer(pcmFormat: format, bufferListNoCopy: input, deallocator: nil) else { return }
+            let all = UnsafeMutableAudioBufferListPointer(UnsafeMutablePointer(mutating: input))
+            var list = input
+            if all.count > tapBuffers {
+                for i in 0..<tapBuffers { scratch[i] = all[all.count - tapBuffers + i] }
+                list = UnsafePointer(scratch.unsafePointer)
+            }
+            guard let buffer = AVAudioPCMBuffer(pcmFormat: format, bufferListNoCopy: list, deallocator: nil) else { return }
             sink(resampler.convert(buffer))
         }
         guard status == noErr, let proc else {
@@ -215,6 +233,8 @@ final class SystemAudioTap: @unchecked Sendable {
         }
         if tapID != AudioObjectID(kAudioObjectUnknown) { AudioHardwareDestroyProcessTap(tapID) }
         procID = nil
+        if let tapList { free(tapList.unsafeMutablePointer) }
+        tapList = nil
         aggregateID = AudioObjectID(kAudioObjectUnknown)
         tapID = AudioObjectID(kAudioObjectUnknown)
     }

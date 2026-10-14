@@ -90,7 +90,7 @@ struct FlowPillView: View {
         case .copied: return Self.messageWidth(String(localized: "flow.copied-noaccess"))
         case .failed: return Self.messageWidth(String(localized: "flow.failed"))
         case .pastedAgain: return Self.messageWidth(String(localized: "flow.pasted-again"))
-        case .idle:   return 150
+        case .idle:   return 172
         default:      return 118
         }
     }
@@ -155,7 +155,8 @@ struct FlowPillView: View {
     /// Mochi, drawn by the same engine as the compact island's mini Mochis: his eyes wander all
     /// around while you speak. 22 pt wide like a pill's Mochi (the canvas is larger, as there).
     private var mochi: some View {
-        FlowMochiView(active: open)
+        // Still while only a recorded call shows: the pill costs nothing during a long call.
+        FlowMochiView(active: model.phase != .idle)
             .frame(width: 22 / 0.6, height: 22 / 0.6)
             .frame(width: 22, height: 22, alignment: .center)
     }
@@ -262,13 +263,39 @@ final class FlowPillController {
         if start != nil {
             if panel == nil { build() }
             guard let panel else { return }
-            panel.ignoresMouseEvents = false
             if !panel.isVisible { place(panel, onMouseScreen: false) }
             panel.orderFrontRegardless()
+            watchMouse()
         } else {
+            mouseMonitors.forEach { NSEvent.removeMonitor($0) }
+            mouseMonitors.removeAll()
             panel?.ignoresMouseEvents = true
             if !dictationOn { panel?.orderOut(nil) }
         }
+    }
+
+    /// The panel is wider than the pill: it takes clicks only while the mouse is over the pill, so
+    /// the stop button works and everything around it stays clickable.
+    private var mouseMonitors: [Any] = []
+
+    private func watchMouse() {
+        guard mouseMonitors.isEmpty else { return }
+        if let global = NSEvent.addGlobalMonitorForEvents(matching: [.mouseMoved, .leftMouseDragged], handler: { [weak self] _ in
+            MainActor.assumeIsolated { self?.updateMouse() }
+        }) { mouseMonitors.append(global) }
+        if let local = NSEvent.addLocalMonitorForEvents(matching: [.mouseMoved, .leftMouseDragged], handler: { [weak self] event in
+            MainActor.assumeIsolated { self?.updateMouse() }
+            return event
+        }) { mouseMonitors.append(local) }
+        updateMouse()
+    }
+
+    private func updateMouse() {
+        guard let panel, model.noteStartedAt != nil else { return }
+        let width: CGFloat = 190, height: CGFloat = 44
+        let pill = NSRect(x: panel.frame.midX - width / 2, y: panel.frame.minY, width: width, height: height)
+        let over = NSMouseInRect(NSEvent.mouseLocation, pill, false)
+        if panel.ignoresMouseEvents == over { panel.ignoresMouseEvents = !over }
     }
 
     /// Flow dictation on: the resting pill shows. Off: it goes away.

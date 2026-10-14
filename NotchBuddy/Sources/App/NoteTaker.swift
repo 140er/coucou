@@ -57,6 +57,11 @@ final class NoteTaker: ObservableObject {
     private var micChannel: ChannelRecorder?
     private var systemChannel: ChannelRecorder?
     private var liveTask: Task<Void, Never>?
+    /// Between the click and the microphone's permission: a second click starts nothing.
+    private var starting = false
+    /// The last app in front other than Coucou: the call app when you click Record in Coucou Flow.
+    private var lastApp: String?
+    private var appObserver: NSObjectProtocol?
 
     static var folder: URL { HookServer.supportDir.appendingPathComponent("Notes", isDirectory: true) }
 
@@ -67,6 +72,14 @@ final class NoteTaker: ObservableObject {
             summaryEngine = FlowCleanup.hasKey ? .claude : (Self.appleModelAvailable ? .apple : .off)
         }
         load()
+        appObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main
+        ) { note in
+            guard let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
+                  app.bundleIdentifier != Bundle.main.bundleIdentifier else { return }
+            let name = app.localizedName
+            MainActor.assumeIsolated { NoteTaker.shared.lastApp = name }
+        }
     }
 
     var isRecording: Bool { recording != nil }
@@ -74,7 +87,9 @@ final class NoteTaker: ObservableObject {
     // MARK: - Recording
 
     func start() async {
-        guard recording == nil else { return }
+        guard recording == nil, !starting else { return }
+        starting = true
+        defer { starting = false }
         startError = nil
         guard Parakeet.shared.isReady else {
             startError = String(localized: "notes.error.models")
@@ -88,7 +103,8 @@ final class NoteTaker: ObservableObject {
         var note = Note(title: String(format: String(localized: "notes.default-title %@"),
                                       now.formatted(.dateTime.day().month(.abbreviated).hour().minute())),
                         start: now)
-        note.app = NSWorkspace.shared.frontmostApplication?.localizedName
+        let front = NSWorkspace.shared.frontmostApplication
+        note.app = front?.bundleIdentifier == Bundle.main.bundleIdentifier ? lastApp : front?.localizedName
         let dir = Self.folder(for: note.id)
         do {
             try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
@@ -123,6 +139,21 @@ final class NoteTaker: ObservableObject {
         FlowDictation.shared.pill.setNote(note.start)
         SoundEngine.shared.play("blip")
         startLiveLoop()
+    }
+
+    /// Coucou quits during a call: the recordings are closed properly, and the transcript is
+    /// written at the next launch.
+    func shutdown() {
+        guard var note = recording else { return }
+        liveTask?.cancel()
+        mic?.stop()
+        tap?.stop()
+        micChannel?.closeNow()
+        systemChannel?.closeNow()
+        note.end = Date()
+        note.status = .processing
+        recording = nil
+        replace(note)
     }
 
     func stop() {
@@ -210,19 +241,23 @@ final class NoteTaker: ObservableObject {
             } else {
                 built = NoteBuilder.build(mine: mine, others: theirs, turns: [], meName: me, personName: Self.personName)
             }
-            note.speakers = built.speakers
-            note.lines = built.lines
-            note.status = .ready
-            note.error = nil
-            replace(note)
+            // Renamed (or deleted) meanwhile: write onto what is there now.
+            guard var current = self.note(id) else { return }
+            current.speakers = built.speakers
+            current.lines = built.lines
+            current.status = .ready
+            current.error = nil
+            replace(current)
+            note = current
             try? FileManager.default.removeItem(at: micURL)
             try? FileManager.default.removeItem(at: systemURL)
             appendAppLog("nb.log", "[Notetaker] transcript: \(note.lines.count) lines, \(note.speakers.count) speakers")
         } catch {
             appendAppLog("nb.log", "[Notetaker] transcript failed: \(error.localizedDescription)")
-            note.status = .failed
-            note.error = error.localizedDescription
-            replace(note)
+            guard var current = self.note(id) else { return }
+            current.status = .failed
+            current.error = error.localizedDescription
+            replace(current)
             return
         }
         if summaryEngine != .off, !note.lines.isEmpty {
@@ -342,7 +377,7 @@ final class NoteTaker: ObservableObject {
             guard SystemLanguageModel.default.availability == .available else { return nil }
             let words = transcript.split(separator: " ")
             var material = transcript
-            if words.count > 1_800 {
+            if words.count > 1_200 {
                 var notes: [String] = []
                 var index = 0
                 while index < words.count {
@@ -391,7 +426,7 @@ final class NoteTaker: ObservableObject {
     }
 
     func delete(_ id: UUID) {
-        guard recording?.id != id else { return }
+        guard recording?.id != id, !working.contains(id) else { return }
         notes.removeAll { $0.id == id }
         try? FileManager.default.removeItem(at: Self.folder(for: id))
     }
@@ -407,7 +442,7 @@ final class NoteTaker: ObservableObject {
     func export(_ note: Note) {
         let panel = NSSavePanel()
         panel.nameFieldStringValue = note.title.replacingOccurrences(of: "/", with: "-") + ".md"
-        panel.allowedContentTypes = [.init(filenameExtension: "md") ?? .plainText]
+        panel.allowedContentTypes = [UTType(filenameExtension: "md") ?? .plainText]
         guard panel.runModal() == .OK, let url = panel.url else { return }
         try? markdown(note).write(to: url, atomically: true, encoding: .utf8)
     }
@@ -451,13 +486,19 @@ final class NoteTaker: ObservableObject {
         }
         notes = loaded.sorted { $0.start > $1.start }
         let pending = notes.filter { $0.status == .processing }.map(\.id)
-        if !pending.isEmpty {
-            Task { @MainActor in
-                // Parakeet loads in the background; then the unfinished notes are written.
-                for id in pending {
-                    if Parakeet.shared.isReady { await self.process(id) }
-                }
+        guard !pending.isEmpty else { return }
+        guard Parakeet.shared.isReady else {
+            // No models any more: shown as failed, with Retry once they are back.
+            for id in pending {
+                guard var note = self.note(id) else { continue }
+                note.status = .failed
+                note.error = String(localized: "notes.error.models")
+                replace(note)
             }
+            return
+        }
+        Task { @MainActor in
+            for id in pending { await self.process(id) }
         }
     }
 }
