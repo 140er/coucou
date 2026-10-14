@@ -59,6 +59,8 @@ final class FlowDictation: ObservableObject {
     static let shared = FlowDictation()
 
     static let enabledKey = "flowDictationEnabled"
+    /// How long the microphone stays open after the key comes up.
+    static let tailMilliseconds = 600
     static let keyKey = "flowDictationKey"
 
     @Published var isEnabled: Bool = UserDefaults.standard.bool(forKey: FlowDictation.enabledKey) {
@@ -237,6 +239,10 @@ final class FlowDictation: ObservableObject {
         let opening = startTask
         Task { @MainActor [weak self] in
             await opening?.value
+            // The key often comes up while the last word is still being said: keep listening a
+            // moment so it makes it in.
+            try? await Task.sleep(for: .milliseconds(Self.tailMilliseconds))
+            guard !listen.cancelled else { return }
             let text = await listen.dictation.finish().trimmingCharacters(in: .whitespacesAndNewlines)
             guard let self, !listen.cancelled else { return }
             // A new listen may have begun meanwhile: its pill is left alone, but these words still go in.
