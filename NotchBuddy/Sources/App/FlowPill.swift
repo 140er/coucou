@@ -83,7 +83,7 @@ struct FlowPillView: View {
             mochi
             switch model.phase {
             case .copied:
-                Text("flow.copied")
+                Text("flow.copied-noaccess")
                     .font(.system(size: 12, weight: .medium))
                     .foregroundColor(Color(hex: "#E8E9EC"))
                     .fixedSize()
@@ -149,7 +149,7 @@ struct FlowPillView: View {
 /// screen the mouse is on.
 @MainActor
 final class FlowPillController {
-    static let size = NSSize(width: 280, height: 80)
+    static let size = NSSize(width: 380, height: 80)
 
     let model = FlowPillModel()
     private let smoother = FlowLevelSmoother()

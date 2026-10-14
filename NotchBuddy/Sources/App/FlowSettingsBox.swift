@@ -34,16 +34,22 @@ struct FlowSettingsBox: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
-                if flow.isEnabled && !flow.trusted {
-                    HStack(alignment: .top, spacing: 6) {
-                        Image(systemName: "exclamationmark.circle")
-                            .foregroundColor(.orange)
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text(String(localized: "flow.accessibility"))
-                                .font(.system(size: 11))
-                                .fixedSize(horizontal: false, vertical: true)
-                            Button(String(localized: "flow.accessibility-open")) {
-                                flow.openAccessibilitySettings()
+                if flow.isEnabled {
+                    if flow.trusted {
+                        Label(String(localized: "flow.access-ok"), systemImage: "checkmark.circle.fill")
+                            .font(.system(size: 11))
+                            .foregroundColor(.green)
+                    } else {
+                        HStack(alignment: .top, spacing: 6) {
+                            Image(systemName: "exclamationmark.circle")
+                                .foregroundColor(.orange)
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text(String(localized: "flow.accessibility"))
+                                    .font(.system(size: 11))
+                                    .fixedSize(horizontal: false, vertical: true)
+                                Button(String(localized: "flow.accessibility-open")) {
+                                    flow.openAccessibilitySettings()
+                                }
                             }
                         }
                     }
@@ -56,6 +62,7 @@ struct FlowSettingsBox: View {
             }
             .padding(6)
         }
+        .onAppear { flow.recheckTrust() }
     }
 }
 #endif
