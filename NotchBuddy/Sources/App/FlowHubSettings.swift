@@ -62,6 +62,20 @@ struct HubSettingsPage: View {
                 HubRecognitionSettings(language: $language)
             }
 
+            HubLabel(String(localized: "hub.page.notes"))
+            HubCard {
+                HubSummaryEnginePicker()
+                Text("notes.engine-detail")
+                    .font(.system(size: 12))
+                    .foregroundColor(HubTheme.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                HubDivider()
+                Text("notes.legal")
+                    .font(.system(size: 12))
+                    .foregroundColor(HubTheme.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
             HubLabel(String(localized: "hub.settings.privacy"))
             HubCard {
                 HubRow(title: String(localized: "hub.settings.keep")) {

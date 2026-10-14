@@ -22,6 +22,9 @@ final class FlowPillModel: ObservableObject {
         case pastedAgain
     }
     @Published var phase: Phase = .idle
+    /// A call is being recorded by the Notetaker: resting, the pill shows it, with a stop button.
+    @Published var noteStartedAt: Date?
+    var stopNote: (@MainActor () -> Void)?
 }
 
 /// Eases the dots toward the microphone's levels, frame by frame (fast up, slower down), and
@@ -71,7 +74,7 @@ struct FlowPillView: View {
     static let restingSize = CGSize(width: 44, height: 8)
     static let openHeight: CGFloat = 34
 
-    private var open: Bool { model.phase != .idle }
+    private var open: Bool { model.phase != .idle || model.noteStartedAt != nil }
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -87,6 +90,7 @@ struct FlowPillView: View {
         case .copied: return Self.messageWidth(String(localized: "flow.copied-noaccess"))
         case .failed: return Self.messageWidth(String(localized: "flow.failed"))
         case .pastedAgain: return Self.messageWidth(String(localized: "flow.pasted-again"))
+        case .idle:   return 150
         default:      return 118
         }
     }
@@ -138,6 +142,8 @@ struct FlowPillView: View {
                     .font(.system(size: 12, weight: .medium))
                     .foregroundColor(Color(hex: "#E8E9EC"))
                     .fixedSize()
+            case .idle:
+                noteContent
             default:
                 dots
             }
@@ -152,6 +158,32 @@ struct FlowPillView: View {
         FlowMochiView(active: open)
             .frame(width: 22 / 0.6, height: 22 / 0.6)
             .frame(width: 22, height: 22, alignment: .center)
+    }
+
+    /// A call being recorded: a red dot, the time, and a button to stop.
+    @ViewBuilder private var noteContent: some View {
+        if let start = model.noteStartedAt {
+            HStack(spacing: 8) {
+                Circle()
+                    .fill(Color(hex: "#FF453A"))
+                    .frame(width: 8, height: 8)
+                    .shadow(color: Color(hex: "#FF453A").opacity(0.6), radius: 3)
+                TimelineView(.periodic(from: start, by: 1)) { context in
+                    Text(NoteBuilder.clock(context.date.timeIntervalSince(start)))
+                        .font(.system(size: 12, weight: .semibold).monospacedDigit())
+                        .foregroundColor(Color(hex: "#E8E9EC"))
+                }
+                Button { model.stopNote?() } label: {
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(Color.white)
+                        .frame(width: 8, height: 8)
+                        .frame(width: 22, height: 22)
+                        .background(Circle().fill(Color.white.opacity(0.16)))
+                }
+                .buttonStyle(.plain)
+                .help(String(localized: "notes.stop"))
+            }
+        }
     }
 
     private var dots: some View {
@@ -215,15 +247,36 @@ final class FlowPillController {
     private var restTask: Task<Void, Never>?
     private var screenObserver: NSObjectProtocol?
 
+    /// Whether Flow dictation is on (the resting pill shows).
+    private var dictationOn = false
+
     init(bands: FlowAudioBands) {
         self.bands = bands
+        model.stopNote = { NoteTaker.shared.stop() }
+    }
+
+    /// The Notetaker records (a date) or stopped (nil): the pill shows it even when dictation is off,
+    /// and takes clicks for its stop button.
+    func setNote(_ start: Date?) {
+        model.noteStartedAt = start
+        if start != nil {
+            if panel == nil { build() }
+            guard let panel else { return }
+            panel.ignoresMouseEvents = false
+            if !panel.isVisible { place(panel, onMouseScreen: false) }
+            panel.orderFrontRegardless()
+        } else {
+            panel?.ignoresMouseEvents = true
+            if !dictationOn { panel?.orderOut(nil) }
+        }
     }
 
     /// Flow dictation on: the resting pill shows. Off: it goes away.
     func setEnabled(_ on: Bool) {
         restTask?.cancel()
         model.phase = .idle
-        if on {
+        dictationOn = on
+        if on || model.noteStartedAt != nil {
             if panel == nil { build() }
             if let panel { place(panel, onMouseScreen: false); panel.orderFrontRegardless() }
             if screenObserver == nil {
