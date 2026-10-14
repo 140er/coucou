@@ -25,7 +25,7 @@ struct HubSettingsPage: View {
                         ForEach(FlowKey.allCases) { Text(verbatim: $0.label).tag($0) }
                     }
                     .labelsHidden()
-                    .frame(width: 170)
+                    .fixedSize()
                 }
                 HubDivider()
                 HubRow(title: String(localized: "flow.edge")) {
@@ -34,7 +34,7 @@ struct HubSettingsPage: View {
                     }
                     .pickerStyle(.segmented)
                     .labelsHidden()
-                    .frame(width: 240)
+                    .fixedSize()
                 }
                 HubDivider()
                 HubRow(title: String(localized: "hub.settings.handsfree"),
@@ -113,7 +113,7 @@ struct HubSettingsPage: View {
                         Text("hub.keep.forever").tag(-1)
                     }
                     .labelsHidden()
-                    .frame(width: 170)
+                    .fixedSize()
                 }
                 HubDivider()
                 HStack(spacing: 8) {
@@ -181,7 +181,7 @@ struct HubRecognitionSettings: View {
                     }
                 }
                 .labelsHidden()
-                .frame(width: 220)
+                .fixedSize()
             }
         } else if !parakeet.isReady {
             Text("hub.engine.fallback")
