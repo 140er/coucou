@@ -2,6 +2,18 @@
 import AppKit
 import SwiftUI
 
+/// A message above the pill: something went wrong, or something is ready, with a button to act.
+struct FlowAnnouncement: Equatable, Identifiable {
+    let id = UUID()
+    /// An SF Symbol.
+    var symbol: String
+    /// Its colour.
+    var tint: String = "#FB923C"
+    var text: String
+    /// The button's title, if there is something to do.
+    var action: String?
+}
+
 /// What the pill shows.
 @MainActor
 final class FlowPillModel: ObservableObject {
@@ -10,7 +22,7 @@ final class FlowPillModel: ObservableObject {
         case idle
         /// The key is held: the pill opens, Mochi on the left, the dots follow the voice.
         case listening
-        /// Hands-free (double tap): same, with an orange ring.
+        /// Hands-free (double tap, or the pill's microphone): ✕, the dots and ✓, with an orange ring.
         case locked
         /// Released: the Mac turns the voice into words.
         case thinking
@@ -24,7 +36,23 @@ final class FlowPillModel: ObservableObject {
     @Published var phase: Phase = .idle
     /// A call is being recorded by the Notetaker: resting, the pill shows it, with a stop button.
     @Published var noteStartedAt: Date?
+    /// The pointer is over the pill: resting, it opens into its buttons.
+    @Published var hovered = false
+    /// The bubble above the pill while the pointer is on one of its buttons.
+    @Published var tooltip: String?
+    /// The message above the pill.
+    @Published var announcement: FlowAnnouncement?
+    /// The key to dictate ("⌥ de droite"), for the bubbles.
+    @Published var keyLabel = ""
+
     var stopNote: (@MainActor () -> Void)?
+    var toggleNote: (@MainActor () -> Void)?
+    var dictate: (@MainActor () -> Void)?
+    var finishDictation: (@MainActor () -> Void)?
+    var cancelDictation: (@MainActor () -> Void)?
+    var openHub: (@MainActor () -> Void)?
+    var announcementAction: (@MainActor () -> Void)?
+    var dismissAnnouncement: (@MainActor () -> Void)?
 }
 
 /// Eases the dots toward the microphone's levels, frame by frame (fast up, slower down), and
@@ -63,9 +91,11 @@ private extension Array {
     subscript(safe i: Int) -> Element? { indices.contains(i) ? self[i] : nil }
 }
 
-/// The pill at the bottom of the screen, like Wispr Flow's bar. Resting, it is a small black pill
-/// with a light outline; when you speak it opens from there into a capsule with a tiny Mochi on
-/// the left and nine dots on the right that rise and fall with the graves and the aigus of the voice.
+/// The pill at the bottom of the screen, like Wispr Flow's bar. Resting, it is a small see-through
+/// pill; under the pointer it opens into Mochi and three buttons (dictate, record a call, open
+/// Coucou), each with its bubble. When you speak it opens into Mochi and nine dots rising and
+/// falling with the graves and the aigus of the voice. Messages (a paste that could not happen, a
+/// call's notes ready) grow above it, with a button to act.
 struct FlowPillView: View {
     @ObservedObject var model: FlowPillModel
     let bands: FlowAudioBands
@@ -74,24 +104,71 @@ struct FlowPillView: View {
     static let restingSize = CGSize(width: 44, height: 8)
     static let openHeight: CGFloat = 34
 
-    private var open: Bool { model.phase != .idle || model.noteStartedAt != nil }
+    /// What the capsule shows, from the most to the least important.
+    enum Look: Equatable {
+        case resting, toolbar, note, live, handsFree, message
+    }
+
+    private var look: Look {
+        switch model.phase {
+        case .locked: return .handsFree
+        case .listening, .thinking: return .live
+        case .copied, .failed, .pastedAgain: return .message
+        case .idle:
+            if model.noteStartedAt != nil { return .note }
+            return model.hovered ? .toolbar : .resting
+        }
+    }
+
+    private var open: Bool { look != .resting }
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            Color.clear
+        VStack(spacing: 8) {
+            Spacer(minLength: 0)
+            bubble
             capsule
         }
         .frame(width: FlowPillController.size.width, height: FlowPillController.size.height)
+        .animation(.spring(response: 0.34, dampingFraction: 0.78), value: model.announcement)
+        .animation(.easeOut(duration: 0.15), value: model.tooltip)
     }
+
+    // MARK: Above the pill
+
+    @ViewBuilder private var bubble: some View {
+        if let announcement = model.announcement {
+            FlowAnnouncementView(announcement: announcement,
+                                 act: { model.announcementAction?() },
+                                 dismiss: { model.dismissAnnouncement?() })
+                .transition(.scale(scale: 0.6, anchor: .bottom).combined(with: .opacity))
+        } else if let tooltip = model.tooltip {
+            Text(tooltip)
+                .font(.system(size: 12.5, weight: .semibold))
+                .foregroundColor(.white)
+                .padding(.horizontal, 14)
+                .frame(height: 30)
+                .background(Capsule().fill(Color.black.opacity(0.94)))
+                .overlay(Capsule().strokeBorder(Color.white.opacity(0.14)))
+                .fixedSize()
+                .transition(.scale(scale: 0.8, anchor: .bottom).combined(with: .opacity))
+        }
+    }
+
+    // MARK: The capsule
 
     /// The width the open pill needs for what it shows.
     private var openWidth: CGFloat {
-        switch model.phase {
-        case .copied: return Self.messageWidth(String(localized: "flow.copied-noaccess"))
-        case .failed: return Self.messageWidth(String(localized: "flow.failed"))
-        case .pastedAgain: return Self.messageWidth(String(localized: "flow.pasted-again"))
-        case .idle:   return 172
-        default:      return 118
+        switch look {
+        case .toolbar:   return 150
+        case .note:      return 172
+        case .handsFree: return 158
+        case .message:
+            switch model.phase {
+            case .copied: return Self.messageWidth(String(localized: "flow.copied-noaccess"))
+            case .failed: return Self.messageWidth(String(localized: "flow.failed"))
+            default:      return Self.messageWidth(String(localized: "flow.pasted-again"))
+            }
+        default:         return 118
         }
     }
 
@@ -109,7 +186,7 @@ struct FlowPillView: View {
             Capsule()
                 .strokeBorder(Color.white.opacity(open ? 0.16 : 0.42), lineWidth: open ? 1 : 1.2)
             Capsule()
-                .strokeBorder(Color(hex: "#F97316").opacity(model.phase == .locked ? 0.85 : 0), lineWidth: 1.5)
+                .strokeBorder(Color(hex: "#F97316").opacity(look == .handsFree ? 0.85 : 0), lineWidth: 1.5)
             content
                 .opacity(open ? 1 : 0)
                 .scaleEffect(open ? 1 : 0.5)
@@ -119,44 +196,68 @@ struct FlowPillView: View {
                height: open ? Self.openHeight : Self.restingSize.height)
         .clipShape(Capsule())          // the content stays inside while the pill opens
         .shadow(color: .black.opacity(open ? 0.35 : 0), radius: open ? 10 : 0, y: open ? 4 : 0)
-        .animation(.spring(response: 0.36, dampingFraction: 0.74), value: model.phase)
+        .animation(.spring(response: 0.36, dampingFraction: 0.74), value: look)
         .padding(.bottom, 2)
     }
 
-    private var content: some View {
-        HStack(spacing: 9) {
-            mochi
-            switch model.phase {
-            case .copied:
-                Text("flow.copied-noaccess")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(Color(hex: "#E8E9EC"))
-                    .fixedSize()
-            case .failed:
-                Text("flow.failed")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(Color(hex: "#E8E9EC"))
-                    .fixedSize()
-            case .pastedAgain:
-                Text("flow.pasted-again")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(Color(hex: "#E8E9EC"))
-                    .fixedSize()
-            case .idle:
-                noteContent
-            default:
-                dots
+    @ViewBuilder private var content: some View {
+        switch look {
+        case .toolbar:
+            HStack(spacing: 4) {
+                mochi.padding(.trailing, 5)
+                PillButton(symbol: "mic.fill", tip: String(format: String(localized: "flow.tip.dictate %@"), model.keyLabel),
+                           model: model) { model.dictate?() }
+                PillButton(symbol: "record.circle", tip: String(localized: "flow.tip.note"), model: model) {
+                    model.toggleNote?()
+                }
+                PillButton(symbol: "macwindow", tip: String(localized: "flow.tip.hub"), model: model) { model.openHub?() }
             }
+            .padding(.horizontal, 10)
+            .fixedSize()
+        case .handsFree:
+            HStack(spacing: 9) {
+                PillButton(symbol: "xmark", tip: String(localized: "flow.tip.cancel"), model: model, small: true) {
+                    model.cancelDictation?()
+                }
+                dots
+                PillButton(symbol: "checkmark", tip: String(format: String(localized: "flow.tip.finish %@"), model.keyLabel),
+                           model: model, small: true, filled: true) { model.finishDictation?() }
+            }
+            .padding(.horizontal, 6)
+            .fixedSize()
+        default:
+            HStack(spacing: 9) {
+                mochi
+                switch model.phase {
+                case .copied:
+                    message("flow.copied-noaccess")
+                case .failed:
+                    message("flow.failed")
+                case .pastedAgain:
+                    message("flow.pasted-again")
+                case .idle:
+                    noteContent
+                default:
+                    dots
+                }
+            }
+            .padding(.horizontal, 13)
+            .fixedSize()
         }
-        .padding(.horizontal, 13)
-        .fixedSize()
+    }
+
+    private func message(_ key: LocalizedStringKey) -> some View {
+        Text(key)
+            .font(.system(size: 12, weight: .medium))
+            .foregroundColor(Color(hex: "#E8E9EC"))
+            .fixedSize()
     }
 
     /// Mochi, drawn by the same engine as the compact island's mini Mochis: his eyes wander all
     /// around while you speak. 22 pt wide like a pill's Mochi (the canvas is larger, as there).
     private var mochi: some View {
         // Still while only a recorded call shows: the pill costs nothing during a long call.
-        FlowMochiView(active: model.phase != .idle)
+        FlowMochiView(active: model.phase != .idle || model.hovered)
             .frame(width: 22 / 0.6, height: 22 / 0.6)
             .frame(width: 22, height: 22, alignment: .center)
     }
@@ -205,6 +306,82 @@ struct FlowPillView: View {
     }
 }
 
+/// A round button of the pill, with its bubble above while the pointer is on it.
+private struct PillButton: View {
+    let symbol: String
+    let tip: String
+    @ObservedObject var model: FlowPillModel
+    var small = false
+    var filled = false
+    let action: () -> Void
+    @State private var hover = false
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: small ? 10 : 12, weight: .bold))
+                .foregroundColor(filled ? .black : .white)
+                .frame(width: small ? 24 : 28, height: small ? 24 : 28)
+                .background(Circle().fill(filled ? Color.white : Color.white.opacity(hover ? 0.22 : 0.10)))
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(tip)
+        .onHover { inside in
+            hover = inside
+            if inside { model.tooltip = tip } else if model.tooltip == tip { model.tooltip = nil }
+        }
+    }
+}
+
+/// The message above the pill: a symbol, the words, a button to act and one to close.
+private struct FlowAnnouncementView: View {
+    let announcement: FlowAnnouncement
+    let act: () -> Void
+    let dismiss: () -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: announcement.symbol)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundColor(Color(hex: announcement.tint))
+            Text(announcement.text)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundColor(.white)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: 270, alignment: .leading)
+            if let action = announcement.action {
+                Button(action: act) {
+                    Text(action)
+                        .font(.system(size: 12.5, weight: .bold))
+                        .foregroundColor(.black)
+                        .padding(.horizontal, 13)
+                        .frame(height: 28)
+                        .background(Capsule().fill(Color(hex: "#F5F1EA")))
+                }
+                .buttonStyle(.plain)
+                .fixedSize()
+            }
+            Button(action: dismiss) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(Color.white.opacity(0.6))
+                    .frame(width: 22, height: 22)
+                    .background(Circle().fill(Color.white.opacity(0.08)))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(String(localized: "flow.ann.dismiss"))
+        }
+        .padding(.leading, 16)
+        .padding(.trailing, 10)
+        .padding(.vertical, 10)
+        .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Color.black.opacity(0.95)))
+        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(Color.white.opacity(0.14)))
+        .shadow(color: .black.opacity(0.4), radius: 14, y: 6)
+        .fixedSize()
+    }
+}
+
 /// The pill's Mochi: a mini Mochi (BotEngine, like the pills of the compact island), white, idle,
 /// so his eyes wander around. Drawn only while the pill is open.
 private struct FlowMochiView: View {
@@ -234,19 +411,23 @@ private struct FlowMochiView: View {
     }
 }
 
-/// The pill's window: borderless, never takes the focus (the words go to the app you type in),
-/// lets clicks through, on every Space and over full-screen apps. It stays at the bottom centre of
-/// a screen while Flow dictation is on, and moves to the screen the mouse is on when you speak.
+/// The pill's window: borderless, never takes the focus (the words go to the app you type in), on
+/// every Space and over full-screen apps. It stays at the bottom centre of a screen while Flow
+/// dictation is on, and moves to the screen the mouse is on when you speak. It is taller than the
+/// pill, for the bubbles above it, and lets clicks through except where the pill and its bubble are.
 @MainActor
 final class FlowPillController {
-    static let size = NSSize(width: 380, height: 60)
+    static let size = NSSize(width: 520, height: 170)
 
     let model = FlowPillModel()
     private let smoother = FlowLevelSmoother()
     private let bands: FlowAudioBands
     private var panel: NSPanel?
     private var restTask: Task<Void, Never>?
+    private var announceTask: Task<Void, Never>?
+    private var unhoverTask: Task<Void, Never>?
     private var screenObserver: NSObjectProtocol?
+    private var mouseMonitors: [Any] = []
 
     /// Whether Flow dictation is on (the resting pill shows).
     private var dictationOn = false
@@ -254,48 +435,15 @@ final class FlowPillController {
     init(bands: FlowAudioBands) {
         self.bands = bands
         model.stopNote = { NoteTaker.shared.stop() }
+        model.dismissAnnouncement = { [weak self] in self?.dismissAnnouncement() }
     }
 
-    /// The Notetaker records (a date) or stopped (nil): the pill shows it even when dictation is off,
-    /// and takes clicks for its stop button.
+    private var shouldShow: Bool { dictationOn || model.noteStartedAt != nil || model.announcement != nil }
+
+    /// The Notetaker records (a date) or stopped (nil): the pill shows it even when dictation is off.
     func setNote(_ start: Date?) {
         model.noteStartedAt = start
-        if start != nil {
-            if panel == nil { build() }
-            guard let panel else { return }
-            if !panel.isVisible { place(panel, onMouseScreen: false) }
-            panel.orderFrontRegardless()
-            watchMouse()
-        } else {
-            mouseMonitors.forEach { NSEvent.removeMonitor($0) }
-            mouseMonitors.removeAll()
-            panel?.ignoresMouseEvents = true
-            if !dictationOn { panel?.orderOut(nil) }
-        }
-    }
-
-    /// The panel is wider than the pill: it takes clicks only while the mouse is over the pill, so
-    /// the stop button works and everything around it stays clickable.
-    private var mouseMonitors: [Any] = []
-
-    private func watchMouse() {
-        guard mouseMonitors.isEmpty else { return }
-        if let global = NSEvent.addGlobalMonitorForEvents(matching: [.mouseMoved, .leftMouseDragged], handler: { [weak self] _ in
-            MainActor.assumeIsolated { self?.updateMouse() }
-        }) { mouseMonitors.append(global) }
-        if let local = NSEvent.addLocalMonitorForEvents(matching: [.mouseMoved, .leftMouseDragged], handler: { [weak self] event in
-            MainActor.assumeIsolated { self?.updateMouse() }
-            return event
-        }) { mouseMonitors.append(local) }
-        updateMouse()
-    }
-
-    private func updateMouse() {
-        guard let panel, model.noteStartedAt != nil else { return }
-        let width: CGFloat = 190, height: CGFloat = 44
-        let pill = NSRect(x: panel.frame.midX - width / 2, y: panel.frame.minY, width: width, height: height)
-        let over = NSMouseInRect(NSEvent.mouseLocation, pill, false)
-        if panel.ignoresMouseEvents == over { panel.ignoresMouseEvents = !over }
+        updateVisibility()
     }
 
     /// Flow dictation on: the resting pill shows. Off: it goes away.
@@ -303,9 +451,18 @@ final class FlowPillController {
         restTask?.cancel()
         model.phase = .idle
         dictationOn = on
-        if on || model.noteStartedAt != nil {
+        updateVisibility()
+    }
+
+    private func updateVisibility() {
+        if shouldShow {
             if panel == nil { build() }
-            if let panel { place(panel, onMouseScreen: false); panel.orderFrontRegardless() }
+            guard let panel else { return }
+            if !panel.isVisible {
+                place(panel, onMouseScreen: false)
+                panel.orderFrontRegardless()
+            }
+            watchMouse()
             if screenObserver == nil {
                 screenObserver = NotificationCenter.default.addObserver(
                     forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main
@@ -318,10 +475,108 @@ final class FlowPillController {
             }
         } else {
             panel?.orderOut(nil)
+            stopWatchingMouse()
+            model.hovered = false
+            model.tooltip = nil
             if let screenObserver { NotificationCenter.default.removeObserver(screenObserver) }
             screenObserver = nil
         }
     }
+
+    // MARK: - Messages
+
+    /// A message above the pill, with a button to act; it goes away by itself after a while,
+    /// unless the pointer is on it.
+    func announce(_ announcement: FlowAnnouncement, for seconds: TimeInterval = 8,
+                  perform: (@MainActor () -> Void)? = nil) {
+        model.tooltip = nil
+        model.announcementAction = { [weak self] in
+            perform?()
+            self?.dismissAnnouncement()
+        }
+        model.announcement = announcement
+        updateVisibility()
+        updateMouse()
+        announceTask?.cancel()
+        announceTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(seconds))
+            while !Task.isCancelled, self?.model.hovered == true {
+                try? await Task.sleep(for: .seconds(1))
+            }
+            guard !Task.isCancelled else { return }
+            self?.dismissAnnouncement()
+        }
+    }
+
+    func dismissAnnouncement() {
+        announceTask?.cancel()
+        model.announcement = nil
+        model.announcementAction = nil
+        updateVisibility()
+        updateMouse()
+    }
+
+    // MARK: - The pointer
+
+    /// The panel takes clicks only where the pill and its bubble are; the pill opens under the pointer.
+    private func watchMouse() {
+        guard mouseMonitors.isEmpty else { return }
+        if let global = NSEvent.addGlobalMonitorForEvents(matching: [.mouseMoved, .leftMouseDragged], handler: { [weak self] _ in
+            MainActor.assumeIsolated { self?.updateMouse() }
+        }) { mouseMonitors.append(global) }
+        if let local = NSEvent.addLocalMonitorForEvents(matching: [.mouseMoved, .leftMouseDragged], handler: { [weak self] event in
+            MainActor.assumeIsolated { self?.updateMouse() }
+            return event
+        }) { mouseMonitors.append(local) }
+        updateMouse()
+    }
+
+    private func stopWatchingMouse() {
+        mouseMonitors.forEach { NSEvent.removeMonitor($0) }
+        mouseMonitors.removeAll()
+        panel?.ignoresMouseEvents = true
+    }
+
+    /// The parts of the panel that take the pointer, in screen coordinates.
+    private func hotRects(_ frame: NSRect) -> [NSRect] {
+        let open = model.hovered || model.phase != .idle || model.noteStartedAt != nil
+        // The pill: a generous zone around the small resting one, the whole capsule once open.
+        let pillWidth: CGFloat = open ? 200 : 96
+        let pillHeight: CGFloat = open ? 46 : 26
+        var rects = [NSRect(x: frame.midX - pillWidth / 2, y: frame.minY, width: pillWidth, height: pillHeight)]
+        if model.announcement != nil {
+            rects.append(NSRect(x: frame.midX - 240, y: frame.minY + 40, width: 480, height: 110))
+        } else if model.tooltip != nil {
+            rects.append(NSRect(x: frame.midX - 140, y: frame.minY + 40, width: 280, height: 40))
+        }
+        return rects
+    }
+
+    private func updateMouse() {
+        guard let panel, panel.isVisible else { return }
+        let mouse = NSEvent.mouseLocation
+        let over = hotRects(panel.frame).contains { NSMouseInRect(mouse, $0, false) }
+        if panel.ignoresMouseEvents == over { panel.ignoresMouseEvents = !over }
+        if over {
+            unhoverTask?.cancel()
+            unhoverTask = nil
+            if !model.hovered { model.hovered = true }
+        } else if model.hovered, unhoverTask == nil {
+            // A short grace, to move from the pill to its bubble.
+            unhoverTask = Task { @MainActor [weak self] in
+                try? await Task.sleep(for: .milliseconds(250))
+                guard !Task.isCancelled, let self else { return }
+                self.unhoverTask = nil
+                let mouse = NSEvent.mouseLocation
+                if let panel = self.panel, self.hotRects(panel.frame).contains(where: { NSMouseInRect(mouse, $0, false) }) { return }
+                self.model.hovered = false
+                self.model.tooltip = nil
+                self.panel?.ignoresMouseEvents = true
+            }
+        }
+    }
+
+    // MARK: - Dictation
 
     /// The key is down: open on the screen the mouse is on.
     func listen() {
@@ -331,6 +586,7 @@ final class FlowPillController {
         place(panel, onMouseScreen: true)
         panel.orderFrontRegardless()
         smoother.reset()
+        model.tooltip = nil
         model.phase = .listening
     }
 
@@ -348,6 +604,8 @@ final class FlowPillController {
             if delay > 0 { try? await Task.sleep(for: .seconds(delay)) }
             guard !Task.isCancelled, let self else { return }
             self.model.phase = .idle
+            self.model.tooltip = nil
+            self.updateMouse()
         }
     }
 
