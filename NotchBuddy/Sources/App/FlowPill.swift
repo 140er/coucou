@@ -96,10 +96,11 @@ struct FlowPillView: View {
 
     private var capsule: some View {
         ZStack {
+            // Resting, the pill is see-through: whatever is behind it stays readable. Open, it is black.
             Capsule()
-                .fill(Color.black.opacity(open ? 0.94 : 0.86))
+                .fill(Color.black.opacity(open ? 0.94 : 0.28))
             Capsule()
-                .strokeBorder(Color.white.opacity(open ? 0.16 : 0.55), lineWidth: open ? 1 : 1.2)
+                .strokeBorder(Color.white.opacity(open ? 0.16 : 0.42), lineWidth: open ? 1 : 1.2)
             Capsule()
                 .strokeBorder(Color(hex: "#F97316").opacity(model.phase == .locked ? 0.85 : 0), lineWidth: 1.5)
             content
@@ -110,7 +111,7 @@ struct FlowPillView: View {
         .frame(width: open ? openWidth : Self.restingSize.width,
                height: open ? Self.openHeight : Self.restingSize.height)
         .clipShape(Capsule())          // the content stays inside while the pill opens
-        .shadow(color: .black.opacity(open ? 0.35 : 0.2), radius: open ? 10 : 4, y: open ? 4 : 1)
+        .shadow(color: .black.opacity(open ? 0.35 : 0), radius: open ? 10 : 0, y: open ? 4 : 0)
         .animation(.spring(response: 0.36, dampingFraction: 0.74), value: model.phase)
         .padding(.bottom, 2)
     }
