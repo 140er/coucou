@@ -18,6 +18,8 @@ final class FlowPillModel: ObservableObject {
         case copied
         /// The microphone or speech recognition could not start.
         case failed
+        /// ⌃⌘V: the last dictation was pasted again.
+        case pastedAgain
     }
     @Published var phase: Phase = .idle
 }
@@ -84,6 +86,7 @@ struct FlowPillView: View {
         switch model.phase {
         case .copied: return Self.messageWidth(String(localized: "flow.copied-noaccess"))
         case .failed: return Self.messageWidth(String(localized: "flow.failed"))
+        case .pastedAgain: return Self.messageWidth(String(localized: "flow.pasted-again"))
         default:      return 118
         }
     }
@@ -127,6 +130,11 @@ struct FlowPillView: View {
                     .fixedSize()
             case .failed:
                 Text("flow.failed")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(Color(hex: "#E8E9EC"))
+                    .fixedSize()
+            case .pastedAgain:
+                Text("flow.pasted-again")
                     .font(.system(size: 12, weight: .medium))
                     .foregroundColor(Color(hex: "#E8E9EC"))
                     .fixedSize()
