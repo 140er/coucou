@@ -47,6 +47,9 @@
 		1C2BB61FA83015C42B321E0E /* PillColors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37564F5F041B38C976DF3DEF /* PillColors.swift */; };
 		1D23613B270FE8B11C5E27A7 /* IslandDisplayChoice.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A09E73F1E58019EF6EA2A62 /* IslandDisplayChoice.swift */; };
 		1D4CE0CCD2B5A0FFE50C7F06 /* TerminalTarget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87AF6F7A027AB1D46309DD49 /* TerminalTarget.swift */; };
+		C25D058C2C5B4B7A93238F3A /* NoteTaker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91A6EB483F6EC87C05CC6C69 /* NoteTaker.swift */; };
+		AA4B80F3F49E23FED830EC7D /* NoteAudio.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2BE0A486C4ED7BEDDC96548 /* NoteAudio.swift */; };
+		A52241F5F37D87CB9BB8E4E0 /* NoteModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66BB44A1EDFFD50C0688BD09 /* NoteModels.swift */; };
 		43346F544B8BF45F651C87B4 /* ParakeetEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9007267453D60200C2CB8F4 /* ParakeetEngine.swift */; };
 		8090516AA01E97B3F0D16261 /* FlowHubNotes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B2FE56D7F32FCF7453CFB1B /* FlowHubNotes.swift */; };
 		7FBFCF6C9075D9EFD351961B /* FlowHubSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19503827102C75174006BF9E /* FlowHubSettings.swift */; };
@@ -143,6 +146,9 @@
 		65CB53E20B2289CA3AC3E8FE /* TurnSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A1C4152EBDBD7C24CABFFD7 /* TurnSnapshot.swift */; };
 		6613EB914852E6EEB1FF37BF /* IntentParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = F39753CFF90B494D449CCD95 /* IntentParser.swift */; };
 		6726F74966EDE7F82BFE89B2 /* TerminalTarget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87AF6F7A027AB1D46309DD49 /* TerminalTarget.swift */; };
+		BAFE1A37B0ACEFDCE29E2B1E /* NoteTaker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91A6EB483F6EC87C05CC6C69 /* NoteTaker.swift */; };
+		B42017CDFF5A9ED72E2FF99B /* NoteAudio.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2BE0A486C4ED7BEDDC96548 /* NoteAudio.swift */; };
+		ACC4A6ED5F5915F5B0DE9DD6 /* NoteModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66BB44A1EDFFD50C0688BD09 /* NoteModels.swift */; };
 		B63AC65188449D52DB5DDC29 /* ParakeetEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9007267453D60200C2CB8F4 /* ParakeetEngine.swift */; };
 		C500511EDFF4761BDA4488CE /* FlowHubNotes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B2FE56D7F32FCF7453CFB1B /* FlowHubNotes.swift */; };
 		A5260F0D566968C8A2FE43BD /* FlowHubSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19503827102C75174006BF9E /* FlowHubSettings.swift */; };
@@ -493,6 +499,9 @@
 		871CA2BADC67D97C97C7009D /* error.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = error.wav; sourceTree = "<group>"; };
 		8790ACE9F73BD74640A0F20C /* LocalChat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalChat.swift; sourceTree = "<group>"; };
 		87AF6F7A027AB1D46309DD49 /* TerminalTarget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalTarget.swift; sourceTree = "<group>"; };
+		91A6EB483F6EC87C05CC6C69 /* NoteTaker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteTaker.swift; sourceTree = "<group>"; };
+		D2BE0A486C4ED7BEDDC96548 /* NoteAudio.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteAudio.swift; sourceTree = "<group>"; };
+		66BB44A1EDFFD50C0688BD09 /* NoteModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteModels.swift; sourceTree = "<group>"; };
 		C9007267453D60200C2CB8F4 /* ParakeetEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParakeetEngine.swift; sourceTree = "<group>"; };
 		3B2FE56D7F32FCF7453CFB1B /* FlowHubNotes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowHubNotes.swift; sourceTree = "<group>"; };
 		19503827102C75174006BF9E /* FlowHubSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowHubSettings.swift; sourceTree = "<group>"; };
@@ -675,6 +684,9 @@
 				914A792788D403F836BEB570 /* SpotifyViews.swift */,
 				2EF78999D68D56ADE4CEFBE2 /* StripePoller.swift */,
 				87AF6F7A027AB1D46309DD49 /* TerminalTarget.swift */,
+				91A6EB483F6EC87C05CC6C69 /* NoteTaker.swift */,
+				D2BE0A486C4ED7BEDDC96548 /* NoteAudio.swift */,
+				66BB44A1EDFFD50C0688BD09 /* NoteModels.swift */,
 				C9007267453D60200C2CB8F4 /* ParakeetEngine.swift */,
 				3B2FE56D7F32FCF7453CFB1B /* FlowHubNotes.swift */,
 				19503827102C75174006BF9E /* FlowHubSettings.swift */,
@@ -1179,6 +1191,9 @@
 				1558BB00C530B721172F6E65 /* StripePoller.swift in Sources */,
 				9EA178EA395B116336C1FA10 /* TerminalTarget+AppKit.swift in Sources */,
 				1D4CE0CCD2B5A0FFE50C7F06 /* TerminalTarget.swift in Sources */,
+				C25D058C2C5B4B7A93238F3A /* NoteTaker.swift in Sources */,
+				AA4B80F3F49E23FED830EC7D /* NoteAudio.swift in Sources */,
+				A52241F5F37D87CB9BB8E4E0 /* NoteModels.swift in Sources */,
 				43346F544B8BF45F651C87B4 /* ParakeetEngine.swift in Sources */,
 				8090516AA01E97B3F0D16261 /* FlowHubNotes.swift in Sources */,
 				7FBFCF6C9075D9EFD351961B /* FlowHubSettings.swift in Sources */,
@@ -1396,6 +1411,9 @@
 				E4B9986674F4D425826F15A8 /* StripePoller.swift in Sources */,
 				11F14DB97C93CF84DF9D5C43 /* TerminalTarget+AppKit.swift in Sources */,
 				6726F74966EDE7F82BFE89B2 /* TerminalTarget.swift in Sources */,
+				BAFE1A37B0ACEFDCE29E2B1E /* NoteTaker.swift in Sources */,
+				B42017CDFF5A9ED72E2FF99B /* NoteAudio.swift in Sources */,
+				ACC4A6ED5F5915F5B0DE9DD6 /* NoteModels.swift in Sources */,
 				B63AC65188449D52DB5DDC29 /* ParakeetEngine.swift in Sources */,
 				C500511EDFF4761BDA4488CE /* FlowHubNotes.swift in Sources */,
 				A5260F0D566968C8A2FE43BD /* FlowHubSettings.swift in Sources */,

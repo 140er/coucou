@@ -144,7 +144,8 @@ targets:
         NSHighResolutionCapable: YES
         NSSupportsAutomaticGraphicsSwitching: YES
         NSAppleEventsUsageDescription: "Pour sauter au terminal, envoyer des mails et piloter Musique et Spotify."
-        NSMicrophoneUsageDescription: "Coucou uses the microphone when you dictate a message in the chat."
+        NSMicrophoneUsageDescription: "Coucou uses the microphone when you dictate, and to note your calls when you ask it to."
+        NSAudioCaptureUsageDescription: "Coucou records what your Mac plays only while you note a call, to write down what the other people say."
         NSSpeechRecognitionUsageDescription: "Coucou turns your voice into the text of a chat message."
         NSAccessibilityUsageDescription: "Pour lire le titre de la fenêtre active et l'attacher comme contexte."
         NSContactsUsageDescription: "Coucou looks up an email address when you ask it, by voice, to prepare an email."
