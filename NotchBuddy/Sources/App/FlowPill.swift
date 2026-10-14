@@ -2,6 +2,20 @@
 import AppKit
 import SwiftUI
 
+/// The edge of the screen the pill lives on, centred on it.
+enum FlowPillEdge: String, CaseIterable, Identifiable {
+    case bottom, left, right
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .bottom: return String(localized: "flow.edge.bottom")
+        case .left:   return String(localized: "flow.edge.left")
+        case .right:  return String(localized: "flow.edge.right")
+        }
+    }
+}
+
 /// A message above the pill: something went wrong, or something is ready, with a button to act.
 struct FlowAnnouncement: Equatable, Identifiable {
     let id = UUID()
@@ -44,6 +58,10 @@ final class FlowPillModel: ObservableObject {
     @Published var announcement: FlowAnnouncement?
     /// The key to dictate ("⌥ de droite"), for the bubbles.
     @Published var keyLabel = ""
+    /// Where the pill is: along the bottom, or standing on the left or right edge.
+    @Published var edge: FlowPillEdge = .bottom
+    /// The recorded call has passed an hour: the time needs a little more room.
+    @Published var noteHours = false
 
     var stopNote: (@MainActor () -> Void)?
     var toggleNote: (@MainActor () -> Void)?
@@ -101,8 +119,10 @@ struct FlowPillView: View {
     let bands: FlowAudioBands
     let smoother: FlowLevelSmoother
 
-    static let restingSize = CGSize(width: 44, height: 8)
-    static let openHeight: CGFloat = 34
+    /// The resting pill, lying along its edge.
+    static let restingLength: CGFloat = 44
+    static let restingThickness: CGFloat = 8
+    static let openThickness: CGFloat = 34
 
     /// What the capsule shows, from the most to the least important.
     enum Look: Equatable {
@@ -121,28 +141,68 @@ struct FlowPillView: View {
     }
 
     private var open: Bool { look != .resting }
+    /// On the left or right edge, the pill stands up and everything in it is stacked.
+    private var vertical: Bool { model.edge != .bottom }
 
     var body: some View {
-        VStack(spacing: 8) {
-            Spacer(minLength: 0)
-            bubble
-            capsule
+        let size = FlowPillController.size(for: model.edge)
+        Group {
+            switch model.edge {
+            case .bottom:
+                VStack(spacing: 8) {
+                    Spacer(minLength: 0)
+                    bubble
+                    capsule
+                }
+            case .left:
+                HStack(spacing: 8) {
+                    capsule
+                    bubble
+                    Spacer(minLength: 0)
+                }
+            case .right:
+                HStack(spacing: 8) {
+                    Spacer(minLength: 0)
+                    bubble
+                    capsule
+                }
+            }
         }
-        .frame(width: FlowPillController.size.width, height: FlowPillController.size.height)
+        .frame(width: size.width, height: size.height)
         .animation(.spring(response: 0.34, dampingFraction: 0.78), value: model.announcement)
         .animation(.easeOut(duration: 0.15), value: model.tooltip)
     }
 
-    // MARK: Above the pill
+    // MARK: Beside the pill
+
+    /// Where the bubbles grow from: the pill's side.
+    private var bubbleAnchor: UnitPoint {
+        switch model.edge {
+        case .bottom: return .bottom
+        case .left:   return .leading
+        case .right:  return .trailing
+        }
+    }
+
+    /// A short message of the pill (pasted again, microphone off…): in the pill when it lies along
+    /// the bottom, in a bubble beside it when it stands up.
+    private var messageText: String? {
+        switch model.phase {
+        case .copied:      return String(localized: "flow.copied-noaccess")
+        case .failed:      return String(localized: "flow.failed")
+        case .pastedAgain: return String(localized: "flow.pasted-again")
+        default:           return nil
+        }
+    }
 
     @ViewBuilder private var bubble: some View {
         if let announcement = model.announcement {
             FlowAnnouncementView(announcement: announcement,
                                  act: { model.announcementAction?() },
                                  dismiss: { model.dismissAnnouncement?() })
-                .transition(.scale(scale: 0.6, anchor: .bottom).combined(with: .opacity))
-        } else if let tooltip = model.tooltip {
-            Text(tooltip)
+                .transition(.scale(scale: 0.6, anchor: bubbleAnchor).combined(with: .opacity))
+        } else if let text = model.tooltip ?? (vertical ? messageText : nil) {
+            Text(text)
                 .font(.system(size: 12.5, weight: .semibold))
                 .foregroundColor(.white)
                 .padding(.horizontal, 14)
@@ -150,24 +210,21 @@ struct FlowPillView: View {
                 .background(Capsule().fill(Color.black.opacity(0.94)))
                 .overlay(Capsule().strokeBorder(Color.white.opacity(0.14)))
                 .fixedSize()
-                .transition(.scale(scale: 0.8, anchor: .bottom).combined(with: .opacity))
+                .transition(.scale(scale: 0.8, anchor: bubbleAnchor).combined(with: .opacity))
         }
     }
 
     // MARK: The capsule
 
-    /// The width the open pill needs for what it shows.
-    private var openWidth: CGFloat {
+    /// How long the open pill is, along its edge, for what it shows.
+    private var openLength: CGFloat {
         switch look {
         case .toolbar:   return 150
-        case .note:      return 172
+        case .note:      return vertical ? 128 : (model.noteHours ? 152 : 136)
         case .handsFree: return 158
         case .message:
-            switch model.phase {
-            case .copied: return Self.messageWidth(String(localized: "flow.copied-noaccess"))
-            case .failed: return Self.messageWidth(String(localized: "flow.failed"))
-            default:      return Self.messageWidth(String(localized: "flow.pasted-again"))
-            }
+            if vertical { return 76 }
+            return Self.messageWidth(messageText ?? "")
         default:         return 118
         }
     }
@@ -179,7 +236,9 @@ struct FlowPillView: View {
     }
 
     private var capsule: some View {
-        ZStack {
+        let length = open ? openLength : Self.restingLength
+        let thickness = open ? Self.openThickness : Self.restingThickness
+        return ZStack {
             // Resting, the pill is see-through: whatever is behind it stays readable. Open, it is black.
             Capsule()
                 .fill(Color.black.opacity(open ? 0.94 : 0.28))
@@ -192,19 +251,27 @@ struct FlowPillView: View {
                 .scaleEffect(open ? 1 : 0.5)
                 .animation(open ? .easeOut(duration: 0.2).delay(0.07) : .easeIn(duration: 0.1), value: open)
         }
-        .frame(width: open ? openWidth : Self.restingSize.width,
-               height: open ? Self.openHeight : Self.restingSize.height)
+        .frame(width: vertical ? thickness : length, height: vertical ? length : thickness)
         .clipShape(Capsule())          // the content stays inside while the pill opens
         .shadow(color: .black.opacity(open ? 0.35 : 0), radius: open ? 10 : 0, y: open ? 4 : 0)
         .animation(.spring(response: 0.36, dampingFraction: 0.74), value: look)
-        .padding(.bottom, 2)
+        .padding(model.edge == .bottom ? .bottom : (model.edge == .left ? .leading : .trailing), 2)
+    }
+
+    /// The pieces of the pill, in a row along the bottom, in a column on the sides.
+    @ViewBuilder private func line<Content: View>(spacing: CGFloat, @ViewBuilder _ pieces: () -> Content) -> some View {
+        if vertical {
+            VStack(spacing: spacing) { pieces() }
+        } else {
+            HStack(spacing: spacing) { pieces() }
+        }
     }
 
     @ViewBuilder private var content: some View {
         switch look {
         case .toolbar:
-            HStack(spacing: 4) {
-                mochi.padding(.trailing, 5)
+            line(spacing: 4) {
+                mochi.padding(vertical ? .bottom : .trailing, 5)
                 PillButton(symbol: "mic.fill", tip: String(format: String(localized: "flow.tip.dictate %@"), model.keyLabel),
                            model: model) { model.dictate?() }
                 PillButton(symbol: "record.circle", tip: String(localized: "flow.tip.note"), model: model) {
@@ -212,10 +279,10 @@ struct FlowPillView: View {
                 }
                 PillButton(symbol: "macwindow", tip: String(localized: "flow.tip.hub"), model: model) { model.openHub?() }
             }
-            .padding(.horizontal, 10)
+            .padding(vertical ? .vertical : .horizontal, 10)
             .fixedSize()
         case .handsFree:
-            HStack(spacing: 9) {
+            line(spacing: 9) {
                 PillButton(symbol: "xmark", tip: String(localized: "flow.tip.cancel"), model: model, small: true) {
                     model.cancelDictation?()
                 }
@@ -223,34 +290,35 @@ struct FlowPillView: View {
                 PillButton(symbol: "checkmark", tip: String(format: String(localized: "flow.tip.finish %@"), model.keyLabel),
                            model: model, small: true, filled: true) { model.finishDictation?() }
             }
-            .padding(.horizontal, 6)
+            .padding(vertical ? .vertical : .horizontal, 6)
+            .fixedSize()
+        case .message where vertical:
+            line(spacing: 9) {
+                mochi
+                Image(systemName: model.phase == .failed ? "mic.slash.fill" : "doc.on.clipboard.fill")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(Color(hex: "#E8E9EC"))
+            }
+            .padding(.vertical, 13)
             .fixedSize()
         default:
-            HStack(spacing: 9) {
+            line(spacing: vertical ? 7 : 9) {
                 mochi
                 switch model.phase {
-                case .copied:
-                    message("flow.copied-noaccess")
-                case .failed:
-                    message("flow.failed")
-                case .pastedAgain:
-                    message("flow.pasted-again")
+                case .copied, .failed, .pastedAgain:
+                    Text(messageText ?? "")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(Color(hex: "#E8E9EC"))
+                        .fixedSize()
                 case .idle:
                     noteContent
                 default:
                     dots
                 }
             }
-            .padding(.horizontal, 13)
+            .padding(vertical ? .vertical : .horizontal, vertical ? 10 : 13)
             .fixedSize()
         }
-    }
-
-    private func message(_ key: LocalizedStringKey) -> some View {
-        Text(key)
-            .font(.system(size: 12, weight: .medium))
-            .foregroundColor(Color(hex: "#E8E9EC"))
-            .fixedSize()
     }
 
     /// Mochi, drawn by the same engine as the compact island's mini Mochis: his eyes wander all
@@ -265,15 +333,18 @@ struct FlowPillView: View {
     /// A call being recorded: a red dot, the time, and a button to stop.
     @ViewBuilder private var noteContent: some View {
         if let start = model.noteStartedAt {
-            HStack(spacing: 8) {
+            line(spacing: vertical ? 6 : 8) {
                 Circle()
                     .fill(Color(hex: "#FF453A"))
                     .frame(width: 8, height: 8)
                     .shadow(color: Color(hex: "#FF453A").opacity(0.6), radius: 3)
                 TimelineView(.periodic(from: start, by: 1)) { context in
                     Text(NoteBuilder.clock(context.date.timeIntervalSince(start)))
-                        .font(.system(size: 12, weight: .semibold).monospacedDigit())
+                        .font(.system(size: vertical ? 10 : 12, weight: .semibold).monospacedDigit())
                         .foregroundColor(Color(hex: "#E8E9EC"))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
+                        .frame(maxWidth: vertical ? 30 : nil)
                 }
                 Button { model.stopNote?() } label: {
                     RoundedRectangle(cornerRadius: 2)
@@ -288,7 +359,21 @@ struct FlowPillView: View {
         }
     }
 
-    private var dots: some View {
+    /// Nine dots, graves to aigus: across the pill along the bottom, down it on the sides.
+    @ViewBuilder private var dots: some View {
+        if vertical {
+            bars
+                .frame(width: Self.barsLength, height: 22)
+                .rotationEffect(.degrees(90))
+                .frame(width: 22, height: Self.barsLength)
+        } else {
+            bars
+        }
+    }
+
+    static let barsLength: CGFloat = CGFloat(FlowBands.count) * 3.4 + CGFloat(FlowBands.count - 1) * 3.2
+
+    private var bars: some View {
         let active = model.phase == .listening || model.phase == .locked || model.phase == .thinking
         return TimelineView(.animation(minimumInterval: 1.0 / 60, paused: !active)) { context in
             let levels = smoother.frame(at: context.date,
@@ -417,7 +502,12 @@ private struct FlowMochiView: View {
 /// pill, for the bubbles above it, and lets clicks through except where the pill and its bubble are.
 @MainActor
 final class FlowPillController {
-    static let size = NSSize(width: 520, height: 170)
+    /// The panel: wide along the bottom (bubbles above the pill), tall on the sides (bubbles beside it).
+    static func size(for edge: FlowPillEdge) -> NSSize {
+        edge == .bottom ? NSSize(width: 520, height: 170) : NSSize(width: 480, height: 320)
+    }
+
+    private var size: NSSize { Self.size(for: model.edge) }
 
     let model = FlowPillModel()
     private let smoother = FlowLevelSmoother()
@@ -443,7 +533,30 @@ final class FlowPillController {
     /// The Notetaker records (a date) or stopped (nil): the pill shows it even when dictation is off.
     func setNote(_ start: Date?) {
         model.noteStartedAt = start
+        model.noteHours = false
+        noteHoursTask?.cancel()
+        if let start {
+            noteHoursTask = Task { @MainActor [weak self] in
+                try? await Task.sleep(for: .seconds(max(0, 3600 - Date().timeIntervalSince(start))))
+                guard !Task.isCancelled, let self, self.model.noteStartedAt == start else { return }
+                self.model.noteHours = true
+            }
+        }
         updateVisibility()
+    }
+
+    private var noteHoursTask: Task<Void, Never>?
+
+    /// Moves the pill to another edge of the screen.
+    func setEdge(_ edge: FlowPillEdge) {
+        guard edge != model.edge || panel == nil else { return }
+        model.edge = edge
+        model.tooltip = nil
+        guard let panel else { return }
+        panel.setContentSize(size)
+        panel.contentView?.frame = NSRect(origin: .zero, size: size)
+        place(panel, onMouseScreen: false)
+        updateMouse()
     }
 
     /// Flow dictation on: the resting pill shows. Off: it goes away.
@@ -541,15 +654,30 @@ final class FlowPillController {
     private func hotRects(_ frame: NSRect) -> [NSRect] {
         let open = model.hovered || model.phase != .idle || model.noteStartedAt != nil
         // The pill: a generous zone around the small resting one, the whole capsule once open.
-        let pillWidth: CGFloat = open ? 200 : 96
-        let pillHeight: CGFloat = open ? 46 : 26
-        var rects = [NSRect(x: frame.midX - pillWidth / 2, y: frame.minY, width: pillWidth, height: pillHeight)]
-        if model.announcement != nil {
-            rects.append(NSRect(x: frame.midX - 240, y: frame.minY + 40, width: 480, height: 110))
-        } else if model.tooltip != nil {
-            rects.append(NSRect(x: frame.midX - 140, y: frame.minY + 40, width: 280, height: 40))
+        let length: CGFloat = open ? 200 : 96
+        let thickness: CGFloat = open ? 46 : 26
+        let bubble = model.announcement != nil || model.tooltip != nil
+        switch model.edge {
+        case .bottom:
+            var rects = [NSRect(x: frame.midX - length / 2, y: frame.minY, width: length, height: thickness)]
+            if model.announcement != nil {
+                rects.append(NSRect(x: frame.midX - 240, y: frame.minY + 40, width: 480, height: 110))
+            } else if bubble {
+                rects.append(NSRect(x: frame.midX - 140, y: frame.minY + 40, width: 280, height: 40))
+            }
+            return rects
+        case .left, .right:
+            let left = model.edge == .left
+            let pillX = left ? frame.minX : frame.maxX - thickness
+            var rects = [NSRect(x: pillX, y: frame.midY - length / 2, width: thickness, height: length)]
+            if bubble {
+                let width: CGFloat = model.announcement != nil ? frame.width - 40 : 300
+                let height: CGFloat = model.announcement != nil ? 130 : 44
+                let x = left ? frame.minX + 40 : frame.maxX - 40 - width
+                rects.append(NSRect(x: x, y: frame.midY - height / 2, width: width, height: height))
+            }
+            return rects
         }
-        return rects
     }
 
     private func updateMouse() {
@@ -611,8 +739,8 @@ final class FlowPillController {
 
     private func build() {
         let view = NSHostingView(rootView: FlowPillView(model: model, bands: bands, smoother: smoother))
-        view.frame = NSRect(origin: .zero, size: Self.size)
-        let p = NSPanel(contentRect: NSRect(origin: .zero, size: Self.size),
+        view.frame = NSRect(origin: .zero, size: size)
+        let p = NSPanel(contentRect: NSRect(origin: .zero, size: size),
                         styleMask: [.borderless, .nonactivatingPanel],
                         backing: .buffered, defer: false)
         p.isOpaque = false
@@ -632,8 +760,16 @@ final class FlowPillController {
             ? (NSScreen.screens.first { NSMouseInRect(mouse, $0.frame, false) } ?? NSScreen.main)
             : (panel.screen ?? NSScreen.main)
         guard let area = screen?.visibleFrame else { return }
-        // Just above the Dock (or the bottom edge when the Dock hides).
-        panel.setFrameOrigin(NSPoint(x: area.midX - Self.size.width / 2, y: area.minY + 4))
+        let size = self.size
+        switch model.edge {
+        case .bottom:
+            // Just above the Dock (or the bottom edge when the Dock hides).
+            panel.setFrameOrigin(NSPoint(x: area.midX - size.width / 2, y: area.minY + 4))
+        case .left:
+            panel.setFrameOrigin(NSPoint(x: area.minX + 4, y: area.midY - size.height / 2))
+        case .right:
+            panel.setFrameOrigin(NSPoint(x: area.maxX - size.width - 4, y: area.midY - size.height / 2))
+        }
     }
 }
 #endif

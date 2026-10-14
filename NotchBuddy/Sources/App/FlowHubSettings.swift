@@ -28,6 +28,15 @@ struct HubSettingsPage: View {
                     .frame(width: 170)
                 }
                 HubDivider()
+                HubRow(title: String(localized: "flow.edge")) {
+                    Picker("", selection: $flow.pillEdge) {
+                        ForEach(FlowPillEdge.allCases) { Text($0.label).tag($0) }
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                    .frame(width: 240)
+                }
+                HubDivider()
                 HubRow(title: String(localized: "hub.settings.handsfree"),
                        detail: String(localized: "hub.settings.handsfree-detail")) {
                     HubKeyCap(text: "\(flow.key.symbol) \(flow.key.symbol)")
