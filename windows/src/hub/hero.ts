@@ -14,6 +14,9 @@ import type { Outfit } from "../mochi/wardrobe";
 interface Animated {
   el: HTMLCanvasElement;
   draw(dt: number, t: number): void;
+  /** Pages are built before they are put in the window: dropped only once gone. */
+  shown?: boolean;
+  born?: number;
 }
 
 const live = new Set<Animated>();
@@ -28,9 +31,11 @@ function loop(now: number) {
   const t = (now - start) / 1000;
   for (const a of live) {
     if (!a.el.isConnected) {
-      live.delete(a);
+      // Built but not shown yet: wait for it (a few seconds at most).
+      if (a.shown || now - (a.born ??= now) > 5000) live.delete(a);
       continue;
     }
+    a.shown = true;
     a.draw(dt, t);
   }
   if (live.size > 0 && document.visibilityState === "visible") frame = requestAnimationFrame(loop);
@@ -224,7 +229,7 @@ export function troupe(canvas: HTMLCanvasElement, cast: MochiSpec[], width: numb
     const r = canvas.getBoundingClientRect();
     const px = e.clientX - r.left;
     for (const w of walkers) {
-      if (Math.abs(px - w.x) < w.spec.size * 0.6) {
+      if (Math.abs(px - w.x) < w.spec.size * 0.4) {
         w.engine.slap();
         w.hopV = 260;
       }
@@ -291,13 +296,15 @@ export function troupe(canvas: HTMLCanvasElement, cast: MochiSpec[], width: numb
           w.engine.lookY = 0.1 + 0.1 * Math.sin(t + w.spec.start * 7);
         }
         w.engine.update(dt);
-        const box = s / 0.6;
+        // `size` is the drawing's square, as on the Mac; the body is about 0.68 of it.
+        const box = s;
+        const floor = ch - 8;
         ctx.save();
-        ctx.translate(w.x - box / 2, ch - box * 0.78 - w.hop);
+        ctx.translate(w.x - box / 2, floor - box * 0.78 - w.hop);
         // A soft shadow on the floor.
         ctx.fillStyle = `rgba(0,0,0,${0.35 * (1 - Math.min(1, w.hop / 60))})`;
         ctx.beginPath();
-        ctx.ellipse(box / 2, box * 0.78 + w.hop - 2, s * 0.42, s * 0.08, 0, 0, Math.PI * 2);
+        ctx.ellipse(box / 2, box * 0.78 + w.hop - 1, s * 0.3, s * 0.05, 0, 0, Math.PI * 2);
         ctx.fill();
         w.engine.draw(ctx, box, box);
         ctx.restore();

@@ -146,11 +146,10 @@ export async function notesPage(page: HTMLElement, ctx: HubContext) {
         ));
       }));
     }
+    tools.append(copied);
     detail.append(
-      h("div", { class: "hub-row", style: "align-items:flex-start" },
-        h("div", { style: "flex:1;min-width:0;display:flex;flex-direction:column;gap:4px" }, title, h("div", { class: "hub-note", text: note.app ? `${when} · ${note.app}` : when })),
-        copied, tools,
-      ),
+      h("div", { style: "display:flex;flex-direction:column;gap:4px;min-width:0" }, title, h("div", { class: "hub-note", text: note.app ? `${when} · ${note.app}` : when })),
+      tools,
       confirm,
     );
 
@@ -204,14 +203,14 @@ export async function notesPage(page: HTMLElement, ctx: HubContext) {
   }
 
   function summary(note: Note): HTMLElement {
-    const el = h("div", { style: "display:flex;flex-direction:column;gap:14px" });
+    const el = h("div", { style: "display:flex;flex-direction:column;gap:14px;align-items:flex-start" });
     const busy = state.working.includes(note.id);
     if (!note.summary && note.keyPoints.length === 0 && note.todos.length === 0) {
       el.append(h("div", { class: "hub-note", text: busy ? t("Writing the summary…") : t("No summary yet.") }));
       if (!busy) el.append(button(t("Write the summary"), () => void FlowBridge.summarize(note.id), "primary", true));
       return el;
     }
-    if (note.summary) el.append(h("div", { class: "hub-card", style: "font-size:14px;line-height:1.55;color:var(--hub-body)", text: note.summary }));
+    if (note.summary) el.append(h("div", { class: "hub-card", style: "font-size:14px;line-height:1.55;color:var(--hub-body);align-self:stretch", text: note.summary }));
     if (note.keyPoints.length) {
       const ul = h("ul", { style: "margin:0;padding-inline-start:20px;display:flex;flex-direction:column;gap:6px;font-size:13.5px" });
       for (const p of note.keyPoints) ul.append(h("li", { text: p }));

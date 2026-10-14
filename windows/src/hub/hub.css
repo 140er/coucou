@@ -917,3 +917,7 @@ button.hub-icon svg {
     max-width: 100%;
   }
 }
+
+.hub-note-detail > button {
+  align-self: flex-start;
+}
