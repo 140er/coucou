@@ -284,7 +284,6 @@ private struct HubSidebar: View {
         .frame(width: 228)
         .frame(maxHeight: .infinity)
         .background(HubTheme.sidebar)
-        .overlay(alignment: .trailing) { Rectangle().fill(Color.white.opacity(0.06)).frame(width: 1) }
     }
 
     @ViewBuilder private var status: some View {
