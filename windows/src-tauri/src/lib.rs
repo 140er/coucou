@@ -8,6 +8,7 @@ mod codex_plan;
 mod config_file;
 mod desktop;
 mod files;
+mod flow;
 mod github;
 mod hooks;
 mod i18n;
@@ -17,6 +18,7 @@ mod island;
 mod local_chat;
 mod log;
 mod net;
+mod notes;
 mod openai_compat;
 mod phone_link;
 mod pipe;
@@ -29,6 +31,7 @@ mod session_window;
 mod settings;
 mod shortcuts;
 mod sounds;
+mod speech;
 mod spotify;
 mod tray;
 #[cfg(windows)]
@@ -147,8 +150,8 @@ fn set_system_languages(app: AppHandle, languages: Vec<String>) {
 /// settings window's title. The webviews switch on their own.
 fn language_changed(app: &AppHandle) {
     tray::retitle(app);
-    if let Some(window) = app.get_webview_window("settings") {
-        let _ = window.set_title(&i18n::t("Settings — Coucou"));
+    if let Some(window) = app.get_webview_window(HUB_LABEL) {
+        let _ = window.set_title("Coucou");
     }
 }
 
@@ -602,17 +605,21 @@ fn settings_page_url(app: &AppHandle) -> WebviewUrl {
     WebviewUrl::App("settings.html".into())
 }
 
-/// The settings window is created hidden at launch and only ever shown and
+/// The Coucou window (Flow dictation, the Notetaker and every setting of the
+/// island), labelled "settings" since it grew out of the settings window.
+pub const HUB_LABEL: &str = "settings";
+
+/// The Coucou window is created hidden at launch and only ever shown and
 /// hidden afterwards. A WebView2 window created later — on the main thread or
 /// not — silently comes up blank in this app, so the window that works is the
 /// one that exists before the island's webview does.
 fn create_settings_window(app: &AppHandle) {
     let url = settings_page_url(app);
-    match WebviewWindowBuilder::new(app, "settings", url)
+    match WebviewWindowBuilder::new(app, HUB_LABEL, url)
         .additional_browser_args(BROWSER_ARGS)
-        .title(i18n::t("Settings — Coucou"))
-        .inner_size(560.0, 680.0)
-        .min_inner_size(460.0, 480.0)
+        .title("Coucou")
+        .inner_size(1100.0, 720.0)
+        .min_inner_size(820.0, 560.0)
         .resizable(true)
         .visible(false)
         .center()
@@ -628,23 +635,40 @@ fn create_settings_window(app: &AppHandle) {
                 }
             });
         }
-        Err(err) => log::line(format!("settings window failed: {err}")),
+        Err(err) => log::line(format!("Coucou window failed: {err}")),
     }
 }
 
 pub fn show_settings_window(app: &AppHandle) {
-    let Some(win) = app.get_webview_window("settings") else {
-        log::line("settings window missing");
+    show_hub(app, Some("general"));
+}
+
+/// Shows the Coucou window, on `page` when given ("dictation", "notes",
+/// "settings", "general", "shortcuts"…).
+pub fn show_hub(app: &AppHandle, page: Option<&str>) {
+    let Some(win) = app.get_webview_window(HUB_LABEL) else {
+        log::line("Coucou window missing");
         return;
     };
+    if let Some(page) = page {
+        let _ = win.emit("hub-page", page.to_string());
+    }
     let _ = win.unminimize();
     let _ = win.show();
     let _ = win.set_focus();
 }
 
+/// The argument the login item starts Coucou with.
+const AUTOSTART_ARG: &str = "--autostart";
+
+/// Coucou started with the computer, not opened by the user: the window stays hidden.
+pub fn launched_at_login() -> bool {
+    std::env::args().any(|a| a == AUTOSTART_ARG)
+}
+
 #[tauri::command]
-fn open_settings_window(app: AppHandle) {
-    show_settings_window(&app);
+fn open_settings_window(app: AppHandle, page: Option<String>) {
+    show_hub(&app, Some(page.as_deref().unwrap_or("general")));
 }
 
 pub fn run() {
@@ -659,12 +683,11 @@ pub fn run() {
             // settings run where we can't listen for keys ourselves (Wayland).
             match shortcuts::from_args(&argv) {
                 Some(action) => shortcuts::dispatch(app, action),
-                None => {
-                    let _ = app.emit_to(island::WINDOW_LABEL, "tray", "open".to_string());
-                }
+                // Opening Coucou again (its shortcut, the Start menu) shows its window.
+                None => show_hub(app, None),
             }
         }))
-        .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None));
+        .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, Some(vec![AUTOSTART_ARG])));
     // Where no global shortcut can work, the plugin isn't even started.
     if platform::global_shortcuts_blocked().is_none() {
         builder = builder.plugin(shortcuts::plugin());
@@ -777,6 +800,38 @@ pub fn run() {
             spotify::spotify_control,
             spotify::spotify_open,
             spotify::spotify_installed,
+            flow::flow_status,
+            flow::flow_set_prefs,
+            flow::flow_history,
+            flow::flow_delete,
+            flow::flow_clear,
+            flow::flow_stats,
+            flow::flow_words,
+            flow::flow_set_words,
+            flow::flow_snippets,
+            flow::flow_set_snippets,
+            flow::flow_styles,
+            flow::flow_set_styles,
+            flow::flow_running_apps,
+            flow::flow_copy,
+            flow::flow_paste_again,
+            flow::flow_models_download,
+            flow::flow_models_remove,
+            flow::pill_state,
+            flow::pill_hot,
+            flow::pill_hover,
+            flow::pill_action,
+            notes::notes_state,
+            notes::notes_start,
+            notes::notes_stop,
+            notes::notes_rename,
+            notes::notes_rename_speaker,
+            notes::notes_toggle_todo,
+            notes::notes_delete,
+            notes::notes_summarize,
+            notes::notes_retry,
+            notes::notes_markdown,
+            notes::notes_export,
         ])
         .setup(move |app| {
             let handle = app.handle().clone();
@@ -784,8 +839,10 @@ pub fn run() {
             tray::build(&handle)?;
             // Before the island: see create_settings_window.
             create_settings_window(&handle);
-            // Same rule for Mochi's desktop window.
+            // Same rule for Mochi's desktop window and the dictation pill.
             desktop::setup(&handle);
+            flow::setup(&handle);
+            notes::setup(&handle);
 
             if let Some(win) = island::window(&handle) {
                 // Where Tauri takes the drop itself (Linux), its paths are the
@@ -817,6 +874,15 @@ pub fn run() {
             integrations::start(handle.clone());
             spotify::sync(&handle, &loaded.active_integrations);
             shortcuts::apply(&handle, &loaded.shortcuts);
+            if loaded.autostart {
+                // Login items written before 0.5 start Coucou without --autostart:
+                // writing it again adds it, so the window stays hidden at login.
+                let _ = handle.autolaunch().enable();
+            }
+            let open_window = flow::get(&handle).map(|f| f.store.lock().unwrap().prefs.open_at_launch).unwrap_or(true);
+            if open_window && !launched_at_login() {
+                show_hub(&handle, None);
+            }
             Ok(())
         })
         .build(tauri::generate_context!())
@@ -825,6 +891,7 @@ pub fn run() {
             // Withdraw the phone link's announcement on the local network before the process ends.
             if let tauri::RunEvent::Exit = event {
                 phone_link::stop_on_exit(app);
+                notes::shutdown(app);
             }
         });
 }

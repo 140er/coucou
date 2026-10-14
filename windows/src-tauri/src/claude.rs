@@ -160,8 +160,34 @@ pub async fn send(
     Ok(ChatReply { text })
 }
 
+/// One question, one answer, no history: the dictation clean-up and the notes
+/// of a call. The text of the answer, or why there is none.
+pub async fn complete(model: &str, system: &str, user: &str, max_tokens: u32, timeout: Duration) -> Result<String, String> {
+    let key = secrets::get(KEY).ok_or_else(|| t("API key missing. Open settings."))?;
+    let endpoint = endpoint()?;
+    let body = json!({
+        "model": model,
+        "max_tokens": max_tokens,
+        "system": system,
+        "messages": [{ "role": "user", "content": user }],
+    });
+    let response = call_with_timeout(&endpoint, &key, &body, timeout).await?;
+    let text: String = response["content"]
+        .as_array()
+        .map(|blocks| blocks.iter().filter_map(|b| b["text"].as_str()).collect())
+        .unwrap_or_default();
+    if text.trim().is_empty() {
+        return Err("empty answer".into());
+    }
+    Ok(text)
+}
+
 async fn call(endpoint: &Url, key: &str, body: &Value) -> Result<Value, String> {
-    let response = net::client(endpoint, Duration::from_secs(90))?
+    call_with_timeout(endpoint, key, body, Duration::from_secs(90)).await
+}
+
+async fn call_with_timeout(endpoint: &Url, key: &str, body: &Value, timeout: Duration) -> Result<Value, String> {
+    let response = net::client(endpoint, timeout)?
         .post(endpoint.clone())
         .header("x-api-key", key)
         .header("anthropic-version", ANTHROPIC_VERSION)
