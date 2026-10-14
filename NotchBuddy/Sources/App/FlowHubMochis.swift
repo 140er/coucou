@@ -413,8 +413,7 @@ final class HubHeroLight: ObservableObject {
 }
 
 /// A band's background: an ultra deep black, the page's colour as a glow that breathes in a
-/// corner and follows the pointer, a border lit where the pointer is, and particles drifting up
-/// all the time, pushed away by the pointer and brighter in its light.
+/// corner, and particles drifting up all the time, pushed away by the pointer and brighter near it.
 struct HubHeroBackdrop: View {
     let color: Color
     let light: HubHeroLight
@@ -441,22 +440,6 @@ struct HubHeroBackdrop: View {
                     Gradient(colors: [color.opacity(0.30 * breath), color.opacity(0.08), .clear]),
                     center: CGPoint(x: size.width * 0.92, y: -size.height * 0.15),
                     startRadius: 0, endRadius: max(size.width, size.height) * 0.55 * breath))
-
-                // The light under the pointer.
-                if let pos = light.position, light.strength > 0.01 {
-                    let s = light.strength
-                    context.fill(Path(rect), with: .radialGradient(
-                        Gradient(colors: [color.opacity(0.34 * s), color.opacity(0.10 * s), .clear]),
-                        center: pos, startRadius: 0, endRadius: 230))
-                    context.fill(Path(rect), with: .radialGradient(
-                        Gradient(colors: [Color.white.opacity(0.06 * s), .clear]),
-                        center: pos, startRadius: 0, endRadius: 70))
-                    // The border catches the light.
-                    let border = Path(roundedRect: rect.insetBy(dx: 0.75, dy: 0.75), cornerRadius: cornerRadius - 0.5, style: .continuous)
-                    context.stroke(border, with: .radialGradient(
-                        Gradient(colors: [color.opacity(0.95 * s), color.opacity(0.25 * s), .clear]),
-                        center: pos, startRadius: 0, endRadius: 260), lineWidth: 1.5)
-                }
 
                 // The particles.
                 for p in light.particles {
