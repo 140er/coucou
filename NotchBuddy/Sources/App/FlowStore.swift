@@ -136,9 +136,9 @@ final class FlowStore: ObservableObject {
 
     // MARK: - Dictation
 
-    /// The words as they will be pasted: snippets, replacements and the dictionary's spelling.
-    func process(_ raw: String) -> String {
-        FlowText.apply(raw, words: words, replacements: replacements, snippets: snippets)
+    /// The words with the replacements and the dictionary's spelling, snippets set aside (FlowText.finish).
+    func prepare(_ raw: String) -> FlowText.Prepared {
+        FlowText.prepare(raw, words: words, replacements: replacements, snippets: snippets)
     }
 
     func style(for bundleID: String?) -> FlowStyle {

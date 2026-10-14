@@ -33,6 +33,14 @@ enum FlowTextTests {
            "on passe sur Supabase et n8n")
         eq("a word with symbols is left alone", FlowText.apply("c'est du c ou du C++", words: ["C++"], replacements: [], snippets: []),
            "c'est du c ou du C++")
+        let link = FlowSnippet(trigger: "mon lien", text: "cal.com/louis/30min")
+        eq("the dictionary never touches a snippet's text",
+           FlowText.apply("voici mon lien Louis", words: ["Louis"], replacements: [], snippets: [link]),
+           "voici cal.com/louis/30min Louis")
+        let prepared = FlowText.prepare("voici mon lien", words: [], replacements: [], snippets: [link])
+        check("the trigger becomes a mark", prepared.text == "voici ⟦1⟧" && prepared.snippets["⟦1⟧"] == link.text)
+        check("a rewrite that lost the mark is refused", !FlowText.keepsMarks("voici le lien", prepared.snippets))
+        eq("the mark becomes the text", FlowText.finish("Voici ⟦1⟧.", snippets: prepared.snippets), "Voici cal.com/louis/30min.")
         let fix = FlowReplacement(from: "heute haine", to: "n8n")
         eq("replacement then dictionary", FlowText.apply("lance heute haine", words: ["N8N"], replacements: [fix], snippets: []),
            "lance N8N")

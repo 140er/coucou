@@ -17,12 +17,27 @@ struct FlowSnippet: Codable, Hashable, Identifiable, Sendable {
 /// What Coucou does to the words before pasting them, and the numbers of the Statistics page
 /// (tests/FlowTextTests.swift). No AppKit here: it runs in the tests as it is.
 enum FlowText {
-    /// Snippets first (their trigger is said as is), then the replacements, then the words of the
-    /// dictionary get their exact spelling ("supabase" → "Supabase").
-    static func apply(_ text: String, words: [String], replacements: [FlowReplacement], snippets: [FlowSnippet]) -> String {
+    /// A dictation ready to paste, its snippets still set aside: each trigger heard became a mark
+    /// (⟦1⟧) so that nothing else (replacements, dictionary, Claude's clean-up) touches the
+    /// snippet's own text; `finish` puts the texts in at the very end.
+    struct Prepared: Equatable, Sendable {
+        var text: String
+        /// Mark → the snippet's text.
+        var snippets: [String: String]
+    }
+
+    /// Snippet triggers set aside first (they are said as is), then the replacements, then the words
+    /// of the dictionary get their exact spelling ("supabase" → "Supabase").
+    static func prepare(_ text: String, words: [String], replacements: [FlowReplacement], snippets: [FlowSnippet]) -> Prepared {
         var out = text
-        for snippet in snippets where !snippet.text.isEmpty {
-            out = replacing(snippet.trigger, with: snippet.text, in: out)
+        var marks: [String: String] = [:]
+        for (index, snippet) in snippets.enumerated() where !snippet.text.isEmpty {
+            let mark = "⟦\(index + 1)⟧"
+            let replaced = replacing(snippet.trigger, with: mark, in: out)
+            if replaced != out {
+                marks[mark] = snippet.text
+                out = replaced
+            }
         }
         for replacement in replacements where !replacement.to.isEmpty {
             out = replacing(replacement.from, with: replacement.to, in: out)
@@ -30,7 +45,23 @@ enum FlowText {
         for word in words where isPlainWord(word) {
             out = replacing(word, with: word, in: out)
         }
-        return out
+        return Prepared(text: out, snippets: marks)
+    }
+
+    /// The marks replaced by their snippets' text.
+    static func finish(_ text: String, snippets: [String: String]) -> String {
+        snippets.reduce(text) { $0.replacingOccurrences(of: $1.key, with: $1.value) }
+    }
+
+    /// Whether a rewritten text still has every mark (otherwise the rewrite is not used).
+    static func keepsMarks(_ text: String, _ snippets: [String: String]) -> Bool {
+        snippets.keys.allSatisfy { text.contains($0) }
+    }
+
+    /// Everything done on the Mac: snippets, replacements and the dictionary.
+    static func apply(_ text: String, words: [String], replacements: [FlowReplacement], snippets: [FlowSnippet]) -> String {
+        let prepared = prepare(text, words: words, replacements: replacements, snippets: snippets)
+        return finish(prepared.text, snippets: prepared.snippets)
     }
 
     /// Every occurrence of `phrase`, ignoring case and what separates its words

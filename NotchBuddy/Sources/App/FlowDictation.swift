@@ -270,14 +270,17 @@ final class FlowDictation: ObservableObject {
             guard !listen.cancelled else { return }
             let heard = await listen.dictation.finish().trimmingCharacters(in: .whitespacesAndNewlines)
             guard let self, !listen.cancelled else { return }
-            // Snippets, replacements and the dictionary, then Claude's clean-up when it is on.
+            // Replacements and the dictionary, then Claude's clean-up when it is on, then the snippets.
             let store = FlowStore.shared
-            var text = store.process(heard)
-            if store.cleanupEnabled, !text.isEmpty {
-                text = await FlowCleanup.clean(text, style: store.style(for: listen.app?.bundleIdentifier),
-                                               app: listen.app?.localizedName, words: store.words)
+            let prepared = store.prepare(heard)
+            var body = prepared.text
+            if store.cleanupEnabled, !body.isEmpty {
+                let cleaned = await FlowCleanup.clean(body, style: store.style(for: listen.app?.bundleIdentifier),
+                                                      app: listen.app?.localizedName, words: store.words)
                 guard !listen.cancelled else { return }
+                if FlowText.keepsMarks(cleaned, prepared.snippets) { body = cleaned }
             }
+            let text = FlowText.finish(body, snippets: prepared.snippets)
             if !text.isEmpty {
                 let spoken = (listen.stoppedAt ?? Date()).timeIntervalSince(listen.startedAt)
                 store.record(text: text, app: listen.app?.localizedName, seconds: spoken)
@@ -369,7 +372,7 @@ enum FlowPaste {
                 var length = 0
                 var chars = [UniChar](repeating: 0, count: 4)
                 let status = UCKeyTranslate(layout, UInt16(code), UInt16(kUCKeyActionDisplay), commandState,
-                                            UInt32(LMGetKbdType()), OptionBits(kUCKeyTranslateNoDeadKeysBit),
+                                            UInt32(LMGetKbdType()), OptionBits(1 << kUCKeyTranslateNoDeadKeysBit),
                                             &dead, 4, &length, &chars)
                 if status == noErr, length == 1, chars[0] == 0x76 { return CGKeyCode(code) }   // "v"
             }
