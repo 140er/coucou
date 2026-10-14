@@ -77,6 +77,13 @@ final class FlowDictation: ObservableObject {
             cancelAll()
         }
     }
+    /// Where the pill lives: centred along the bottom, or on the left or right edge.
+    @Published var pillEdge: FlowPillEdge = FlowPillEdge(rawValue: UserDefaults.standard.string(forKey: "flowPillEdge") ?? "") ?? .bottom {
+        didSet {
+            UserDefaults.standard.set(pillEdge.rawValue, forKey: "flowPillEdge")
+            pill.setEdge(pillEdge)
+        }
+    }
     /// Whether macOS lets Coucou watch the key and paste (System Settings → Privacy & Security → Accessibility).
     @Published private(set) var trusted: Bool = AXIsProcessTrusted()
 
@@ -96,6 +103,7 @@ final class FlowDictation: ObservableObject {
         self.bands = bands
         pill = FlowPillController(bands: bands)
         // The pill's buttons, under the pointer.
+        pill.setEdge(pillEdge)
         pill.model.keyLabel = key.label
         pill.model.dictate = { [weak self] in self?.startHandsFree() }
         pill.model.finishDictation = { [weak self] in self?.finishFromPill() }
