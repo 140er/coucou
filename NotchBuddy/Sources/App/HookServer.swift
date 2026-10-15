@@ -833,7 +833,10 @@ final class HookServer: @unchecked Sendable {
             return
         }
 
-        let command = toolInput["command"] as? String ?? tool
+        // A plan is too long for the card: show its title.
+        let command = tool == "ExitPlanMode"
+            ? Self.planTitle(toolInput["plan"] as? String)
+            : toolInput["command"] as? String ?? tool
 
         // Several requests can wait at once (several sessions or agents): they queue, the
         // card shows the oldest. Past the cap, the newest goes back to its own terminal.
@@ -918,10 +921,26 @@ final class HookServer: @unchecked Sendable {
         case "allow":  json = #"{"permissionDecision":"allow"}"#
         case "always": json = #"{"permissionDecision":"always"}"#
         case "ask":    json = #"{"permissionDecision":"ask"}"#
+        // Plan approval (ExitPlanMode): the hook turns "mode" into a setMode permission update.
+        case "plan_auto":    json = #"{"permissionDecision":"allow","mode":"auto"}"#
+        case "plan_default": json = #"{"permissionDecision":"allow","mode":"default"}"#
+        // Reject the plan and stop Claude, so the change can be typed in the terminal.
+        case "plan_change":  json = #"{"permissionDecision":"change_plan"}"#
         default:       json = #"{"permissionDecision":"deny"}"#
         }
-        RecapStore.shared.recordDecision(pillId: head.pillId, decision: decision)
+        // The recap only counts allow / always / deny.
+        let recapDecision = ["plan_auto": "allow", "plan_default": "allow", "plan_change": "deny"][decision] ?? decision
+        RecapStore.shared.recordDecision(pillId: head.pillId, decision: recapDecision)
         removeApproval(id: head.id, answer: json)
+        if decision == "plan_change" { ClaudeHost.activate(head.hostApp) }
+    }
+
+    /// The plan's first non-empty line without its Markdown heading marks, for the card.
+    static func planTitle(_ plan: String?) -> String {
+        let firstLine = plan?.split(separator: "\n")
+            .first { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+        let title = firstLine.map { String($0.drop { $0 == "#" || $0 == " " }) } ?? ""
+        return title.isEmpty ? "Plan" : title
     }
 
     // MARK: - Question request
@@ -3428,6 +3447,13 @@ def main():
                     else:
                         # Claude Code / Codex plain allow
                         out = {'hookSpecificOutput': {'hookEventName': 'PermissionRequest', 'decision': {'behavior': 'allow'}}}
+                    # Claude Code ignores an allow for ExitPlanMode without updatedInput (Allow and Always).
+                    if payload.get('tool_name') == 'ExitPlanMode' and 'hookSpecificOutput' in out:
+                        out['hookSpecificOutput']['decision']['updatedInput'] = payload.get('tool_input', {})
+                        # Mode picked on the plan card: same choice as the terminal's plan dialog.
+                        mode = resp_obj.get('mode')
+                        if mode in ('auto', 'default'):
+                            out['hookSpecificOutput']['decision']['updatedPermissions'] = [{'type': 'setMode', 'mode': mode, 'destination': 'session'}]
                     sys.stdout.write(json.dumps(out) + '\\n')
                     sys.stdout.flush()
                     sys.exit(0)
@@ -3444,6 +3470,13 @@ def main():
                     answers = resp_obj.get('answers', {})
                     questions = payload.get('tool_input', {}).get('questions', [])
                     out = {'hookSpecificOutput': {'hookEventName': 'PermissionRequest', 'decision': {'behavior': 'allow', 'updatedInput': {'questions': questions, 'answers': answers}}}}
+                    sys.stdout.write(json.dumps(out) + '\\n')
+                    sys.stdout.flush()
+                    sys.exit(0)
+                elif decision == 'change_plan':
+                    # Plan card "Change plan": like the terminal's "Tell Claude what to change",
+                    # reject the plan and stop Claude so the prompt is free for the change.
+                    out = {'hookSpecificOutput': {'hookEventName': 'PermissionRequest', 'decision': {'behavior': 'deny', 'interrupt': True, 'message': 'The user wants to change the plan and will type the changes in the terminal.'}}}
                     sys.stdout.write(json.dumps(out) + '\\n')
                     sys.stdout.flush()
                     sys.exit(0)
@@ -3734,6 +3767,13 @@ def main():
                     else:
                         # Claude Code / Codex plain allow
                         out = {'hookSpecificOutput': {'hookEventName': 'PermissionRequest', 'decision': {'behavior': 'allow'}}}
+                    # Claude Code ignores an allow for ExitPlanMode without updatedInput (Allow and Always).
+                    if payload.get('tool_name') == 'ExitPlanMode' and 'hookSpecificOutput' in out:
+                        out['hookSpecificOutput']['decision']['updatedInput'] = payload.get('tool_input', {})
+                        # Mode picked on the plan card: same choice as the terminal's plan dialog.
+                        mode = resp_obj.get('mode')
+                        if mode in ('auto', 'default'):
+                            out['hookSpecificOutput']['decision']['updatedPermissions'] = [{'type': 'setMode', 'mode': mode, 'destination': 'session'}]
                     sys.stdout.write(json.dumps(out) + '\\n')
                     sys.stdout.flush()
                     sys.exit(0)
@@ -3750,6 +3790,13 @@ def main():
                     answers = resp_obj.get('answers', {})
                     questions = payload.get('tool_input', {}).get('questions', [])
                     out = {'hookSpecificOutput': {'hookEventName': 'PermissionRequest', 'decision': {'behavior': 'allow', 'updatedInput': {'questions': questions, 'answers': answers}}}}
+                    sys.stdout.write(json.dumps(out) + '\\n')
+                    sys.stdout.flush()
+                    sys.exit(0)
+                elif decision == 'change_plan':
+                    # Plan card "Change plan": like the terminal's "Tell Claude what to change",
+                    # reject the plan and stop Claude so the prompt is free for the change.
+                    out = {'hookSpecificOutput': {'hookEventName': 'PermissionRequest', 'decision': {'behavior': 'deny', 'interrupt': True, 'message': 'The user wants to change the plan and will type the changes in the terminal.'}}}
                     sys.stdout.write(json.dumps(out) + '\\n')
                     sys.stdout.flush()
                     sys.exit(0)
