@@ -415,8 +415,7 @@ final class HookServer: @unchecked Sendable {
                      ?? payload["conversation_id"] as? String
                      ?? "unknown"
         let cwd = payload["cwd"] as? String ?? ""
-        let rawName = URL(fileURLWithPath: cwd).lastPathComponent
-        let projectName = aliasProjectName(rawName.isEmpty ? "Session" : rawName)
+        let projectName = sessionName(payload, cwd: cwd)
 
         // Determine which pill this event belongs to.
         // coucou_agent must be lowercase, digits and hyphens, ≤ 24 chars.
@@ -752,8 +751,7 @@ final class HookServer: @unchecked Sendable {
                      ?? payload["conversation_id"] as? String
                      ?? "unknown"
         let cwd       = payload["cwd"]        as? String ?? ""
-        let rawName   = URL(fileURLWithPath: cwd).lastPathComponent
-        let projectName = aliasProjectName(rawName.isEmpty ? "Session" : rawName)
+        let projectName = sessionName(payload, cwd: cwd)
 
         let rawAgent = payload["coucou_agent"] as? String ?? ""
         let termProgram = payload["term_program"] as? String ?? ""
@@ -933,8 +931,7 @@ final class HookServer: @unchecked Sendable {
                      ?? payload["conversation_id"] as? String
                      ?? "unknown"
         let cwd       = payload["cwd"]        as? String ?? ""
-        let rawName   = URL(fileURLWithPath: cwd).lastPathComponent
-        let projectName = aliasProjectName(rawName.isEmpty ? "Session" : rawName)
+        let projectName = sessionName(payload, cwd: cwd)
 
         let rawAgent    = payload["coucou_agent"] as? String ?? ""
         let termProgram = payload["term_program"]  as? String ?? ""
@@ -1120,6 +1117,15 @@ final class HookServer: @unchecked Sendable {
     }
 
     // MARK: - Project name alias mapping
+
+    /// The pill's name: the session's /rename title, else the folder the session started
+    /// in (the hook reads both from the transcript), else the current cwd's folder.
+    private func sessionName(_ payload: [String: Any], cwd: String) -> String {
+        if let title = payload["session_title"] as? String, !title.isEmpty { return title }
+        let root = payload["session_root"] as? String ?? ""
+        let rawName = URL(fileURLWithPath: root.isEmpty ? cwd : root).lastPathComponent
+        return aliasProjectName(rawName.isEmpty ? "Session" : rawName)
+    }
 
     private func aliasProjectName(_ name: String) -> String {
         let aliases: [String: String] = [
@@ -3241,6 +3247,36 @@ def normalize_tool_fields(payload):
     if not payload.get('cwd') and payload.get('workdir'):
         payload['cwd'] = payload['workdir']
 
+def add_session_name(payload):
+    # Name the pill after the folder the session started in, not the current cwd (the
+    # agent may cd into subfolders), or after the session's /rename title. Both come
+    # from the transcript: its first lines and the last custom-title entry.
+    path = payload.get('transcript_path') or ''
+    if not path:
+        return
+    try:
+        with open(path, 'rb') as f:
+            for line in f.read(16384).splitlines():
+                try:
+                    root = json.loads(line).get('cwd')
+                except Exception:
+                    continue
+                if root:
+                    payload['session_root'] = root
+                    break
+            f.seek(0, os.SEEK_END)
+            start = max(0, f.tell() - 65536)
+            f.seek(start)
+            lines = f.read().splitlines()
+            for line in reversed(lines[1:] if start else lines):
+                if b'"custom-title"' in line:
+                    title = json.loads(line).get('customTitle')
+                    if title:
+                        payload['session_title'] = title
+                    break
+    except Exception:
+        pass
+
 def main():
     raw = b''
     payload = {}
@@ -3308,6 +3344,7 @@ def main():
                 payload['cwd'] = paths[0]
             else:
                 payload['cwd'] = os.getcwd()
+        add_session_name(payload)
         try:
             s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
             s.settimeout(125)
@@ -3375,6 +3412,7 @@ def main():
             payload['cwd'] = paths[0]
         else:
             payload['cwd'] = os.getcwd()
+    add_session_name(payload)
 
     # Normalize event name and tool fields (Gemini CLI / Antigravity → canonical names)
     try:
@@ -3548,6 +3586,36 @@ def normalize_tool_fields(payload):
     if not payload.get('cwd') and payload.get('workdir'):
         payload['cwd'] = payload['workdir']
 
+def add_session_name(payload):
+    # Name the pill after the folder the session started in, not the current cwd (the
+    # agent may cd into subfolders), or after the session's /rename title. Both come
+    # from the transcript: its first lines and the last custom-title entry.
+    path = payload.get('transcript_path') or ''
+    if not path:
+        return
+    try:
+        with open(path, 'rb') as f:
+            for line in f.read(16384).splitlines():
+                try:
+                    root = json.loads(line).get('cwd')
+                except Exception:
+                    continue
+                if root:
+                    payload['session_root'] = root
+                    break
+            f.seek(0, os.SEEK_END)
+            start = max(0, f.tell() - 65536)
+            f.seek(start)
+            lines = f.read().splitlines()
+            for line in reversed(lines[1:] if start else lines):
+                if b'"custom-title"' in line:
+                    title = json.loads(line).get('customTitle')
+                    if title:
+                        payload['session_title'] = title
+                    break
+    except Exception:
+        pass
+
 def main():
     raw = b''
     payload = {}
@@ -3615,6 +3683,7 @@ def main():
                 payload['cwd'] = paths[0]
             else:
                 payload['cwd'] = os.getcwd()
+        add_session_name(payload)
         try:
             s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
             s.settimeout(125)
@@ -3681,6 +3750,7 @@ def main():
             payload['cwd'] = paths[0]
         else:
             payload['cwd'] = os.getcwd()
+    add_session_name(payload)
 
     # Normalize event name and tool fields (Gemini CLI / Antigravity → canonical names)
     try:
