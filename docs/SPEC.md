@@ -439,3 +439,15 @@ Réglages → Raccourcis (`ShortcutsSettingsView`) :
 - L'image arrive dans l'île (vue `.capture`) : son `gulp`, Mochi avale. Boutons : **Coller** (dans l'app où on était : ⌘V, ou ⌃V dans un terminal pour Claude Code ; le presse-papiers reprend son contenu après 1,5 s), **Copier**, **Annoter** (fenêtre : flèche, cadre, crayon, 4 couleurs, ⌘Z, l'image annotée revient dans l'île), **Demander à Claude** (chat de l'île, image jointe).
 - Avec Flow : tant que la capture est dans l'île (3 min max), maintenir la touche de dictée colle l'image puis les mots au relâchement.
 - Les captures restent dans le dossier temporaire (les 20 dernières) et ne partent vers Claude que si on les colle ou qu'on demande à Claude.
+
+## 18. Notetaker : écho, intervenants et mots mal entendus (build GitHub)
+
+Constaté sur un vrai appel sans casque : la voix de l'autre revenait dans le micro et passait pour la mienne, un même interlocuteur était coupé en deux personnes, et Parakeet écrivait « UG charging » pour « EV charging ».
+
+- **Une seule horloge.** Le micro et le son du Mac comptent leur temps depuis le même instant : le son du Mac, qui démarre un peu après, commence par le silence manquant. Les lignes et l'écho s'alignent.
+- **L'écho, au son.** Le son du Mac sert de référence : on mesure le délai et la force avec lesquels il revient dans le micro, puis un mot du micro qui n'a pas nettement plus d'énergie (≈ 10 dB) que cet écho est retiré. Avec un casque, l'écho est nul et rien n'est retiré ; parler par-dessus l'autre reste à moi.
+- **L'écho, aux mots.** En plus : trois mots de suite que l'autre a dits dans le même ordre au même moment, et la fin de sa phrase, sont retirés de mes lignes.
+- **Une voix coupée en deux.** Un « intervenant » qui ne parle que par bribes (jamais 3 s d'affilée, peu au total) est rendu à la voix la plus proche (empreinte vocale du diarizer, sinon la plus proche dans le temps).
+- **Mots mal entendus.** Quand Claude écrit les résumés (clé de Réglages → Chat), il corrige d'abord la transcription : mots mal reconnus, hésitations retirées, sans reformuler ni traduire, sans inventer de nom, de numéro ni de lien, `[?]` sur ce qui reste incompréhensible. Chaque correction est vérifiée (une ligne corrigée doit rester proche de l'originale) et ce qui avait été entendu est gardé (`raw`). Il nomme aussi un intervenant quand l'appel dit qui il est ; un nom donné par l'utilisateur n'est jamais remplacé.
+- **Au fil des appels.** Menu ⋯ d'une ligne (ou clic droit) : Corriger la ligne, Dit par…, Supprimer la ligne. Les mots apportés en corrigeant (noms, marques, sigles, mots techniques) et les noms donnés aux intervenants sont retenus (`Notes/vocabulary.json`, 300 max) et envoyés à Claude avec chaque transcription, avec le dictionnaire de Flow. Renommer un intervenant avec le nom d'un autre fusionne les deux.
+- Menu ⋯ de la note : « Corriger à nouveau la transcription ».
