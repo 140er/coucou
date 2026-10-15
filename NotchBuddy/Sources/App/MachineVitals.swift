@@ -47,13 +47,16 @@ final class MachineVitals: ObservableObject {
     /// Starts following whether Mochi is on screen. Called once at launch.
     func start() {
         let state = AppState.shared
-        state.$mode.removeDuplicates().sink { [weak self] _ in
+        // Everything is received on the main thread: macOS posts some of these (the thermal
+        // state) from a background queue, and Mochi's code only runs on the main one.
+        state.$mode.removeDuplicates().receive(on: DispatchQueue.main).sink { [weak self] _ in
             Task { @MainActor in self?.refreshRunning() }
         }.store(in: &subscriptions)
-        state.$mochiOnDesktop.removeDuplicates().sink { [weak self] _ in
+        state.$mochiOnDesktop.removeDuplicates().receive(on: DispatchQueue.main).sink { [weak self] _ in
             Task { @MainActor in self?.refreshRunning() }
         }.store(in: &subscriptions)
         NotificationCenter.default.publisher(for: ProcessInfo.thermalStateDidChangeNotification)
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in Task { @MainActor in self?.sample() } }
             .store(in: &subscriptions)
         refreshRunning()
