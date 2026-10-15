@@ -276,6 +276,19 @@ final class BotEngine: ObservableObject {
     var isDancing: Bool = false
     var dancingLevel: CGFloat = 0   // 0→1 over 0.3s, 1→0 over 0.5s
 
+    // How the Mac feels (MochiMood.swift): the target is set every frame on the Mac, the
+    // levels ease towards it.
+    var moodTarget = MochiMood.calm
+    var moodBusy: CGFloat = 0
+    var moodHot: CGFloat = 0
+    var moodFull: CGFloat = 0
+    var moodTired: CGFloat = 0
+    var nextMoodSweat: Double = 0
+    var nextMoodYawn: Double = 0
+    // Focus headphones: 1 while a Focus session runs.
+    var headphonesTarget: CGFloat = 0
+    var headphones: CGFloat = 0
+
     // Mini wandering look (random, ignores mouse)
     var miniLookTarget: CGPoint = .zero
     var miniLookNextTime: Double = 0
@@ -989,6 +1002,9 @@ final class BotEngine: ObservableObject {
             doMiniBehaviorLoop()
         }
 
+        // The Mac's mood (sweat, puffed up, tired) adjusts the targets above.
+        updateMood(dt: dt, now: now, t: t)
+
         // Smooth look
         let kLook = CGFloat(1 - pow(0.0025, dt))
         let kGen  = CGFloat(1 - pow(0.0008, dt))
@@ -1109,8 +1125,11 @@ final class BotEngine: ObservableObject {
         drawBody(ctx: &ctx, path: bodyPath, R: R, rx: rx, ry: ry,
                  pumpkinColors: outfit == .pumpkin && !isMini)
 
+        // A warm Mac flushes him (MochiMood.swift).
+        drawMoodTint(ctx: &ctx, path: bodyPath, rx: rx, ry: ry)
+
         // Blush — always shows a floor proportional to tint (prototype behaviour)
-        let blushVal = max(blush, tint * 0.5) * (1 - morph)
+        let blushVal = max(blush, tint * 0.5, moodHot * 0.85) * (1 - morph)
         if blushVal > 0.01 {
             drawBlush(ctx: &ctx, path: bodyPath, rx: rx, ry: ry, R: R, blush: blushVal)
         }
@@ -1284,6 +1303,9 @@ final class BotEngine: ObservableObject {
         if let badge = badge, badgeS > 0.01, morph < 0.25 {
             drawBadge(context: context, size: size, badge: badge, R: R, rx: rx, ry: ry, cx: cx, cy: cy)
         }
+
+        // Heat waves and the Focus headphones (MochiMood.swift)
+        drawMoodExtras(context: context, R: R, rx: rx, ry: ry, cx: cx, cy: cy)
 
         // Particles
         drawParticles(context: context, size: size, R: R, cx: cx, cy: cy)

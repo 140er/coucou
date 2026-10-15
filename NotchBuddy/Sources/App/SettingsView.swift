@@ -193,6 +193,7 @@ struct SettingsView: View {
                         #if !APPSTORE
                         SettingsSidebarRow(title: "Voice",        icon: "mic.fill",                          color: "#F97316").tag("voice")
                         #endif
+                        SettingsSidebarRow(title: "Focus",        icon: "headphones",                        color: "#A78BFA").tag("focus")
                         SettingsSidebarRow(title: "Shortcuts",    icon: "keyboard.fill",                     color: "#6366F1").tag("shortcuts")
                     }
                     .listStyle(.sidebar)
@@ -268,6 +269,7 @@ struct SettingsView: View {
         case "integrations": return String(localized: "Integrations")
         case "voice":        return String(localized: "Voice")
         case "shortcuts":    return String(localized: "Shortcuts")
+        case "focus":        return String(localized: "Focus")
         default:             return String(localized: "General")
         }
     }
@@ -282,6 +284,7 @@ struct SettingsView: View {
         case "voice":        voiceSection
         #endif
         case "shortcuts":    ShortcutsSettingsView()
+        case "focus":        FocusSettingsView()
         default:             generalSection
         }
     }
@@ -387,6 +390,19 @@ struct SettingsView: View {
                 for: NSApplication.didChangeScreenParametersNotification)) { _ in
                 refreshConnectedScreens()
             }
+        }
+
+        GroupBox(String(localized: "vitals.title")) {
+            VStack(alignment: .leading, spacing: 10) {
+                Toggle(String(localized: "vitals.toggle"), isOn: Binding(
+                    get: { MachineVitals.shared.enabled },
+                    set: { MachineVitals.shared.enabled = $0 }))
+                Text("vitals.about")
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(6)
         }
 
         GroupBox("Hotkey") {

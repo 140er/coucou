@@ -36,6 +36,8 @@ struct DesktopBotView: View {
                 // Eye tracking based on the panel's own screen position
                 engine.lookX = tanh((appState.mousePosition.x - viewState.lookOrigin.x) / 260)
                 engine.lookY = -tanh((appState.mousePosition.y - viewState.lookOrigin.y) / 200)
+                engine.moodTarget = MachineVitals.shared.mood
+                engine.headphonesTarget = FocusSession.shared.phase == .focus ? 1 : 0
 
                 // Desktop Mochi is always the "main" Mochi — always dressed
                 engine.setOutfit(appState.resolvedOutfit, animated: true)

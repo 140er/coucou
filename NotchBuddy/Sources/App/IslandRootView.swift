@@ -107,6 +107,9 @@ struct IslandContainer: View {
 
             CountdownBar(state: state, islandW: islandWidth)
 
+            // Under the island while the pointer is on Mochi: how the Mac is doing.
+            VitalsHoverLine(islandW: islandWidth, islandH: islandHeight)
+
             if demoEngine.isActive {
                 Text(verbatim: "DEMO")
                     .font(.system(size: 8, weight: .bold, design: .monospaced))
@@ -122,10 +125,8 @@ struct IslandContainer: View {
 
             Group {
                 if state.mode == .compact {
-                    CompactMiniGrid(state: state)
-                        .scaleEffect(IslandRestingLayout(width: islandWidth, height: islandHeight).miniGridScale)
-                        .position(x: islandWidth - 40, y: islandHeight / 2)
-                        .transition(.opacity)
+                    // A Focus session shows its time left in place of the pills.
+                    CompactFocusOrGrid(state: state, islandW: islandWidth, islandH: islandHeight)
                 }
             }
             .animation(.easeInOut(duration: 0.25), value: state.mode == .compact)
@@ -560,6 +561,9 @@ struct IslandHeader: View {
                 }
                 #endif
                 HStack(spacing: 14) {
+                    // Focus: start a session, or the time left of the one running.
+                    FocusHeaderButton()
+
                     Button(action: {
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                             state.view = .settings

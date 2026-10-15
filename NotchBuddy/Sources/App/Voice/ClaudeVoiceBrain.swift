@@ -7,7 +7,7 @@ import Foundation
 // the phrase parser or the on-device model: Claude understands any wording, keeps the
 // thread of the conversation and calls Coucou's tools to act.
 //
-// Tools: pills, music, service_info (Stripe, GitHub, agents…), open_app, prepare_email
+// Tools: pills, music, service_info (Stripe, GitHub, agents…), open_app, prepare_email, focus
 // (the island's mail card opens filled in, the user clicks Send) and Anthropic's
 // web_search. The conversation lives in memory only and is forgotten with the rest of
 // the voice context (90 s after the last turn). Nothing is sent, approved or deleted
@@ -125,7 +125,7 @@ final class ClaudeVoiceBrain {
         in one or two short sentences, no markdown, no lists, no emojis, no links.
         Act with the tools instead of describing: pills, music, service_info for the user's own data \
         (Stripe sales, GitHub, Vercel, Resend, n8n, Notion, Cal.com, agent sessions like Claude Code, \
-        plan usage, music), open_app, prepare_email, and web_search for anything current \
+        plan usage, music), open_app, prepare_email, focus (a Focus session timer), and web_search for anything current \
         (weather, news, scores, prices, facts you are not sure of). Never invent the user's data.
         Email: gather the recipient, the subject and what to say (write the text yourself from what \
         the user wants to say, in the language they used), asking for what is missing one short \
@@ -203,6 +203,18 @@ final class ClaudeVoiceBrain {
                     "wants_attachment": ["type": "boolean", "description": "True if the user wants to attach a file without naming it: they drop it on the notch."],
                 ],
                 "required": ["recipient", "subject", "body"],
+            ],
+        ],
+        [
+            "name": "focus",
+            "description": "Start, stop or check a Focus session: a timer in the notch, Mochi with headphones on, Coucou quiet until it ends (permission requests still come through), then a short break.",
+            "input_schema": [
+                "type": "object",
+                "properties": [
+                    "action": ["type": "string", "enum": ["start", "stop", "status"]],
+                    "minutes": ["type": "integer", "description": "Length of the session for start (default: the user's setting)."],
+                ],
+                "required": ["action"],
             ],
         ],
         webSearchTool,
@@ -292,6 +304,25 @@ final class ClaudeVoiceBrain {
 
         case "prepare_email":
             return await prepareEmail(input)
+
+        case "focus":
+            let focus = FocusSession.shared
+            switch input["action"] as? String ?? "status" {
+            case "start":
+                let minutes = input["minutes"] as? Int
+                focus.start(minutes: minutes)
+                return ("Focus session started for \(minutes ?? focus.minutes) minutes. Coucou stays quiet until it ends.", true)
+            case "stop":
+                guard focus.phase != .off else { return ("No Focus session is running.", false) }
+                focus.stop()
+                return ("Focus session stopped.", true)
+            default:
+                switch focus.phase {
+                case .off:   return ("No Focus session. \(focus.doneToday) finished today.", false)
+                case .focus: return ("Focus session running, \(focus.remainingText(at: Date())) left. \(focus.held) alerts held back.", false)
+                case .rest:  return ("On a break, \(focus.remainingText(at: Date())) left.", false)
+                }
+            }
 
         default:
             return ("unknown tool \(tool)", false)
