@@ -131,7 +131,7 @@ extension BotEngine {
     /// short, leaning into each hop, squashing when he lands, eyes darting where he jumps.
     private func updateStress(now: Double) {
         let level = moodBusy
-        guard level > 0.02 || abs(hop.to) > 0.005 || !hop.landed else { return }
+        guard level > 0.02 || abs(hop.to) > 0.005 || !hop.landed else { stressTremble = .zero; return }
         let p = hop.duration > 0 ? min(1, (now - hop.start) / hop.duration) : 1
         if p >= 1 {
             if !hop.landed {
@@ -170,9 +170,45 @@ extension BotEngine {
         }
         if !hop.landed {
             tgTilt += dir * 0.12 * sin(.pi * q) * amount
-            tgYaw = dir * 0.7
-            tgPitch -= 0.1
         }
+
+        // The look of a scared Mochi: the eyes dart from one spot to another, quick and
+        // jerky, looking for a way out, tremble, and blink nervously, sometimes twice.
+        if level > 0.3 {
+            if now > nextStressLook {
+                let back = Double.random(in: 0...1) < 0.3
+                stressLook = CGPoint(x: back ? -stressLook.x * 0.8 : CGFloat.random(in: -0.85...0.85),
+                                     y: CGFloat.random(in: -0.3...0.18))
+                nextStressLook = now + Double.random(in: 0.09...0.3)
+            }
+            tgYaw = stressLook.x
+            tgPitch = stressLook.y
+            // Snap towards the new spot faster than a calm look.
+            if !locks.contains("yaw") { yaw += (tgYaw - yaw) * 0.35 * amount }
+            if !locks.contains("pitch") { pitch += (tgPitch - pitch) * 0.35 * amount }
+            if now > nextNervousBlink {
+                if nextNervousBlink > 0, !locks.contains("open") {
+                    if Double.random(in: 0...1) < 0.3 {
+                        anim("open", keys: Self.doubleBlink)
+                    } else {
+                        blink()
+                    }
+                }
+                nextNervousBlink = now + Double.random(in: 0.7...1.8)
+            }
+        }
+        let tremble = min(1, level * 1.3)
+        stressTremble = tremble > 0.01
+            ? CGPoint(x: sin(CGFloat(now) * 63) * 0.012 * tremble, y: cos(CGFloat(now) * 51) * 0.01 * tremble)
+            : .zero
+    }
+
+    /// Two quick blinks in a row.
+    private static var doubleBlink: [TweenKey] {
+        [TweenKey(target: 0.06, duration: 60, ease: Ease.inOut),
+         TweenKey(target: 1, duration: 90, ease: Ease.out),
+         TweenKey(target: 0.06, duration: 60, ease: Ease.inOut),
+         TweenKey(target: 1, duration: 120, ease: Ease.out)]
     }
 
     private func throwDrop(now: Double) {

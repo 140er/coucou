@@ -287,6 +287,11 @@ final class BotEngine: ObservableObject {
     var moodDrops: [MoodDrop] = []
     var hop = MoodHop()
     var moodShiftApplied: CGFloat = 0
+    // Stressed eyes: where they dart, when next, their tremble, the next nervous blink.
+    var stressLook = CGPoint.zero
+    var nextStressLook: Double = 0
+    var stressTremble = CGPoint.zero
+    var nextNervousBlink: Double = 0
     var moodLiftApplied: CGFloat = 0
     var nextMoodYawn: Double = 0
     // Focus headphones: 1 while a Focus session runs.
@@ -1523,11 +1528,14 @@ final class BotEngine: ObservableObject {
             let fy = lerp(f.fy, 1, morph * 0.7)
 
             let eyeMult: CGFloat = isMini ? 1.9 : 1.0
-            let ew = R * MochiConst.eyeW * es * eyeMult
-            let eh = R * MochiConst.eyeH * es * eyeMult
+            // Stressed (MochiMood.swift): a little smaller, like pupils tightening with fear,
+            // and trembling.
+            let fear = isMini ? 0 : min(1, moodBusy * 1.3)
+            let ew = R * MochiConst.eyeW * es * eyeMult * (1 - 0.2 * fear)
+            let eh = R * MochiConst.eyeH * es * eyeMult * (1 - 0.1 * fear)
 
             var eyeCtx = ctx
-            eyeCtx.translateBy(x: f.x, y: ey)
+            eyeCtx.translateBy(x: f.x + stressTremble.x * R, y: ey + stressTremble.y * R)
             eyeCtx.scaleBy(x: fx, y: fy)
             drawEyeShape(ctx: &eyeCtx, shape: shape, w: ew, h: eh, open: open, sd: f.sd, R: R)
         }
