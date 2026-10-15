@@ -42,8 +42,9 @@ final class ProjectTime: ObservableObject {
         started = true
         let ws = NSWorkspace.shared.notificationCenter
         ws.addObserver(forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main) { note in
+            let pid = (note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication)?.processIdentifier
             MainActor.assumeIsolated {
-                ProjectTime.shared.follow(note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication)
+                ProjectTime.shared.follow(pid.flatMap { NSRunningApplication(processIdentifier: $0) })
             }
         }
         for name in [NSWorkspace.screensDidSleepNotification, NSWorkspace.willSleepNotification] {
