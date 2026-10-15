@@ -72,12 +72,14 @@ export async function flowSettingsPage(page: HTMLElement, ctx: HubContext) {
   const keysCard = card(
     row(t("Hold a key to dictate anywhere"), null, toggle(prefs.enabled, (on) => void ctx.setPrefs((p) => (p.enabled = on)))),
     divider(),
-    row(t("Hold to dictate"), prefs.key === "right_alt" ? t("On a keyboard with AltGr, the right Alt types characters: pick another key.") : null,
-      select(keys, prefs.key, (key) => void ctx.setPrefs((p) => (p.key = key)).then(() => ctx.navigate("flowsettings")))),
+    status.keys === "wayland"
+      ? row(t("Hold to dictate"), null, keyKeycap("wayland", status.platform))
+      : row(t("Hold to dictate"), prefs.key === "right_alt" ? t("On a keyboard with AltGr, the right Alt types characters: pick another key.") : null,
+        select(keys, prefs.key, (key) => void ctx.setPrefs((p) => (p.key = key)).then(() => ctx.navigate("flowsettings")))),
     divider(),
     row(t("Where the pill is"), null, segmented(edges, prefs.edge, (edge) => void ctx.setPrefs((p) => (p.edge = edge)))),
     divider(),
-    row(t("Hands-free"), t("Tap twice, speak as long as you like, tap once to paste."), keyKeycap(prefs.key, status.platform, true)),
+    row(t("Hands-free"), t("Tap twice, speak as long as you like, tap once to paste."), keyKeycap(status.keys === "wayland" ? "wayland" : prefs.key, status.platform, true)),
     divider(),
     row(t("Paste the last dictation again"), t("When the words went to the wrong place."), button(t("Paste again"), () => void FlowBridge.pasteAgain(), "", true)),
     divider(),
@@ -86,7 +88,7 @@ export async function flowSettingsPage(page: HTMLElement, ctx: HubContext) {
   if (status.keys === "wayland") {
     keysCard.append(h("div", {
       class: "hub-warn",
-      text: t("Wayland lets no app watch the keyboard: click the microphone on the pill to dictate hands-free, then ✓ to finish. Your words are copied: paste them with Ctrl+V."),
+      text: t("On Wayland, the desktop holds the dictation key for Coucou: Ctrl+Alt+V, or the keys you picked when it asked. The first paste asks once to let Coucou type for you."),
     }));
   } else if (status.keys !== "ok") {
     keysCard.append(h("div", { class: "hub-warn", text: t("Coucou can't watch the keyboard here: use the pill's microphone to dictate.") }));

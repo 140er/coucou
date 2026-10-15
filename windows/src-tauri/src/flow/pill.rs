@@ -39,6 +39,8 @@ pub struct PillState {
     pub announcement: Option<Announcement>,
     /// Dictation is on (the resting pill shows).
     pub enabled: bool,
+    /// « OK Coucou » is talking with you.
+    pub voice: Option<crate::voice::VoiceView>,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
@@ -141,6 +143,11 @@ pub fn setup(app: &AppHandle) {
     }
 }
 
+/// A dictation is under way: the microphone is Flow's.
+pub fn dictating(app: &AppHandle) -> bool {
+    get(app).is_some_and(|p| matches!(p.state.lock().unwrap().phase.as_str(), "listening" | "locked" | "thinking"))
+}
+
 pub fn get(app: &AppHandle) -> Option<Arc<Pill>> {
     app.try_state::<Arc<Pill>>().map(|s| s.inner().clone())
 }
@@ -175,7 +182,7 @@ pub fn update(app: &AppHandle, change: impl FnOnce(&mut PillState)) {
         (s.clone(), s.edge != edge_before)
     };
     let _ = app.emit_to(LABEL, "pill-state", &state);
-    let visible = state.enabled || state.note_started_at.is_some() || state.announcement.is_some() || state.phase != "idle";
+    let visible = state.enabled || state.note_started_at.is_some() || state.announcement.is_some() || state.voice.is_some() || state.phase != "idle";
     let was = pill.shown.swap(visible, Ordering::Relaxed);
     if visible && (!was || edge_changed) {
         place(app, &pill, &state.edge, state.phase == "listening");

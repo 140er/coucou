@@ -182,6 +182,21 @@ pub async fn complete(model: &str, system: &str, user: &str, max_tokens: u32, ti
     Ok(text)
 }
 
+/// One turn of « OK Coucou »'s conversation with tools: the API's whole answer
+/// (content blocks and stop_reason).
+pub async fn voice_turn(model: &str, system: &str, messages: &[Value], tools: &[Value]) -> Result<Value, String> {
+    let key = secrets::get(KEY).ok_or_else(|| t("API key missing. Open settings."))?;
+    let endpoint = endpoint()?;
+    let body = json!({
+        "model": model,
+        "max_tokens": 1024,
+        "system": system,
+        "messages": messages,
+        "tools": tools,
+    });
+    call_with_timeout(&endpoint, &key, &body, Duration::from_secs(45)).await
+}
+
 async fn call(endpoint: &Url, key: &str, body: &Value) -> Result<Value, String> {
     call_with_timeout(endpoint, key, body, Duration::from_secs(90)).await
 }

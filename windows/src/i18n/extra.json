@@ -3922,17 +3922,6 @@
    "ru": "Вставить снова",
    "id": "Tempel lagi"
   },
-  "Wayland lets no app watch the keyboard: click the microphone on the pill to dictate hands-free, then ✓ to finish. Your words are copied: paste them with Ctrl+V.": {
-   "zh-Hans": "Wayland 不允许任何应用监听键盘：点击胶囊上的麦克风即可免提听写，完成后点 ✓。你的文字会被复制：用 Ctrl+V 粘贴。",
-   "hi": "Wayland किसी ऐप को कीबोर्ड देखने नहीं देता: हैंड्स-फ़्री बोलने के लिए पिल पर माइक्रोफ़ोन दबाएँ, फिर ख़त्म करने के लिए ✓। आपके शब्द कॉपी हो जाते हैं: उन्हें Ctrl+V से पेस्ट करें।",
-   "es": "Wayland no deja que ninguna app vigile el teclado: haz clic en el micrófono de la píldora para dictar sin manos y en ✓ para terminar. Tus palabras se copian: pégalas con Ctrl+V.",
-   "ar": "لا يسمح Wayland لأي تطبيق بمراقبة لوحة المفاتيح: انقر على الميكروفون في الكبسولة لتملي دون يدين، ثم على ✓ لتنهي. تُنسَخ كلماتك: الصقها بـ Ctrl+V.",
-   "fr": "Wayland ne laisse aucune app surveiller le clavier : clique sur le micro de la pilule pour dicter mains libres, puis sur ✓ pour finir. Tes mots sont copiés : colle-les avec Ctrl+V.",
-   "bn": "Wayland কোনো অ্যাপকে কিবোর্ড দেখতে দেয় না: হ্যান্ডস-ফ্রি ডিক্টেট করতে পিলের মাইক্রোফোনে ক্লিক করুন, শেষ করতে ✓। আপনার শব্দ কপি হয়ে যায়: Ctrl+V দিয়ে পেস্ট করুন।",
-   "pt-BR": "O Wayland não deixa nenhum app observar o teclado: clique no microfone da pílula para ditar sem as mãos e em ✓ para terminar. Suas palavras são copiadas: cole com Ctrl+V.",
-   "ru": "Wayland не даёт приложениям следить за клавиатурой: нажмите на микрофон на пилюле, чтобы диктовать без рук, затем ✓, чтобы закончить. Слова копируются: вставьте их через Ctrl+V.",
-   "id": "Wayland tidak mengizinkan aplikasi memantau keyboard: klik mikrofon pada pil untuk mendikte tanpa tangan, lalu ✓ untuk selesai. Kata-katamu disalin: tempel dengan Ctrl+V."
-  },
   "Coucou can't watch the keyboard here: use the pill's microphone to dictate.": {
    "zh-Hans": "Coucou 在这里无法监听键盘：请用胶囊上的麦克风听写。",
    "hi": "Coucou यहाँ कीबोर्ड नहीं देख सकता: बोलकर लिखने के लिए पिल का माइक्रोफ़ोन इस्तेमाल करें।",
@@ -4207,6 +4196,204 @@
    "pt-BR": "Suas palavras foram copiadas: clique onde quiser e pressione Ctrl+V.",
    "ru": "Слова скопированы: щёлкните, куда их вставить, и нажмите Ctrl+V.",
    "id": "Kata-katamu disalin: klik di tempat yang kamu mau lalu tekan Ctrl+V."
+  },
+  "On Wayland, the desktop holds the dictation key for Coucou: Ctrl+Alt+V, or the keys you picked when it asked. The first paste asks once to let Coucou type for you.": {
+   "zh-Hans": "在 Wayland 上，桌面会替 Coucou 管理听写按键：Ctrl+Alt+V，或者它询问时你选的按键。第一次粘贴时会询问一次，是否允许 Coucou 替你输入。",
+   "hi": "Wayland पर डेस्कटॉप Coucou के लिए डिक्टेशन कुंजी संभालता है: Ctrl+Alt+V, या वे कुंजियाँ जो आपने पूछे जाने पर चुनी थीं। पहली बार पेस्ट करते समय यह एक बार पूछता है कि क्या Coucou आपके लिए टाइप कर सकता है।",
+   "es": "En Wayland, el escritorio gestiona la tecla de dictado por Coucou: Ctrl+Alt+V, o las teclas que elegiste cuando te lo preguntó. La primera vez que pegues, te preguntará una sola vez si Coucou puede escribir por ti.",
+   "ar": "على Wayland، يتولى سطح المكتب مفتاح الإملاء نيابةً عن Coucou: ‏Ctrl+Alt+V، أو المفاتيح التي اخترتها عندما سألك. عند أول لصق يسألك مرة واحدة للسماح لـ Coucou بالكتابة نيابةً عنك.",
+   "fr": "Sous Wayland, c'est le bureau qui gère la touche de dictée pour Coucou : Ctrl+Alt+V, ou les touches que tu as choisies quand il te l'a demandé. Au premier collage, il te demande une seule fois de laisser Coucou écrire pour toi.",
+   "bn": "Wayland-এ ডেস্কটপ Coucou-র হয়ে ডিক্টেশন কী সামলায়: Ctrl+Alt+V, অথবা জিজ্ঞেস করার সময় আপনি যে কীগুলো বেছে নিয়েছিলেন। প্রথমবার পেস্ট করার সময় একবার জিজ্ঞেস করা হয় Coucou-কে আপনার হয়ে টাইপ করতে দেবেন কি না।",
+   "pt-BR": "No Wayland, a área de trabalho cuida da tecla de ditado para o Coucou: Ctrl+Alt+V, ou as teclas que você escolheu quando ela perguntou. Na primeira vez que colar, ela pergunta uma única vez se o Coucou pode digitar por você.",
+   "ru": "В Wayland клавишей диктовки для Coucou управляет рабочий стол: Ctrl+Alt+V или клавиши, которые вы выбрали, когда он спросил. При первой вставке он один раз спросит, разрешить ли Coucou печатать за вас.",
+   "id": "Di Wayland, desktop yang memegang tombol dikte untuk Coucou: Ctrl+Alt+V, atau tombol yang kamu pilih saat ditanya. Saat menempel pertama kali, desktop akan bertanya sekali apakah Coucou boleh mengetik untukmu."
+  },
+  "ElevenLabs key": {
+   "zh-Hans": "ElevenLabs 密钥",
+   "hi": "ElevenLabs कुंजी",
+   "es": "Clave de ElevenLabs",
+   "ar": "مفتاح ElevenLabs",
+   "fr": "Clé ElevenLabs",
+   "bn": "ElevenLabs কী",
+   "pt-BR": "Chave do ElevenLabs",
+   "ru": "Ключ ElevenLabs",
+   "id": "Kunci ElevenLabs"
+  },
+  "Say « OK Coucou », then ask anything: add a pill, play music, the weather, an email to prepare.": {
+   "zh-Hans": "说「OK Coucou」，然后随便问：添加一个胶囊、播放音乐、天气、准备一封邮件。",
+   "hi": "« OK Coucou » कहें, फिर कुछ भी पूछें: एक पिल जोड़ें, संगीत चलाएँ, मौसम, कोई ईमेल तैयार करें।",
+   "es": "Di « OK Coucou » y pide lo que quieras: añadir una píldora, poner música, el tiempo, un correo por preparar.",
+   "ar": "قل « OK Coucou »، ثم اطلب أي شيء: إضافة كبسولة، تشغيل الموسيقى، الطقس، بريد إلكتروني لتجهيزه.",
+   "fr": "Dis « OK Coucou », puis demande ce que tu veux : ajouter une pilule, lancer de la musique, la météo, un e-mail à préparer.",
+   "bn": "« OK Coucou » বলুন, তারপর যা খুশি জিজ্ঞেস করুন: একটি পিল যোগ করা, গান চালানো, আবহাওয়া, একটি ইমেল তৈরি করা।",
+   "pt-BR": "Diga « OK Coucou » e peça o que quiser: adicionar uma pílula, tocar música, o clima, um e-mail para preparar.",
+   "ru": "Скажите « OK Coucou » и просите что угодно: добавить плашку, включить музыку, погоду, подготовить письмо.",
+   "id": "Ucapkan « OK Coucou », lalu minta apa saja: tambah pil, putar musik, cuaca, email yang perlu disiapkan."
+  },
+  "Listening": {
+   "zh-Hans": "聆听",
+   "hi": "सुनना",
+   "es": "Escucha",
+   "ar": "الاستماع",
+   "fr": "Écoute",
+   "bn": "শোনা",
+   "pt-BR": "Escuta",
+   "ru": "Прослушивание",
+   "id": "Mendengarkan"
+  },
+  "Listen for « OK Coucou »": {
+   "zh-Hans": "聆听「OK Coucou」",
+   "hi": "« OK Coucou » के लिए सुनें",
+   "es": "Escuchar « OK Coucou »",
+   "ar": "الاستماع إلى « OK Coucou »",
+   "fr": "Écouter « OK Coucou »",
+   "bn": "« OK Coucou »-এর জন্য শুনুন",
+   "pt-BR": "Escutar « OK Coucou »",
+   "ru": "Слушать « OK Coucou »",
+   "id": "Dengarkan « OK Coucou »"
+  },
+  "The microphone stays open; only what follows « OK Coucou » goes further.": {
+   "zh-Hans": "麦克风保持开启；只有「OK Coucou」之后的内容才会被进一步处理。",
+   "hi": "माइक्रोफ़ोन खुला रहता है; केवल « OK Coucou » के बाद कही गई बात ही आगे जाती है।",
+   "es": "El micrófono sigue abierto; solo lo que va después de « OK Coucou » llega más lejos.",
+   "ar": "يبقى الميكروفون مفتوحًا؛ ولا يتجاوز الحاسوب إلا ما يأتي بعد « OK Coucou ».",
+   "fr": "Le micro reste ouvert ; seul ce qui suit « OK Coucou » va plus loin.",
+   "bn": "মাইক্রোফোন খোলা থাকে; কেবল « OK Coucou »-এর পরে যা বলা হয় সেটুকুই আরও এগোয়।",
+   "pt-BR": "O microfone fica aberto; só o que vem depois de « OK Coucou » vai adiante.",
+   "ru": "Микрофон остаётся включённым; дальше уходит только то, что сказано после « OK Coucou ».",
+   "id": "Mikrofon tetap terbuka; hanya yang diucapkan setelah « OK Coucou » yang diteruskan."
+  },
+  "Hears « OK Coucou » here, without the internet.": {
+   "zh-Hans": "在这台电脑上听到「OK Coucou」，无需联网。",
+   "hi": "« OK Coucou » यहीं सुनता है, इंटरनेट के बिना।",
+   "es": "Oye « OK Coucou » aquí, sin internet.",
+   "ar": "يسمع « OK Coucou » هنا، دون إنترنت.",
+   "fr": "Entend « OK Coucou » ici, sans internet.",
+   "bn": "« OK Coucou » এখানেই শোনে, ইন্টারনেট ছাড়াই।",
+   "pt-BR": "Ouve « OK Coucou » aqui, sem internet.",
+   "ru": "Слышит « OK Coucou » прямо здесь, без интернета.",
+   "id": "Mendengar « OK Coucou » di sini, tanpa internet."
+  },
+  "Coucou answers with Claude: add your Claude key in Notch → Chat.": {
+   "zh-Hans": "Coucou 用 Claude 回答：请在 Notch → 聊天 中添加你的 Claude 密钥。",
+   "hi": "Coucou Claude से जवाब देता है: Notch → चैट में अपनी Claude कुंजी जोड़ें।",
+   "es": "Coucou responde con Claude: añade tu clave de Claude en Notch → Chat.",
+   "ar": "يجيب Coucou باستخدام Claude: أضف مفتاح Claude الخاص بك في Notch ← الدردشة.",
+   "fr": "Coucou répond avec Claude : ajoute ta clé Claude dans Notch → Chat.",
+   "bn": "Coucou Claude দিয়ে উত্তর দেয়: Notch → চ্যাট-এ আপনার Claude কী যোগ করুন।",
+   "pt-BR": "O Coucou responde com o Claude: adicione sua chave do Claude em Notch → Chat.",
+   "ru": "Coucou отвечает с помощью Claude: добавьте свой ключ Claude в Notch → Чат.",
+   "id": "Coucou menjawab dengan Claude: tambahkan kunci Claude-mu di Notch → Obrolan."
+  },
+  "Download the voice model so Coucou can hear you.": {
+   "zh-Hans": "下载语音模型，Coucou 才能听到你。",
+   "hi": "आवाज़ मॉडल डाउनलोड करें ताकि Coucou आपको सुन सके।",
+   "es": "Descarga el modelo de voz para que Coucou pueda oírte.",
+   "ar": "نزّل نموذج الصوت حتى يتمكن Coucou من سماعك.",
+   "fr": "Télécharge le modèle vocal pour que Coucou puisse t'entendre.",
+   "bn": "ভয়েস মডেল ডাউনলোড করুন যাতে Coucou আপনাকে শুনতে পায়।",
+   "pt-BR": "Baixe o modelo de voz para o Coucou poder ouvir você.",
+   "ru": "Скачайте голосовую модель, чтобы Coucou мог вас слышать.",
+   "id": "Unduh model suara agar Coucou bisa mendengarmu."
+  },
+  "Answers": {
+   "zh-Hans": "回答",
+   "hi": "जवाब",
+   "es": "Respuestas",
+   "ar": "الإجابات",
+   "fr": "Réponses",
+   "bn": "উত্তর",
+   "pt-BR": "Respostas",
+   "ru": "Ответы",
+   "id": "Jawaban"
+  },
+  "System voice": {
+   "zh-Hans": "系统语音",
+   "hi": "सिस्टम की आवाज़",
+   "es": "Voz del sistema",
+   "ar": "صوت النظام",
+   "fr": "Voix du système",
+   "bn": "সিস্টেমের কণ্ঠ",
+   "pt-BR": "Voz do sistema",
+   "ru": "Системный голос",
+   "id": "Suara sistem"
+  },
+  "Text only": {
+   "zh-Hans": "仅文字",
+   "hi": "केवल टेक्स्ट",
+   "es": "Solo texto",
+   "ar": "نص فقط",
+   "fr": "Texte seul",
+   "bn": "শুধু টেক্সট",
+   "pt-BR": "Só texto",
+   "ru": "Только текст",
+   "id": "Teks saja"
+  },
+  "Coucou answers out loud": {
+   "zh-Hans": "Coucou 大声回答",
+   "hi": "Coucou ज़ोर से जवाब देता है",
+   "es": "Coucou responde en voz alta",
+   "ar": "يجيب Coucou بصوت عالٍ",
+   "fr": "Coucou répond à voix haute",
+   "bn": "Coucou জোরে উত্তর দেয়",
+   "pt-BR": "O Coucou responde em voz alta",
+   "ru": "Coucou отвечает вслух",
+   "id": "Coucou menjawab dengan suara"
+  },
+  "Female": {
+   "zh-Hans": "女声",
+   "hi": "महिला",
+   "es": "Femenina",
+   "ar": "أنثى",
+   "fr": "Féminine",
+   "bn": "নারী",
+   "pt-BR": "Feminina",
+   "ru": "Женский",
+   "id": "Perempuan"
+  },
+  "Male": {
+   "zh-Hans": "男声",
+   "hi": "पुरुष",
+   "es": "Masculina",
+   "ar": "ذكر",
+   "fr": "Masculine",
+   "bn": "পুরুষ",
+   "pt-BR": "Masculina",
+   "ru": "Мужской",
+   "id": "Laki-laki"
+  },
+  "Your voice never leaves this computer: Parakeet turns it into text here. Only the words after « OK Coucou » go to Anthropic with your Claude key, and to ElevenLabs if you picked it for the answers.": {
+   "zh-Hans": "你的声音永远不会离开这台电脑：Parakeet 在本机把它转成文字。只有「OK Coucou」之后的文字会用你的 Claude 密钥发送给 Anthropic；如果你选了 ElevenLabs 来朗读回答，也会发送给 ElevenLabs。",
+   "hi": "आपकी आवाज़ कभी इस कंप्यूटर से बाहर नहीं जाती: Parakeet उसे यहीं टेक्स्ट में बदलता है। केवल « OK Coucou » के बाद के शब्द आपकी Claude कुंजी के साथ Anthropic को जाते हैं, और अगर आपने जवाबों के लिए ElevenLabs चुना है तो ElevenLabs को भी।",
+   "es": "Tu voz nunca sale de este ordenador: Parakeet la convierte en texto aquí. Solo las palabras después de « OK Coucou » van a Anthropic con tu clave de Claude, y a ElevenLabs si lo elegiste para las respuestas.",
+   "ar": "لا يغادر صوتك هذا الحاسوب أبدًا: يحوّله Parakeet إلى نص هنا. لا تذهب إلا الكلمات التي تلي « OK Coucou » إلى Anthropic بمفتاح Claude الخاص بك، وإلى ElevenLabs إن اخترته للإجابات.",
+   "fr": "Ta voix ne quitte jamais cet ordinateur : Parakeet la transforme en texte ici. Seuls les mots qui suivent « OK Coucou » partent chez Anthropic avec ta clé Claude, et chez ElevenLabs si tu l'as choisi pour les réponses.",
+   "bn": "আপনার কণ্ঠ কখনো এই কম্পিউটার ছেড়ে যায় না: Parakeet এখানেই একে টেক্সটে রূপান্তর করে। কেবল « OK Coucou »-এর পরের শব্দগুলো আপনার Claude কী দিয়ে Anthropic-এ যায়, আর উত্তরের জন্য ElevenLabs বেছে নিলে ElevenLabs-এও।",
+   "pt-BR": "Sua voz nunca sai deste computador: o Parakeet a transforma em texto aqui. Só as palavras depois de « OK Coucou » vão para a Anthropic com sua chave do Claude, e para a ElevenLabs se você a escolheu para as respostas.",
+   "ru": "Ваш голос никогда не покидает этот компьютер: Parakeet превращает его в текст здесь. Только слова после « OK Coucou » уходят в Anthropic с вашим ключом Claude и в ElevenLabs, если вы выбрали его для ответов.",
+   "id": "Suaramu tidak pernah keluar dari komputer ini: Parakeet mengubahnya menjadi teks di sini. Hanya kata-kata setelah « OK Coucou » yang dikirim ke Anthropic dengan kunci Claude-mu, dan ke ElevenLabs jika kamu memilihnya untuk jawaban."
+  },
+  "An email is never sent by Coucou: your mail app opens with it written, and you send it.": {
+   "zh-Hans": "Coucou 从不发送邮件：你的邮件应用会打开并填好内容，由你来发送。",
+   "hi": "Coucou कभी ईमेल नहीं भेजता: आपका मेल ऐप उसे लिखा हुआ खोलता है, और भेजते आप हैं।",
+   "es": "Coucou nunca envía un correo: tu app de correo se abre con él escrito, y lo envías tú.",
+   "ar": "لا يرسل Coucou أي بريد إلكتروني أبدًا: يُفتح تطبيق البريد لديك والرسالة مكتوبة، وأنت من يرسلها.",
+   "fr": "Coucou n'envoie jamais d'e-mail : ton app de mail s'ouvre avec le message écrit, et c'est toi qui l'envoies.",
+   "bn": "Coucou কখনো ইমেল পাঠায় না: আপনার মেল অ্যাপ লেখা ইমেলসহ খোলে, আর পাঠান আপনি।",
+   "pt-BR": "O Coucou nunca envia um e-mail: seu app de e-mail abre com ele escrito, e quem envia é você.",
+   "ru": "Coucou никогда не отправляет письма: ваше почтовое приложение откроется с готовым текстом, а отправите его вы.",
+   "id": "Coucou tidak pernah mengirim email: aplikasi email-mu terbuka dengan email yang sudah ditulis, dan kamu yang mengirimnya."
+  },
+  "Coucou couldn't answer: check your Claude key in Notch → Chat.": {
+   "zh-Hans": "Coucou 无法回答：请检查 Notch → 聊天 中的 Claude 密钥。",
+   "hi": "Coucou जवाब नहीं दे सका: Notch → चैट में अपनी Claude कुंजी जाँचें।",
+   "es": "Coucou no pudo responder: revisa tu clave de Claude en Notch → Chat.",
+   "ar": "تعذّر على Coucou الإجابة: تحقّق من مفتاح Claude في Notch ← الدردشة.",
+   "fr": "Coucou n'a pas pu répondre : vérifie ta clé Claude dans Notch → Chat.",
+   "bn": "Coucou উত্তর দিতে পারেনি: Notch → চ্যাট-এ আপনার Claude কী যাচাই করুন।",
+   "pt-BR": "O Coucou não conseguiu responder: verifique sua chave do Claude em Notch → Chat.",
+   "ru": "Coucou не смог ответить: проверьте ключ Claude в Notch → Чат.",
+   "id": "Coucou tidak bisa menjawab: periksa kunci Claude-mu di Notch → Obrolan."
   }
  }
 }

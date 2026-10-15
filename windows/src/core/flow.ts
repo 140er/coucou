@@ -34,6 +34,10 @@ export interface FlowPrefs {
   defaultStyle: Style;
   summaryEngine: "claude" | "off";
   openAtLaunch: boolean;
+  /** « OK Coucou »: listen for it and answer with Claude. */
+  voice: boolean;
+  voiceOutput: VoiceOutput;
+  voiceGender: "female" | "male";
 }
 
 export type ModelState =
@@ -161,11 +165,22 @@ export interface Announcement {
 export interface PillState {
   phase: "idle" | "listening" | "thinking" | "locked" | "copied" | "failed" | "pastedAgain";
   edge: Edge;
-  key: FlowKey | "";
+  /** "wayland" where the desktop holds the shortcut. */
+  key: FlowKey | "wayland" | "";
   noteStartedAt: number | null;
   announcement: Announcement | null;
   enabled: boolean;
+  /** « OK Coucou » is talking with you. */
+  voice: VoiceView | null;
 }
+
+export interface VoiceView {
+  phase: "listening" | "thinking" | "speaking";
+  heard: string;
+  answer: string;
+}
+
+export type VoiceOutput = "system" | "elevenlabs" | "off";
 
 export const FlowBridge = {
   status: () => call<FlowStatus>("flow_status"),
@@ -202,6 +217,10 @@ export const FlowBridge = {
   pillHot: (rects: [number, number, number, number][]) => call<void>("pill_hot", { rects }),
   pillHover: (inside: boolean) => call<void>("pill_hover", { inside }),
   pillAction: (action: string, id?: number) => call<void>("pill_action", { action, id: id ?? null }),
+  /** The pill has said what « OK Coucou » answered. */
+  voiceDone: (id: number) => call<void>("voice_done", { id, text: null }),
+  /** speech-dispatcher or espeak-ng, where the webview has no voice. */
+  sayNative: (text: string, lang: string | null) => call<boolean>("voice_say_native", { text, lang }),
 };
 
 /** One colour per person in a call: you first, then the others. */

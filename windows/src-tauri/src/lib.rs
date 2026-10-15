@@ -34,6 +34,7 @@ mod sounds;
 mod speech;
 mod spotify;
 mod tray;
+mod voice;
 #[cfg(windows)]
 mod webview_drop;
 
@@ -539,6 +540,9 @@ fn secret_set(app: AppHandle, key: String, value: String) -> Result<(), String> 
     }
     let before = (key == "github-token").then(|| secrets::get(&key));
     secrets::set(&key, &value)?;
+    if key == claude::KEY {
+        voice::sync(&app);
+    }
     if let Some(before) = before {
         if secrets::get(&key) != before {
             integrations::github_token_changed(&app);
@@ -551,6 +555,9 @@ fn secret_set(app: AppHandle, key: String, value: String) -> Result<(), String> 
 fn secret_clear(app: AppHandle, key: String) -> Result<(), String> {
     let had = key == "github-token" && secrets::present(&key);
     secrets::clear(&key)?;
+    if key == claude::KEY {
+        voice::sync(&app);
+    }
     if had {
         integrations::github_token_changed(&app);
     }
@@ -853,6 +860,8 @@ pub fn run() {
             notes::notes_retry,
             notes::notes_markdown,
             notes::notes_export,
+            voice::voice_done,
+            voice::voice_say_native,
         ])
         .setup(move |app| {
             let handle = app.handle().clone();

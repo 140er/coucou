@@ -30,7 +30,7 @@ function time(ms: number): string {
 
 export async function dictationPage(page: HTMLElement, ctx: HubContext) {
   const status = ctx.status;
-  const key = keyLabel(status.prefs.key, status.platform);
+  const key = keyLabel(status.keys === "wayland" ? "wayland" : status.prefs.key, status.platform);
   const ready = status.prefs.enabled && status.models.parakeet.state === "ready";
 
   const record = button(t("Record a call"), () => {
@@ -134,7 +134,7 @@ function promo(ctx: HubContext): HTMLElement {
 /** Until dictation works: turn it on, download the model. */
 function setup(ctx: HubContext): HTMLElement {
   const status = ctx.status;
-  const key = keyLabel(status.prefs.key, status.platform);
+  const key = keyLabel(status.keys === "wayland" ? "wayland" : status.prefs.key, status.platform);
   const body = h("div", { style: "display:flex;flex-direction:column;gap:12px" });
   body.append(
     h("div", { style: "font:700 17px var(--font)", text: t("Dictate anywhere on your computer") }),

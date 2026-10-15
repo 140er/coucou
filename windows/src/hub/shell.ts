@@ -13,7 +13,7 @@ import { icon, keyLabel } from "./ui";
 
 export type PageId =
   | "dictation" | "notes" | "insights" | "dictionary" | "snippets" | "styles" | "flowsettings"
-  | "general" | "pills" | "agents" | "chat" | "integrations" | "phone" | "shortcuts";
+  | "general" | "pills" | "agents" | "chat" | "voice" | "integrations" | "phone" | "shortcuts";
 
 interface PageDef {
   id: PageId;
@@ -38,6 +38,7 @@ export const NOTCH_PAGES: PageDef[] = [
   { id: "pills", icon: "grid", title: () => t("Active pills"), subtitle: () => t("The pills shown in the island, their order and their colours.") },
   { id: "agents", icon: "terminal", title: () => t("Agents"), subtitle: () => t("Claude Code, Codex and the other agents Mochi follows.") },
   { id: "chat", icon: "chat", title: () => t("Chat"), subtitle: () => t("The AI of the island's chat, with your own keys.") },
+  { id: "voice", icon: "wave", title: () => "OK Coucou" },
   { id: "integrations", icon: "puzzle", title: () => t("Integrations"), subtitle: () => t("Stripe, GitHub, Vercel, n8n, Notion and the rest.") },
   { id: "phone", icon: "phone", title: () => t("Android phone"), subtitle: () => t("Your agents and their approvals on your Android phone, over your Wi-Fi.") },
   { id: "shortcuts", icon: "keyboard", title: () => t("Shortcuts"), subtitle: () => t("The keys that open the island and its actions.") },
@@ -71,7 +72,7 @@ export interface HubOptions {
 const DEFAULT_STATUS: FlowStatus = {
   prefs: {
     enabled: false, key: "right_ctrl", edge: "bottom", mic: "", keepDays: 30, cleanup: false,
-    defaultStyle: "natural", summaryEngine: "claude", openAtLaunch: true,
+    defaultStyle: "natural", summaryEngine: "claude", openAtLaunch: true, voice: false, voiceOutput: "system", voiceGender: "female",
   },
   models: { parakeet: { state: "missing" }, downloadMb: 700 },
   keys: "ok",
@@ -120,12 +121,12 @@ export async function startHub(root: HTMLElement, opts: HubOptions) {
     } else if (models !== "ready") {
       color = "#f7b32b";
       text = models === "downloading" ? t("Downloading the voice model…") : t("Download the voice model to dictate");
-    } else if (status.keys === "wayland") {
+    } else if (status.keys !== "ok" && status.keys !== "wayland") {
       color = "#f7b32b";
       text = t("Use the pill's microphone to dictate");
     } else {
       color = "#34d399";
-      text = t("Ready · hold {0}", { 0: keyLabel(status.prefs.key, status.platform) });
+      text = t("Ready · hold {0}", { 0: keyLabel(status.keys === "wayland" ? "wayland" : status.prefs.key, status.platform) });
     }
     statusLine.append(h("i", { class: "dot", style: `background:${color}` }), h("span", { text }));
   }

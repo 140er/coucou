@@ -118,7 +118,7 @@ export function select<T extends string>(options: [T, string][], value: T, onCha
 }
 
 /** "Right Ctrl", "Ctrl + Win"… */
-export function keyLabel(key: FlowKey | "", platform: "windows" | "linux" = "windows"): string {
+export function keyLabel(key: FlowKey | "wayland" | "", platform: "windows" | "linux" = "windows"): string {
   switch (key) {
     case "right_alt":
       return t("Right {0}", { 0: "Alt" });
@@ -126,13 +126,16 @@ export function keyLabel(key: FlowKey | "", platform: "windows" | "linux" = "win
       return t("Right {0}", { 0: "Shift" });
     case "left_ctrl_super":
       return platform === "windows" ? "Ctrl + Win" : "Ctrl + Super";
+    case "wayland":
+      // Held by the desktop (GlobalShortcuts portal): the keys Coucou suggests.
+      return "Ctrl+Alt+V";
     default:
       return t("Right {0}", { 0: "Ctrl" });
   }
 }
 
 /** The key written as keycaps: "Right Ctrl" twice for hands-free. */
-export function keyKeycap(key: FlowKey | "", platform: "windows" | "linux", twice = false): HTMLElement {
+export function keyKeycap(key: FlowKey | "wayland" | "", platform: "windows" | "linux", twice = false): HTMLElement {
   const label = keyLabel(key, platform);
   return keycap(twice ? `${label} ${label}` : label);
 }

@@ -21,6 +21,8 @@ pub mod os;
 #[cfg(target_os = "linux")]
 #[path = "os_linux.rs"]
 pub mod os;
+#[cfg(target_os = "linux")]
+pub mod wayland;
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{self, RecvTimeoutError, Sender};
@@ -60,7 +62,8 @@ pub struct Flow {
 
 struct Running {
     tx: Sender<(KeyEvent, Instant)>,
-    _listener: Option<os::KeyListener>,
+    /// The OS's key listener (or, on Wayland, the portal's shortcut); dropping it stops it.
+    _listener: Option<Box<dyn std::any::Any + Send>>,
 }
 
 impl Flow {
@@ -124,9 +127,15 @@ pub fn setup(app: &AppHandle) {
     if prefs.enabled {
         enable(app, &flow);
     }
+    crate::voice::sync(app);
 }
 
+/// The key as the pages write it ("right_ctrl"…), or "wayland" where the
+/// desktop holds the shortcut.
 fn key_id(key: logic::FlowKey) -> String {
+    if os::keys_supported() == Err("wayland") {
+        return "wayland".into();
+    }
     serde_json::to_value(key).ok().and_then(|v| v.as_str().map(String::from)).unwrap_or_default()
 }
 
@@ -137,14 +146,16 @@ fn enable(app: &AppHandle, flow: &Arc<Flow>) {
     }
     let prefs = flow.store.lock().unwrap().prefs.clone();
     let (tx, rx) = mpsc::channel::<(KeyEvent, Instant)>();
-    let listener = match os::keys_supported() {
+    let listener: Option<Box<dyn std::any::Any + Send>> = match os::keys_supported() {
         Ok(()) => match os::listen(prefs.key, tx.clone()) {
-            Ok(l) => Some(l),
+            Ok(l) => Some(Box::new(l)),
             Err(err) => {
                 crate::log::line(format!("flow: the key can't be watched: {err}"));
                 None
             }
         },
+        #[cfg(target_os = "linux")]
+        Err("wayland") => wayland::listen(tx.clone()).map(|h| Box::new(h) as Box<dyn std::any::Any + Send>),
         Err(why) => {
             crate::log::line(format!("flow: no key on this desktop ({why}); the pill's buttons still work"));
             None
@@ -172,7 +183,7 @@ fn disable(app: &AppHandle, flow: &Arc<Flow>) {
         s.enabled = false;
         s.phase = "idle".into();
     });
-    if !crate::notes::is_recording(app) {
+    if !crate::notes::is_recording(app) && !crate::voice::is_listening() {
         speech::unload();
     }
 }
@@ -387,15 +398,7 @@ fn process(app: &AppHandle, flow: &Arc<Flow>, samples: &[f32], front: Option<&(S
 
     os::wait_key_released(key);
     let terminal = front.is_some_and(|(id, _)| is_terminal(id));
-    let outcome = if os_lacks_paste() {
-        if paste::copy(&final_text) {
-            paste::Outcome::Copied
-        } else {
-            paste::Outcome::Failed
-        }
-    } else {
-        paste::paste(&final_text, terminal)
-    };
+    let outcome = paste::paste(&final_text, terminal);
     let entry = {
         let mut store = flow.store.lock().unwrap();
         store.record(&final_text, front.map(|(_, n)| n.as_str()), seconds, store::today(), store::now_ms())
@@ -421,19 +424,6 @@ fn process(app: &AppHandle, flow: &Arc<Flow>, samples: &[f32], front: Option<&(S
         }
     }
     Ok(())
-}
-
-/// Wayland: XTest reaches only XWayland apps, so the words are copied for the
-/// user to paste instead of being typed into the wrong place.
-fn os_lacks_paste() -> bool {
-    #[cfg(target_os = "linux")]
-    {
-        os::is_wayland()
-    }
-    #[cfg(windows)]
-    {
-        false
-    }
 }
 
 /// "Paste again": the last dictation, in the app in front now.
@@ -507,6 +497,13 @@ pub fn flow_set_prefs(app: AppHandle, flow: State<Arc<Flow>>, prefs: Prefs) {
     }
     if prefs.enabled && (!before.enabled || restart) {
         enable(&app, &flow);
+    }
+    if before.voice != prefs.voice || before.mic != prefs.mic {
+        if before.mic != prefs.mic {
+            crate::voice::restart(&app);
+        } else {
+            crate::voice::sync(&app);
+        }
     }
     let _ = app.emit("flow-prefs", &prefs);
 }

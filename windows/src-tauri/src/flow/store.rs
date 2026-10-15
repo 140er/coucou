@@ -101,6 +101,12 @@ pub struct Prefs {
     pub summary_engine: SummaryEngine,
     /// Open the Coucou window when Coucou is opened (not when it starts with the computer).
     pub open_at_launch: bool,
+    /// « OK Coucou »: listen for it and answer with Claude (needs the Claude key).
+    pub voice: bool,
+    /// How Coucou answers out loud: "system", "elevenlabs" or "off".
+    pub voice_output: String,
+    /// The ElevenLabs voice: "female" or "male".
+    pub voice_gender: String,
 }
 
 impl Default for Prefs {
@@ -115,6 +121,9 @@ impl Default for Prefs {
             default_style: Style::Natural,
             summary_engine: SummaryEngine::Claude,
             open_at_launch: true,
+            voice: false,
+            voice_output: "system".into(),
+            voice_gender: "female".into(),
         }
     }
 }

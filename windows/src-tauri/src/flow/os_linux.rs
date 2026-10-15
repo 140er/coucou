@@ -170,8 +170,12 @@ pub fn wait_key_released(_key: FlowKey) {
     std::thread::sleep(Duration::from_millis(30));
 }
 
-/// Ctrl+V (Ctrl+Shift+V for a terminal) in the app in front, through XTest.
+/// Ctrl+V (Ctrl+Shift+V for a terminal) in the app in front: through XTest on
+/// X11, through the RemoteDesktop portal on Wayland.
 pub fn send_paste(shift: bool) -> Result<(), String> {
+    if is_wayland() {
+        return super::wayland::send_paste(shift);
+    }
     let (conn, screen) = x11rb::connect(None).map_err(|e| e.to_string())?;
     let root = conn.setup().roots[screen].root;
     let keymap = Keymap::read(&conn).ok_or("no keyboard map")?;
@@ -214,6 +218,9 @@ fn class_of(conn: &RustConnection, window: u32) -> Option<(String, String)> {
 
 /// The app in front: (id, name). None on Wayland, where only the desktop knows.
 pub fn foreground_app() -> Option<(String, String)> {
+    if is_wayland() {
+        return None;
+    }
     let (conn, screen) = x11rb::connect(None).ok()?;
     let root = conn.setup().roots[screen].root;
     let active = atom(&conn, "_NET_ACTIVE_WINDOW")?;

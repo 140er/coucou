@@ -165,6 +165,7 @@ pub fn is_ready() -> bool {
 
 fn emit_status(app: &AppHandle) {
     let _ = app.emit("speech-models", status());
+    crate::voice::sync(app);
 }
 
 /// Downloads what is missing, with the progress in `speech-models` events.

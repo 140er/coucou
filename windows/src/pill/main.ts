@@ -18,7 +18,7 @@ const RESTING_THICKNESS = 8;
 const OPEN_THICKNESS = 34;
 const BANDS = 9;
 
-let state: PillState = { phase: "idle", edge: "bottom", key: "right_ctrl", noteStartedAt: null, announcement: null, enabled: false };
+let state: PillState = { phase: "idle", edge: "bottom", key: "right_ctrl", noteStartedAt: null, announcement: null, enabled: false, voice: null };
 let platform: "windows" | "linux" = navigator.userAgent.includes("Windows") ? "windows" : "linux";
 let hovered = false;
 let tooltip: string | null = null;
@@ -61,7 +61,7 @@ function mochiSlot(): HTMLElement {
 
 // ── Looks ─────────────────────────────────────────────────────────────────────
 
-type Look = "resting" | "toolbar" | "note" | "live" | "handsFree" | "message";
+type Look = "resting" | "toolbar" | "note" | "live" | "handsFree" | "message" | "voice";
 
 function look(): Look {
   switch (state.phase) {
@@ -75,6 +75,7 @@ function look(): Look {
     case "pastedAgain":
       return "message";
     default:
+      if (state.voice) return "voice";
       if (state.noteStartedAt) return "note";
       return hovered ? "toolbar" : "resting";
   }
@@ -112,6 +113,8 @@ function openLength(l: Look): number {
       return 158;
     case "message":
       return vertical() ? 76 : measure(messageText() ?? "") + 22 + 9 + 26 + 2;
+    case "voice":
+      return 118;
     default:
       return 118;
   }
@@ -219,6 +222,14 @@ function bubble(): HTMLElement | null {
     b.append(close);
     return b;
   }
+  const v = state.voice;
+  if (v && (v.heard || v.answer || v.phase === "listening")) {
+    const b = el("div", "bubble voice");
+    if (v.heard) b.append(el("span", "heard", v.heard));
+    if (v.answer) b.append(el("span", "answer", v.answer));
+    else if (!v.heard) b.append(el("span", "heard", t("Listening…")));
+    return b;
+  }
   const text = tooltip ?? (vertical() ? messageText() : null);
   return text ? el("div", "bubble", text) : null;
 }
@@ -234,7 +245,7 @@ function render() {
   const length = open ? openLength(l) : RESTING_LENGTH;
   const thickness = open ? OPEN_THICKNESS : RESTING_THICKNESS;
   root.className = `${state.edge}${vertical() ? " vertical" : ""}`;
-  const key = `${l}|${state.edge}|${state.phase}|${state.key}|${state.noteStartedAt}|${platform}`;
+  const key = `${l}|${state.edge}|${state.phase}|${state.key}|${state.noteStartedAt}|${platform}|${state.voice?.phase ?? ""}`;
   if (!capsule || key !== lastKey) {
     lastKey = key;
     const next = el("div", "capsule");
@@ -258,7 +269,7 @@ function render() {
   for (const old of root.querySelectorAll(".bubble")) old.remove();
   const b = bubble();
   root.replaceChildren(...(b ? [b] : []), capsule);
-  mochi.setState(state.phase === "thinking" ? "thinking" : "idle");
+  mochi.setState(state.phase === "thinking" || state.voice?.phase === "thinking" ? "thinking" : "idle");
   wake();
   // Where the mouse is taken, once the sizes have settled.
   setTimeout(reportHot, 60);
@@ -336,6 +347,22 @@ function animating(): boolean {
   return visible && look() !== "resting";
 }
 
+/** Where dot `i` goes: the voice, a slow wave while thinking, a lively one while Coucou speaks. */
+function dotGoal(now: number, i: number): number {
+  if (state.phase === "thinking") return 0.25 + 0.25 * Math.sin(now / 160 - i * 0.7);
+  if (state.phase === "listening" || state.phase === "locked") return target[i];
+  switch (state.voice?.phase) {
+    case "thinking":
+      return 0.25 + 0.25 * Math.sin(now / 160 - i * 0.7);
+    case "speaking":
+      return speaking ? 0.2 + 0.35 * Math.abs(Math.sin(now / 110 + i * 1.3) * Math.sin(now / 270 - i * 0.6)) : 0.05;
+    case "listening":
+      return 0.08 + 0.08 * Math.sin(now / 400 - i * 0.5);
+    default:
+      return 0;
+  }
+}
+
 function tick(now: number) {
   frame = null;
   const dt = Math.min(0.05, (now - last) / 1000);
@@ -343,7 +370,7 @@ function tick(now: number) {
   const l = look();
   // The dots: follow the voice, or a slow wave while thinking.
   for (let i = 0; i < BANDS; i++) {
-    const goal = state.phase === "thinking" ? 0.25 + 0.25 * Math.sin(now / 160 - i * 0.7) : state.phase === "listening" || state.phase === "locked" ? target[i] : 0;
+    const goal = dotGoal(now, i);
     levels[i] += (goal - levels[i]) * Math.min(1, dt * 14);
     const bar = barsEl.children[i] as HTMLElement;
     const size = 3.4 + 16 * Math.max(0, levels[i]);
@@ -384,6 +411,80 @@ function wake() {
   }
 }
 
+// ── « OK Coucou » speaks ──────────────────────────────────────────────────────
+
+interface Say {
+  id: number;
+  text: string;
+  lang: string | null;
+  /** ElevenLabs' MP3, base64. */
+  audio: string | null;
+  gender: "female" | "male";
+}
+
+let speaking = false;
+
+/** The system's voice in the answer's language, a woman's or a man's when the system says. */
+function systemVoice(lang: string | null, gender: string): SpeechSynthesisVoice | null {
+  const voices = window.speechSynthesis?.getVoices() ?? [];
+  const want = (lang ?? navigator.language).toLowerCase();
+  const short = want.split("-")[0];
+  const inLang = voices.filter((v) => v.lang.toLowerCase() === want).concat(voices.filter((v) => v.lang.toLowerCase().split(/[-_]/)[0] === short && v.lang.toLowerCase() !== want));
+  const female = /(female|woman|zira|hortense|julie|denise|aria|jenny|samantha|amelie|eloise)/i;
+  const male = /(male|man\b|david|paul|guy|henri|claude|mark|thomas)/i;
+  const pick = inLang.find((v) => (gender === "male" ? male.test(v.name) && !female.test(v.name) : female.test(v.name)));
+  return pick ?? inLang[0] ?? null;
+}
+
+async function sayWithSystem(text: string, lang: string | null, gender: string): Promise<void> {
+  const synth = window.speechSynthesis;
+  if (synth && synth.getVoices().length === 0) {
+    await new Promise<void>((r) => {
+      synth.addEventListener("voiceschanged", () => r(), { once: true });
+      setTimeout(r, 600);
+    });
+  }
+  if (synth && synth.getVoices().length > 0) {
+    await new Promise<void>((resolve) => {
+      const u = new SpeechSynthesisUtterance(text);
+      const voice = systemVoice(lang, gender);
+      if (voice) u.voice = voice;
+      u.lang = voice?.lang ?? lang ?? navigator.language;
+      u.onend = () => resolve();
+      u.onerror = () => resolve();
+      synth.cancel();
+      synth.speak(u);
+    });
+    return;
+  }
+  await FlowBridge.sayNative(text, lang);
+}
+
+async function sayMp3(base64: string): Promise<boolean> {
+  try {
+    const audio = new Audio(`data:audio/mpeg;base64,${base64}`);
+    await audio.play();
+    await new Promise<void>((resolve) => {
+      audio.onended = () => resolve();
+      audio.onerror = () => resolve();
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function say(s: Say) {
+  speaking = true;
+  wake();
+  try {
+    if (!(s.audio && (await sayMp3(s.audio)))) await sayWithSystem(s.text, s.lang, s.gender);
+  } finally {
+    speaking = false;
+    void FlowBridge.voiceDone(s.id);
+  }
+}
+
 // ── Boot ──────────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -392,7 +493,7 @@ async function main() {
   const status = await FlowBridge.status();
   if (status) platform = status.platform;
   state = (await FlowBridge.pillState()) ?? state;
-  visible = state.enabled || state.noteStartedAt !== null || state.announcement !== null;
+  visible = state.enabled || state.noteStartedAt !== null || state.announcement !== null || state.voice !== null;
   render();
   void onEvent<PillState>("pill-state", (s) => {
     state = s;
@@ -415,6 +516,7 @@ async function main() {
   void onEvent<boolean>("pill-pointer", (inside) => {
     if (!inside) setHovered(false);
   });
+  void onEvent<Say>("voice-say", (s) => void say(s));
   void onEvent<Settings>("settings-changed", (s) => {
     setLanguage(resolveLanguage(s.language, systemLanguages()));
     render();
