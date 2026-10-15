@@ -27,6 +27,11 @@ struct MoodDrop {
     var vy: CGFloat
     var born: Double
     var size: CGFloat
+    /// Each drop is its own: long or round, lighter or deeper blue, more or less clear.
+    var stretch: CGFloat
+    var tint: CGFloat
+    var alpha: Double
+    var wobble: CGFloat
 }
 
 /// One of Mochi's stressed hops, from side to side.
@@ -103,7 +108,7 @@ extension BotEngine {
         }
 
         // Low battery: heavy eyes, the odd yawn; nearly empty: asleep with his z's.
-        let ownEye = eyeOverride == nil || eyeOverride == .tired || eyeOverride == .closed || eyeOverride == .wide
+        let ownEye = eyeOverride == nil || eyeOverride == .tired || eyeOverride == .closed
         if sleeping {
             if ownEye { eyeOverride = .closed; eyeOverrideUntil = now + 0.4 }
             tgYaw = 0
@@ -119,10 +124,6 @@ extension BotEngine {
                 if nextMoodYawn > 0 { triggerEmote(.yawn, silent: true) }
                 nextMoodYawn = now + 24 + Double.random(in: 0...12)
             }
-        } else if moodBusy > 0.4, ownEye {
-            // Stressed: wide eyes.
-            eyeOverride = .wide
-            eyeOverrideUntil = now + 0.3
         }
     }
 
@@ -176,14 +177,20 @@ extension BotEngine {
 
     private func throwDrop(now: Double) {
         let side: CGFloat = Bool.random() ? 1 : -1
+        // Now and then a small round droplet, mostly a full drop.
+        let small = Double.random(in: 0...1) < 0.3
         let drop = MoodDrop(
-            x: side * 1.0 + ox, y: -0.4 + oy,
-            vx: side * CGFloat.random(in: 0.6...0.9),
-            vy: -CGFloat.random(in: 1.7...2.3),
+            x: side * CGFloat.random(in: 0.92...1.05) + ox, y: CGFloat.random(in: -0.5 ... -0.25) + oy,
+            vx: side * CGFloat.random(in: 0.5...1.0),
+            vy: -CGFloat.random(in: 1.5...2.4),
             born: now,
-            size: CGFloat.random(in: 0.11...0.15))
+            size: small ? CGFloat.random(in: 0.09...0.13) : CGFloat.random(in: 0.15...0.26),
+            stretch: small ? CGFloat.random(in: 0.75...0.95) : CGFloat.random(in: 1.0...1.55),
+            tint: CGFloat.random(in: 0...1),
+            alpha: Double.random(in: 0.7...1),
+            wobble: CGFloat.random(in: 0...(2 * .pi)))
         moodDrops.append(drop)
-        if moodDrops.count > 24 { moodDrops.removeFirst() }
+        if moodDrops.count > 28 { moodDrops.removeFirst() }
     }
 
     /// Red cheeks and a flushed body while the Mac is warm (inside the body's transform).
@@ -216,17 +223,24 @@ extension BotEngine {
                 let y = drop.y + drop.vy * a + Self.dropGravity * a * a / 2
                 let vy = drop.vy + Self.dropGravity * a
                 var c = context
-                c.opacity = Double(min(1, a / 0.06) * min(1, max(0, (1.05 - y) / 0.25)))
+                c.opacity = drop.alpha * Double(min(1, a / 0.06) * min(1, max(0, (1.05 - y) / 0.25)))
                 c.translateBy(x: baseX + x * R, y: baseY + y * R)
                 c.rotate(by: .radians(atan2(vy, drop.vx) - .pi / 2))
+                // It wobbles a little as it flies.
+                let wob = 1 + sin(a * 22 + drop.wobble) * 0.08
                 let s = R * drop.size
+                let long = drop.stretch * wob
                 var tear = Path()
-                tear.move(to: CGPoint(x: 0, y: -s * 1.15))
-                tear.addQuadCurve(to: CGPoint(x: 0, y: s * 0.7), control: CGPoint(x: s * 0.85, y: s * 0.2))
-                tear.addQuadCurve(to: CGPoint(x: 0, y: -s * 1.15), control: CGPoint(x: -s * 0.85, y: s * 0.2))
-                c.fill(tear, with: .color(Color(red: 0.486, green: 0.78, blue: 1)))
-                c.fill(Path(ellipseIn: CGRect(x: -s * 0.32, y: -s * 0.05, width: s * 0.22, height: s * 0.3)),
-                       with: .color(.white.opacity(0.7)))
+                tear.move(to: CGPoint(x: 0, y: -s * 1.15 * long))
+                tear.addQuadCurve(to: CGPoint(x: 0, y: s * 0.7), control: CGPoint(x: s * 0.9 / wob, y: s * 0.2))
+                tear.addQuadCurve(to: CGPoint(x: 0, y: -s * 1.15 * long), control: CGPoint(x: -s * 0.9 / wob, y: s * 0.2))
+                // From a pale sky blue to a deeper blue, lighter at the top.
+                let light = Color(red: 0.72 - 0.2 * drop.tint, green: 0.88 - 0.12 * drop.tint, blue: 1)
+                let deep = Color(red: 0.36 - 0.12 * drop.tint, green: 0.68 - 0.14 * drop.tint, blue: 0.98)
+                c.fill(tear, with: .linearGradient(Gradient(colors: [light, deep]),
+                                                   startPoint: CGPoint(x: 0, y: -s * long), endPoint: CGPoint(x: 0, y: s * 0.7)))
+                c.fill(Path(ellipseIn: CGRect(x: -s * 0.36, y: -s * 0.1 * long, width: s * 0.22, height: s * 0.32 * long)),
+                       with: .color(.white.opacity(0.4 + 0.35 * Double(drop.tint))))
             }
         }
 
