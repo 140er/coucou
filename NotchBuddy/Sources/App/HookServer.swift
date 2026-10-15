@@ -548,10 +548,15 @@ final class HookServer: @unchecked Sendable {
             guard tool != "AskUserQuestion" else { break }
             upsertTask(pill: agentId, display: display, working: true,
                        externalAgent: isExternalAgent ? validAgent : nil)
-            state.updateTask(id: agentId, state: .working)
+            let isQuestion = tool == "ask_question" || tool.hasSuffix(":ask_question")
+            state.updateTask(id: agentId, state: isQuestion ? .question : .working)
             let input = payload["tool_input"] as? [String: Any] ?? [:]
             let step = localizedStep(tool: tool, input: input)
             appendStep(id: agentId, step: step)
+            if isQuestion {
+                SoundEngine.shared.play("question")
+                if state.isPresent { expandIfNeeded(to: .overview) }
+            }
             nbLog("PreToolUse \(tool)")
 
         case "PostToolUse":
@@ -1146,11 +1151,12 @@ final class HookServer: @unchecked Sendable {
             "Task":         String(localized: "step.agent",      defaultValue: "Agent"),
             "LS":           String(localized: "step.lists",      defaultValue: "Lists"),
             "MultiEdit":    String(localized: "step.edits",      defaultValue: "Edits"),
-            "NotebookEdit": String(localized: "step.notebook",   defaultValue: "Notebook"),
-            // Codex tools
+             // Codex tools
             "apply_patch":  String(localized: "step.edits",     defaultValue: "Edits"),
             "update_plan":  String(localized: "step.tasks",     defaultValue: "Tasks"),
             "spawn_agent":  String(localized: "step.agent",     defaultValue: "Agent"),
+            // Antigravity tools
+            "ask_question": String(localized: "step.needs-input", defaultValue: "Needs input"),
         ]
         var label = labels[tool] ?? tool
 
@@ -1176,7 +1182,14 @@ final class HookServer: @unchecked Sendable {
                     }
                 }
             }
-            return label
+        }
+
+        // ask_question: extract the question string
+        if (tool == "ask_question" || tool.hasSuffix(":ask_question")),
+           let questions = input["questions"] as? [[String: Any]],
+           let firstQ = questions.first?["question"] as? String,
+           !firstQ.trimmingCharacters(in: .whitespaces).isEmpty {
+            return "\(label) · \(oneLine(firstQ))"
         }
 
         if let cmd = input["command"] as? String {

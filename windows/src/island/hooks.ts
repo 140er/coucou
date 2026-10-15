@@ -113,6 +113,7 @@ const TOOL_LABELS: Record<string, string> = {
   replace_file_content: N_("Edits"),
   read_url_content: N_("Fetches"),
   search_web: N_("Searches the web"),
+  ask_question: N_("Needs input"),
 };
 
 function stepLabel(tool: string, input: Record<string, unknown>): string {
@@ -126,6 +127,17 @@ function stepLabel(tool: string, input: Record<string, unknown>): string {
   if (file) return `${label} · ${lastPathComponent(file)}`;
   const query = str("query");
   if (query) return `${label} · ${query.slice(0, 40)}`;
+  if (
+    (tool === "ask_question" || tool.endsWith(":ask_question")) &&
+    Array.isArray(input.questions) &&
+    input.questions.length > 0
+  ) {
+    const firstQ = input.questions[0];
+    if (typeof firstQ === "object" && firstQ !== null && typeof (firstQ as Record<string, unknown>).question === "string") {
+      const q = ((firstQ as Record<string, unknown>).question as string).trim();
+      if (q) return `${label} · ${q.slice(0, 40)}`;
+    }
+  }
   return label;
 }
 
@@ -341,10 +353,18 @@ function handleHook(island: Island, payload: HookPayload) {
       ensurePill();
       supersedeStop();
       clearFinalLine(agentId);
-      State.updateTask(agentId, "working");
       const tool = payload.tool_name ?? "Tool";
-      State.appendStep(agentId, stepLabel(tool, payload.tool_input ?? {}));
-      surface("overview", false);
+      const isQuestion = tool === "ask_question" || tool.endsWith(":ask_question");
+      if (isQuestion) {
+        State.updateTask(agentId, "question");
+        State.appendStep(agentId, stepLabel(tool, payload.tool_input ?? {}));
+        Sound.play("question");
+        surface("overview", true);
+      } else {
+        State.updateTask(agentId, "working");
+        State.appendStep(agentId, stepLabel(tool, payload.tool_input ?? {}));
+        surface("overview", false);
+      }
       break;
     }
 

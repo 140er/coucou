@@ -695,3 +695,27 @@ test("a declined permission request leaves the stop timer running", () => {
   assert.deepEqual(sent("approval_decline"), [{ requestId: "r1" }, { requestId: "r2" }]);
   assert.equal(task().state, "idle");
 });
+
+test("Antigravity ask_question PreToolUse triggers question state and island alert", () => {
+  hook({
+    hook_event_name: "PreToolUse",
+    coucou_agent: "antigravity",
+    tool_name: "ask_question",
+    tool_input: {
+      questions: [{ question: "Which deployment strategy should we use?" }],
+    },
+  });
+  const t = task("agent_antigravity");
+  assert.ok(t);
+  assert.equal(t.state, "question");
+  assert.ok(t.steps.at(-1).includes("Which deployment strategy"));
+  assert.ok(asked.includes("alert:overview"));
+
+  // PostToolUse puts the pill back to working
+  hook({
+    hook_event_name: "PostToolUse",
+    coucou_agent: "antigravity",
+    tool_name: "ask_question",
+  });
+  assert.equal(t.state, "working");
+});
