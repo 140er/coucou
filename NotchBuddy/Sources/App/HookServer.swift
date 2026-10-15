@@ -585,6 +585,8 @@ final class HookServer: @unchecked Sendable {
 
         case "Stop":
             let scope = sessions.endTurn(pill: agentId, session: sessionId)
+            // A turn ending can hand the name to a sibling session that is still working.
+            applyDisplayOwner(pill: agentId)
             let rawFinal = (payload["last_assistant_message"] as? String)
                 ?? (payload["message"] as? String) ?? ""
             let finalText = DiffEngine.toOneLine(rawFinal)
@@ -620,7 +622,9 @@ final class HookServer: @unchecked Sendable {
 
         case "StopFailure":
             RecapStore.shared.stop(sessionId: recapSessionId)
-            guard sessions.endTurn(pill: agentId, session: sessionId) == .pill else { break }
+            let failScope = sessions.endTurn(pill: agentId, session: sessionId)
+            applyDisplayOwner(pill: agentId)
+            guard failScope == .pill else { break }
             state.updateTask(id: agentId, state: .error)
             SoundEngine.shared.play("error")
             if focused {
@@ -632,7 +636,9 @@ final class HookServer: @unchecked Sendable {
         case "Interrupt":
             // Codex: user stopped the turn
             RecapStore.shared.stop(sessionId: recapSessionId)
-            guard sessions.endTurn(pill: agentId, session: sessionId) == .pill else { break }
+            let interruptScope = sessions.endTurn(pill: agentId, session: sessionId)
+            applyDisplayOwner(pill: agentId)
+            guard interruptScope == .pill else { break }
             activeSessionId = nil
             state.updateTask(id: agentId, state: .idle)
             clearPillBadge(id: agentId)
