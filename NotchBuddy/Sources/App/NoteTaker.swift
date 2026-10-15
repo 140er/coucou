@@ -430,7 +430,8 @@ final class NoteTaker: ObservableObject {
             return text.isEmpty ? nil : text
         }
         if let text = await call(model) { return text }
-        return model == FlowCleanup.model ? nil : await call(FlowCleanup.model)
+        if model == FlowCleanup.model { return nil }
+        return await call(FlowCleanup.model)
     }
 
     // MARK: - Summary
