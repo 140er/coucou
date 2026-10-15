@@ -13,7 +13,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         #endif
         DemoEngine.shared.stop()
         HotKeyCenter.shared.unregisterAll()
-        ProjectTime.shared.flush()
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -30,7 +29,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         setupMenuBarItem()
         setupIsland()
         MachineVitals.shared.start()
-        ProjectTime.shared.start()
         #if !APPSTORE
         // Opened by hand (Finder, Dock, Spotlight): the Coucou window shows. Not at login.
         if FlowHubController.openAtLaunch && !FlowHubController.launchedAtLogin() {

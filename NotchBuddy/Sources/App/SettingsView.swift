@@ -193,7 +193,6 @@ struct SettingsView: View {
                         #if !APPSTORE
                         SettingsSidebarRow(title: "Voice",        icon: "mic.fill",                          color: "#F97316").tag("voice")
                         #endif
-                        SettingsSidebarRow(title: "Focus",        icon: "headphones",                        color: "#A78BFA").tag("focus")
                         SettingsSidebarRow(title: "Shortcuts",    icon: "keyboard.fill",                     color: "#6366F1").tag("shortcuts")
                     }
                     .listStyle(.sidebar)
@@ -269,7 +268,6 @@ struct SettingsView: View {
         case "integrations": return String(localized: "Integrations")
         case "voice":        return String(localized: "Voice")
         case "shortcuts":    return String(localized: "Shortcuts")
-        case "focus":        return String(localized: "Focus")
         default:             return String(localized: "General")
         }
     }
@@ -284,7 +282,6 @@ struct SettingsView: View {
         case "voice":        voiceSection
         #endif
         case "shortcuts":    ShortcutsSettingsView()
-        case "focus":        FocusSettingsView()
         default:             generalSection
         }
     }

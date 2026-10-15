@@ -15,7 +15,6 @@ final class IslandWindowController: NSWindowController {
     private var frameTimer: Timer?
     private var keyMonitor: Any?
     private var viewSubscription: AnyCancellable?
-    private var focusSubscription: AnyCancellable?
     private var displaySubscription: AnyCancellable?
     private var autoCloseSubscription: AnyCancellable?
     private var openOnHoverSubscription: AnyCancellable?
@@ -327,20 +326,6 @@ final class IslandWindowController: NSWindowController {
 
         // An approval, or an email prepared by voice, stays open until I click.
         fsm.isHeldOpen = { AppState.shared.pendingApproval != nil || AppState.shared.voiceMailDraft != nil }
-
-        // A Focus session keeps the compact island (and its timer) on screen until it ends.
-        fsm.keepsPetit = { FocusSession.shared.phase != .off }
-        focusSubscription = FocusSession.shared.$phase
-            .removeDuplicates()
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] phase in
-                guard let self else { return }
-                if phase != .off {
-                    self.fsm.reveal()
-                } else if self.fsm.state == .petit && !self.wasInIsland {
-                    self.fsm.mouseLeft()
-                }
-            }
 
         // Voice: wake phrase detected → open listening island
         #if !APPSTORE
@@ -728,9 +713,6 @@ final class IslandWindowController: NSWindowController {
             VoiceEngine.shared.startListeningDirectly()
             #endif
 
-        case .focusToggle:
-            FocusSession.shared.toggle()
-
         case .captureScreen:
             #if !APPSTORE
             ScreenCapture.shared.begin()
@@ -889,13 +871,13 @@ final class IslandWindowController: NSWindowController {
 
         // Hook server compact reveal (non-alert work events: session start, tool use, etc.)
         NotificationCenter.default.addObserver(forName: .hookReveal, object: nil, queue: .main) { [weak self] _ in
-            guard let self, !FocusSession.shared.isQuiet else { return }
+            guard let self else { return }
             self.fsm.reveal()
         }
 
         // Music started playing: reveal silently (no peek sound)
         NotificationCenter.default.addObserver(forName: .musicReveal, object: nil, queue: .main) { [weak self] _ in
-            guard let self, !FocusSession.shared.isQuiet else { return }
+            guard let self else { return }
             self.silentNextReveal = true
             self.fsm.reveal()
             self.silentNextReveal = false

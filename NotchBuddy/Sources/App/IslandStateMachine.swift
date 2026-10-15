@@ -20,9 +20,6 @@ final class IslandStateMachine {
 
     /// When non-nil and returns true, timers and mouse-leave never auto-collapse or hide the island.
     var isHeldOpen: (() -> Bool)?
-    /// When non-nil and returns true, the compact island does not hide by itself (a Focus
-    /// session shows its timer there).
-    var keepsPetit: (() -> Bool)?
 
     /// home → petit delay (seconds), kept in sync with the auto-close preference.
     var homeToPetitDelay: TimeInterval = 15 {
@@ -209,8 +206,7 @@ final class IslandStateMachine {
     private func schedulePetitHide() {
         petitHideWork?.cancel()
         let item = DispatchWorkItem { [weak self] in
-            guard let self, self.state == .petit, !(self.isHeldOpen?() ?? false),
-                  !(self.keepsPetit?() ?? false) else { return }
+            guard let self, self.state == .petit, !(self.isHeldOpen?() ?? false) else { return }
             self.transition(to: .hidden)
         }
         petitHideWork = item

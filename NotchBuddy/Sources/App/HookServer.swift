@@ -708,11 +708,6 @@ final class HookServer: @unchecked Sendable {
     @MainActor
     private func expandIfNeeded(to view: IslandView) {
         let state = AppState.shared
-        // Focus session: only a permission request or a question opens the island.
-        if FocusSession.shared.isQuiet && view != .approval && view != .question {
-            if view == .finished || view == .error { FocusSession.shared.noteHeld() }
-            return
-        }
         let isAlert: Bool
         switch view {
         case .approval, .question, .finished, .error, .confused: isAlert = true

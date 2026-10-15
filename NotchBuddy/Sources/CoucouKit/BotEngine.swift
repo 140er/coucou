@@ -294,9 +294,6 @@ final class BotEngine: ObservableObject {
     var nextNervousBlink: Double = 0
     var moodLiftApplied: CGFloat = 0
     var nextMoodYawn: Double = 0
-    // Focus headphones: 1 while a Focus session runs.
-    var headphonesTarget: CGFloat = 0
-    var headphones: CGFloat = 0
 
     // Mini wandering look (random, ignores mouse)
     var miniLookTarget: CGPoint = .zero
@@ -1315,7 +1312,7 @@ final class BotEngine: ObservableObject {
             drawBadge(context: context, size: size, badge: badge, R: R, rx: rx, ry: ry, cx: cx, cy: cy)
         }
 
-        // Heat waves and the Focus headphones (MochiMood.swift)
+        // Sweat and heat waves (MochiMood.swift)
         drawMoodExtras(context: context, R: R, rx: rx, ry: ry, cx: cx, cy: cy)
 
         // Particles

@@ -28,10 +28,8 @@ struct BotCanvasView: View {
                 engine.lookX = look.x
                 engine.lookY = look.y
                 engine.particleOverhang = particleOverhang
-                // How the Mac feels, and the Focus headphones (MochiMood.swift).
+                // How the Mac feels (MochiMood.swift).
                 engine.moodTarget = MachineVitals.shared.mood
-                engine.headphonesTarget = FocusSession.shared.phase == .focus
-                    && !(state.mode == .expanded && state.view == .wardrobe) ? 1 : 0
                 // Widen slot when file is hovering over the mailbox (morph > 0.5)
                 // Open mouth (hover=0.20R) when file dragged over box; close when not
                 if engine.morph > 0.3 {
@@ -79,9 +77,7 @@ struct BotCanvasView: View {
                 engine.setDancing(dancing)
                 let isWardrobe = state.mode == .expanded && state.view == .wardrobe
                 let isFocusMain = state.focusId == state.mainPillId || state.focusId == nil
-                // A Focus session: headphones only, the outfit comes off (the wardrobe still shows it).
-                let showOutfit = (isFocusMain || state.mode != .expanded || isWardrobe)
-                    && (FocusSession.shared.phase != .focus || isWardrobe)
+                let showOutfit = isFocusMain || state.mode != .expanded || isWardrobe
                 engine.setOutfit(showOutfit ? state.resolvedOutfit : .none,
                                  animated: state.view != .wardrobe)
 
@@ -192,8 +188,7 @@ struct BotCanvasView: View {
             engine.setState(state.effectiveState, force: true)
             let isWardrobe = state.mode == .expanded && state.view == .wardrobe
             let isFocusMain = state.focusId == state.mainPillId || state.focusId == nil
-            let showOutfit = (isFocusMain || state.mode != .expanded || isWardrobe)
-                && (FocusSession.shared.phase != .focus || isWardrobe)
+            let showOutfit = isFocusMain || state.mode != .expanded || isWardrobe
             engine.setOutfit(showOutfit ? state.resolvedOutfit : .none, animated: false)
         }
     }

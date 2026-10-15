@@ -382,7 +382,6 @@ Ces raccourcis fonctionnent en arrière-plan sans permission Accessibilité.
 | Couper le son (`toggleMute`) | ⌃⌥M | `shortcut.toggleMute.keyCode` / `.flags` | Oui |
 | Mochi sur le bureau (`toggleDesktopMochi`) | ⌃⌥D | `shortcut.toggleDesktopMochi.keyCode` / `.flags` | Oui |
 | Ouvrir la garde-robe (`openWardrobe`) | ⌃⌥G | `shortcut.openWardrobe.keyCode` / `.flags` | Oui |
-| Session Focus (`focusToggle`) | ⌃⌥F | `shortcut.focusToggle.keyCode` / `.flags` | Oui |
 | Capture d'écran pour Claude (`captureScreen`) | ⌃⌥X | `shortcut.captureScreen.keyCode` / `.flags` | Oui (hors App Store) |
 
 - Si Carbon ne peut pas enregistrer un raccourci (conflit système), l'action est marquée `.conflict` dans `HotKeyCenter` et un indicateur apparaît dans Réglages → Raccourcis.
@@ -434,15 +433,7 @@ Réglages → Raccourcis (`ShortcutsSettingsView`) :
 - Pointeur sur Mochi (ou sur l'île compacte) : une ligne sous l'île dit pourquoi, par ex. « CPU 94 % · node, Google Chrome » (les deux apps qui prennent le plus de processeur, lues seulement quand il transpire).
 - Dessin : `MochiMood.swift` (CoucouKit), l'iPhone ne règle jamais l'humeur.
 
-## 16. Focus
-
-- Démarrer : le minuteur de l'en-tête de l'île, ⌃⌥F, Réglages → Focus, ou « OK Coucou, focus 25 minutes » (outil `focus` de Claude).
-- Pendant la session : Mochi met un casque, l'île compacte affiche le temps restant à la place des pastilles et ne se cache plus, `SoundEngine` ne joue que `approval`, `question` et `approve`, et l'île ne s'ouvre plus d'elle-même (`HookServer.expandIfNeeded`, `.hookReveal`, `.musicReveal`). Une demande de permission ou une question passe toujours : un agent ne doit jamais attendre un minuteur.
-- Fin : son `finish`, émote proud, puis une pause (5 min par défaut, 0 = pas de pause). L'en-tête montre « Arrêter ? » au premier clic, le second arrête.
-- Concentration de macOS : une app ne peut pas l'activer. Deux raccourcis de l'app Raccourcis, nommés dans Réglages → Focus, sont lancés au début et à la fin (`/usr/bin/shortcuts run`, build GitHub).
-- Temps par projet (`ProjectTime`) : sans minuteur, à chaque changement d'app au premier plan, verrouillage et veille. Éditeurs (VS Code, Cursor, Windsurf, Zed, Xcode, JetBrains, Sublime) : projet tiré du titre de la fenêtre (Accessibilité). Terminal : dossier de la session d'agent qui y tourne. Plus de 5 min sans clavier ni souris ne comptent pas. `Application Support/NotchBuddy/projecttime.json`, 90 jours.
-
-## 17. Capture d'écran pour Claude (build GitHub)
+## 16. Capture d'écran pour Claude (build GitHub)
 
 - ⌃⌥X : l'île se replie, puis la sélection de macOS (`screencapture -i -x -o`) : zone, Espace pour une fenêtre, Échap pour annuler. Première fois : permission Enregistrement de l'écran.
 - L'image arrive dans l'île (vue `.capture`) : son `gulp`, Mochi avale. Boutons : **Coller** (dans l'app où on était : ⌘V, ou ⌃V dans un terminal pour Claude Code ; le presse-papiers reprend son contenu après 1,5 s), **Copier**, **Annoter** (fenêtre : flèche, cadre, crayon, 4 couleurs, ⌘Z, l'image annotée revient dans l'île), **Demander à Claude** (chat de l'île, image jointe).

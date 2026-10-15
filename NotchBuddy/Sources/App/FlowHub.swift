@@ -6,12 +6,12 @@ import SwiftUI
 /// The pages of the Coucou window: Flow (the dictation, the Notetaker) and the notch's settings.
 enum HubPage: String, CaseIterable, Identifiable {
     case dictation, notes, insights, dictionary, snippets, styles, settings
-    case general, pills, agents, chat, integrations, voice, focus, shortcuts
+    case general, pills, agents, chat, integrations, voice, shortcuts
 
     var id: String { rawValue }
 
     static let flowPages: [HubPage] = [.dictation, .notes, .insights, .dictionary, .snippets, .styles, .settings]
-    static let notchPages: [HubPage] = [.general, .pills, .agents, .chat, .integrations, .voice, .focus, .shortcuts]
+    static let notchPages: [HubPage] = [.general, .pills, .agents, .chat, .integrations, .voice, .shortcuts]
 
     /// The section of Settings this page shows, for the notch's pages.
     var settingsSection: String? {
@@ -22,7 +22,6 @@ enum HubPage: String, CaseIterable, Identifiable {
         case .chat:         return "chat"
         case .integrations: return "integrations"
         case .voice:        return "voice"
-        case .focus:        return "focus"
         case .shortcuts:    return "shortcuts"
         default:            return nil
         }
@@ -41,7 +40,6 @@ enum HubPage: String, CaseIterable, Identifiable {
         case .chat:         return String(localized: "Chat")
         case .integrations: return String(localized: "Integrations")
         case .voice:        return String(localized: "Voice")
-        case .focus:        return String(localized: "Focus")
         case .shortcuts:    return String(localized: "Shortcuts")
         case .dictation:  return String(localized: "hub.page.dictation")
         case .notes:      return String(localized: "hub.page.notes")
@@ -68,7 +66,6 @@ enum HubPage: String, CaseIterable, Identifiable {
         case .chat:         return "bubble.left.and.bubble.right"
         case .integrations: return "puzzlepiece.extension"
         case .voice:        return "waveform"
-        case .focus:        return "headphones"
         case .shortcuts:    return "keyboard"
         }
     }
@@ -120,7 +117,6 @@ extension HubPage {
         case .chat:         return String(localized: "hub.notch.chat")
         case .integrations: return String(localized: "hub.notch.integrations")
         case .voice:        return String(localized: "hub.notch.voice")
-        case .focus:        return String(localized: "hub.notch.focus")
         case .shortcuts:    return String(localized: "hub.notch.shortcuts")
         default:            return nil
         }

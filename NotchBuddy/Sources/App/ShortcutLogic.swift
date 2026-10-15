@@ -19,7 +19,6 @@ enum ShortcutAction: String, CaseIterable, Sendable {
     case desktopToggle     = "desktopToggle"      // ⌃⌥D — send Mochi to desktop / bring back
     case wardrobeToggle    = "wardrobeToggle"     // ⌃⌥G — open / close wardrobe
     case talkToCoucou      = "talkToCoucou"       // (unset) — start listening without wake phrase (non-AppStore)
-    case focusToggle       = "focusToggle"        // ⌃⌥F — start / stop a Focus session
     case captureScreen     = "captureScreen"      // ⌃⌥X — capture a part of the screen for Claude (non-AppStore)
 
     // MARK: UserDefaults keys
@@ -52,7 +51,6 @@ enum ShortcutAction: String, CaseIterable, Sendable {
         case .desktopToggle:     return String(localized: "shortcut.desktop-toggle")
         case .wardrobeToggle:    return String(localized: "shortcut.wardrobe")
         case .talkToCoucou:      return String(localized: "shortcut.talk-to-coucou")
-        case .focusToggle:       return String(localized: "shortcut.focus")
         case .captureScreen:     return String(localized: "shortcut.capture")
         }
     }
@@ -111,7 +109,6 @@ enum ShortcutLogic {
         .desktopToggle:     ShortcutSpec(keyCode: 2,  nsFlags: ShortcutSpec.ctrlOpt),  // ⌃⌥D
         .wardrobeToggle:    ShortcutSpec(keyCode: 5,  nsFlags: ShortcutSpec.ctrlOpt),  // ⌃⌥G
         .talkToCoucou:      ShortcutSpec(keyCode: 9,  nsFlags: ShortcutSpec.ctrlOpt),  // ⌃⌥V (disabled by default)
-        .focusToggle:       ShortcutSpec(keyCode: 3,  nsFlags: ShortcutSpec.ctrlOpt),  // ⌃⌥F
         .captureScreen:     ShortcutSpec(keyCode: 7,  nsFlags: ShortcutSpec.ctrlOpt),  // ⌃⌥X
     ]
 

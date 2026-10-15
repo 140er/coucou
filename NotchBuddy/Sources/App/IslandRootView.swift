@@ -125,8 +125,10 @@ struct IslandContainer: View {
 
             Group {
                 if state.mode == .compact {
-                    // A Focus session shows its time left in place of the pills.
-                    CompactFocusOrGrid(state: state, islandW: islandWidth, islandH: islandHeight)
+                    CompactMiniGrid(state: state)
+                        .scaleEffect(IslandRestingLayout(width: islandWidth, height: islandHeight).miniGridScale)
+                        .position(x: islandWidth - 40, y: islandHeight / 2)
+                        .transition(.opacity)
                 }
             }
             .animation(.easeInOut(duration: 0.25), value: state.mode == .compact)
@@ -561,9 +563,6 @@ struct IslandHeader: View {
                 }
                 #endif
                 HStack(spacing: 14) {
-                    // Focus: start a session, or the time left of the one running.
-                    FocusHeaderButton()
-
                     Button(action: {
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                             state.view = .settings

@@ -37,10 +37,9 @@ struct DesktopBotView: View {
                 engine.lookX = tanh((appState.mousePosition.x - viewState.lookOrigin.x) / 260)
                 engine.lookY = -tanh((appState.mousePosition.y - viewState.lookOrigin.y) / 200)
                 engine.moodTarget = MachineVitals.shared.mood
-                engine.headphonesTarget = FocusSession.shared.phase == .focus ? 1 : 0
 
                 // Desktop Mochi is always the "main" Mochi — always dressed
-                engine.setOutfit(FocusSession.shared.wear(appState.resolvedOutfit), animated: true)
+                engine.setOutfit(appState.resolvedOutfit, animated: true)
 
                 // Dance when music plays (same rules as compact mode)
                 let dancing: Bool = {
@@ -88,7 +87,7 @@ struct DesktopBotView: View {
         }
         .onAppear {
             engine.setState(appState.effectiveState, force: true)
-            engine.setOutfit(FocusSession.shared.wear(appState.resolvedOutfit), animated: false)
+            engine.setOutfit(appState.resolvedOutfit, animated: false)
         }
     }
 }
@@ -186,7 +185,7 @@ final class DesktopMochiController {
         // Build engine + hosting view (autoresizingMask lets it grow with the panel animation)
         let eng = BotEngine()
         eng.setState(AppState.shared.effectiveState, force: true)
-        eng.setOutfit(FocusSession.shared.wear(AppState.shared.resolvedOutfit), animated: false)
+        eng.setOutfit(AppState.shared.resolvedOutfit, animated: false)
         self.engine = eng
 
         let vs = DesktopBotViewState()
@@ -270,7 +269,7 @@ final class DesktopMochiController {
 
         let eng = BotEngine()
         eng.setState(AppState.shared.effectiveState, force: true)
-        eng.setOutfit(FocusSession.shared.wear(AppState.shared.resolvedOutfit), animated: false)
+        eng.setOutfit(AppState.shared.resolvedOutfit, animated: false)
         self.engine = eng
 
         let vs = DesktopBotViewState()

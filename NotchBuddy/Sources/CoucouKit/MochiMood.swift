@@ -45,7 +45,7 @@ struct MoodHop {
     var landed = true
 }
 
-// MARK: - Mochi's moods and the Focus headphones
+// MARK: - Mochi's moods
 
 extension BotEngine {
     /// States where the Mac's mood shows: Mochi is not asking for anything.
@@ -78,7 +78,6 @@ extension BotEngine {
         moodFull  += ((shows ? target.full : 0) - moodFull) * k
         moodTired += ((calmState ? target.tired : 0) - moodTired) * k
         let sleeping = calmState && target.asleep
-        headphones += (headphonesTarget - headphones) * CGFloat(1 - pow(0.02, dt))
 
         updateStress(now: now)
 
@@ -94,7 +93,7 @@ extension BotEngine {
             if moodBusy > 0.4 {
                 throwDrop(now: now)
                 if Double.random(in: 0...1) < 0.35 { throwDrop(now: now) }
-                nextMoodDrop = now + Double.random(in: 0.14...0.32)
+                nextMoodDrop = now + Double.random(in: 0.18...0.4)
             } else if moodHot > 0.6 {
                 throwDrop(now: now)
                 nextMoodDrop = now + Double.random(in: 0.6...1.1)
@@ -146,12 +145,12 @@ extension BotEngine {
                 // Next hop: somewhere else on the floor, never twice the same.
                 var next: CGFloat = 0
                 if level > 0.3 {
-                    repeat { next = CGFloat.random(in: -0.34...0.34) } while abs(next - hop.to) < 0.14
+                    repeat { next = CGFloat.random(in: -0.28...0.28) } while abs(next - hop.to) < 0.12
                 }
                 hop = MoodHop(from: hop.to, to: next, start: now,
-                              duration: Double.random(in: 0.15...0.3),
-                              height: level > 0.3 ? CGFloat.random(in: 0.08...0.22) : 0.05,
-                              rest: Double.random(in: 0.02...0.38), landed: false)
+                              duration: Double.random(in: 0.22...0.4),
+                              height: level > 0.3 ? CGFloat.random(in: 0.07...0.18) : 0.05,
+                              rest: Double.random(in: 0.1...0.55), landed: false)
             }
         }
         let q = CGFloat(min(1, hop.duration > 0 ? (now - hop.start) / hop.duration : 1))
@@ -179,13 +178,13 @@ extension BotEngine {
                 let back = Double.random(in: 0...1) < 0.3
                 stressLook = CGPoint(x: back ? -stressLook.x * 0.8 : CGFloat.random(in: -0.85...0.85),
                                      y: CGFloat.random(in: -0.3...0.18))
-                nextStressLook = now + Double.random(in: 0.09...0.3)
+                nextStressLook = now + Double.random(in: 0.16...0.45)
             }
             tgYaw = stressLook.x
             tgPitch = stressLook.y
             // Snap towards the new spot faster than a calm look.
-            if !locks.contains("yaw") { yaw += (tgYaw - yaw) * 0.35 * amount }
-            if !locks.contains("pitch") { pitch += (tgPitch - pitch) * 0.35 * amount }
+            if !locks.contains("yaw") { yaw += (tgYaw - yaw) * 0.2 * amount }
+            if !locks.contains("pitch") { pitch += (tgPitch - pitch) * 0.2 * amount }
             if now > nextNervousBlink {
                 if nextNervousBlink > 0, !locks.contains("open") {
                     if Double.random(in: 0...1) < 0.3 {
@@ -194,7 +193,7 @@ extension BotEngine {
                         blink()
                     }
                 }
-                nextNervousBlink = now + Double.random(in: 0.7...1.8)
+                nextNervousBlink = now + Double.random(in: 1.0...2.4)
             }
         }
         let tremble = min(1, level * 1.3)
@@ -243,7 +242,7 @@ extension BotEngine {
         ))
     }
 
-    /// What goes over Mochi in world space: sweat drops, heat waves, and the Focus headphones.
+    /// What goes over Mochi in world space: sweat drops and heat waves.
     func drawMoodExtras(context: GraphicsContext, R: CGFloat, rx: CGFloat, ry: CGFloat, cx: CGFloat, cy: CGFloat) {
         guard !isMini, morph < 0.3 else { return }
         let real = CACurrentMediaTime()
@@ -300,42 +299,6 @@ extension BotEngine {
                 c.stroke(wave, with: .color(Color(red: 1, green: 0.55, blue: 0.3)),
                          style: StrokeStyle(lineWidth: max(1, R * 0.07), lineCap: .round))
             }
-        }
-
-        // Focus headphones: a padded band hugging the head, a cup on each side.
-        guard headphones > 0.01 else { return }
-        var c = context
-        c.opacity = Double(min(1, headphones * 1.4))
-        c.translateBy(x: cx, y: cy - (1 - headphones) * R * 0.8)
-        if tilt != 0 { c.rotate(by: .radians(tilt)) }
-        c.scaleBy(x: sx, y: sy)
-        let shift = sin(yaw) * rx * 0.1
-        let dark = Color(red: 0.133, green: 0.145, blue: 0.172)        // #22252C
-        var band = Path()
-        band.move(to: CGPoint(x: -rx * 0.97 + shift, y: -ry * 0.18))
-        band.addCurve(to: CGPoint(x: rx * 0.97 + shift, y: -ry * 0.18),
-                      control1: CGPoint(x: -rx * 0.98 + shift, y: -ry * 1.52),
-                      control2: CGPoint(x: rx * 0.98 + shift, y: -ry * 1.52))
-        c.stroke(band, with: .color(dark), style: StrokeStyle(lineWidth: R * 0.15, lineCap: .round))
-        c.stroke(band, with: .color(Color(red: 0.227, green: 0.243, blue: 0.282)),
-                 style: StrokeStyle(lineWidth: R * 0.06, lineCap: .round))
-        for side in [-1.0, 1.0] as [CGFloat] {
-            let w = R * 0.44, h = R * 0.74
-            let ccx = side * rx * 0.97 + shift, ccy = ry * 0.04
-            var yoke = Path()
-            yoke.move(to: CGPoint(x: side * rx * 0.97 + shift, y: -ry * 0.2))
-            yoke.addLine(to: CGPoint(x: ccx, y: ccy - h * 0.3))
-            c.stroke(yoke, with: .color(dark), style: StrokeStyle(lineWidth: R * 0.1, lineCap: .round))
-            let shell = CGRect(x: ccx - w / 2, y: ccy - h / 2, width: w, height: h)
-            c.fill(Path(roundedRect: shell, cornerRadius: w / 2), with: .linearGradient(
-                Gradient(colors: [Color(red: 0.227, green: 0.243, blue: 0.278), Color(red: 0.11, green: 0.118, blue: 0.137)]),
-                startPoint: CGPoint(x: ccx, y: shell.minY), endPoint: CGPoint(x: ccx, y: shell.maxY)))
-            let face = CGRect(x: ccx - w * 0.3, y: ccy - h * 0.33, width: w * 0.6, height: h * 0.66)
-            c.fill(Path(roundedRect: face, cornerRadius: w * 0.3), with: .linearGradient(
-                Gradient(colors: [Color(red: 0.769, green: 0.71, blue: 0.992), Color(red: 0.545, green: 0.361, blue: 0.965)]),
-                startPoint: CGPoint(x: ccx, y: face.minY), endPoint: CGPoint(x: ccx, y: face.maxY)))
-            c.fill(Path(roundedRect: CGRect(x: ccx - w * 0.2, y: ccy - h * 0.27, width: w * 0.14, height: h * 0.24),
-                        cornerRadius: w * 0.07), with: .color(.white.opacity(0.35)))
         }
     }
 }
