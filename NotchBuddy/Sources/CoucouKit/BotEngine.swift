@@ -283,7 +283,11 @@ final class BotEngine: ObservableObject {
     var moodHot: CGFloat = 0
     var moodFull: CGFloat = 0
     var moodTired: CGFloat = 0
-    var nextMoodSweat: Double = 0
+    var nextMoodDrop: Double = 0
+    var moodDrops: [MoodDrop] = []
+    var hop = MoodHop()
+    var moodShiftApplied: CGFloat = 0
+    var moodLiftApplied: CGFloat = 0
     var nextMoodYawn: Double = 0
     // Focus headphones: 1 while a Focus session runs.
     var headphonesTarget: CGFloat = 0
@@ -868,6 +872,8 @@ final class BotEngine: ObservableObject {
     func update(dt: Double) {
         let now = CACurrentMediaTime()
         let dtCG = CGFloat(dt)
+        // The stressed hop of the last frame comes off first (MochiMood.swift).
+        undoMoodOffsets()
 
         // Process tweens
         for key in tweens.keys {

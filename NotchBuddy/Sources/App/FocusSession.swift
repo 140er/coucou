@@ -56,6 +56,9 @@ final class FocusSession: ObservableObject {
     /// Coucou keeps quiet: no sounds, the island no longer opens by itself.
     var isQuiet: Bool { phase == .focus }
 
+    /// What Mochi wears: nothing but his headphones during a session.
+    func wear(_ outfit: Outfit) -> Outfit { phase == .focus ? .none : outfit }
+
     // MARK: - Starting and stopping
 
     func start(minutes requested: Int? = nil) {
