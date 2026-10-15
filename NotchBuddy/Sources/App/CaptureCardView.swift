@@ -1,7 +1,7 @@
 #if !APPSTORE
 import SwiftUI
 
-/// The island after ⌃⌥X: Mochi on the left (he just swallowed the capture), the image, and what
+/// The island after ⌘⇧S: Mochi on the left (he just swallowed the capture), the image, and what
 /// to do with it. With Flow on, holding its key sends the image and your words together.
 struct CaptureCardView: View {
     @ObservedObject private var capture = ScreenCapture.shared

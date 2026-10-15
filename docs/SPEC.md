@@ -382,7 +382,7 @@ Ces raccourcis fonctionnent en arrière-plan sans permission Accessibilité.
 | Couper le son (`toggleMute`) | ⌃⌥M | `shortcut.toggleMute.keyCode` / `.flags` | Oui |
 | Mochi sur le bureau (`toggleDesktopMochi`) | ⌃⌥D | `shortcut.toggleDesktopMochi.keyCode` / `.flags` | Oui |
 | Ouvrir la garde-robe (`openWardrobe`) | ⌃⌥G | `shortcut.openWardrobe.keyCode` / `.flags` | Oui |
-| Capture d'écran pour Claude (`captureScreen`) | ⌃⌥X | `shortcut.captureScreen.keyCode` / `.flags` | Oui (hors App Store) |
+| Capture d'écran pour Claude (`captureScreen`) | ⌘⇧S | `shortcut.captureScreen.keyCode` / `.flags` | Oui (hors App Store) |
 
 - Si Carbon ne peut pas enregistrer un raccourci (conflit système), l'action est marquée `.conflict` dans `HotKeyCenter` et un indicateur apparaît dans Réglages → Raccourcis.
 - `toggleIsland` conserve les clés UserDefaults historiques (`hotkeyCode`, `hotkeyFlags`, `hotkeyEnabled`) pour ne pas casser les préférences existantes.
@@ -435,7 +435,7 @@ Réglages → Raccourcis (`ShortcutsSettingsView`) :
 
 ## 16. Capture d'écran pour Claude (build GitHub)
 
-- ⌃⌥X : l'île se replie, puis la sélection de macOS (`screencapture -i -x -o`) : zone, Espace pour une fenêtre, Échap pour annuler. Première fois : permission Enregistrement de l'écran.
+- ⌘⇧S : l'île se replie, puis la sélection de macOS (`screencapture -i -x -o`) : zone, Espace pour une fenêtre, Échap pour annuler. Première fois : permission Enregistrement de l'écran.
 - L'image arrive dans l'île (vue `.capture`) : son `gulp`, Mochi avale. Boutons : **Coller** (dans l'app où on était : ⌘V, ou ⌃V dans un terminal pour Claude Code ; le presse-papiers reprend son contenu après 1,5 s), **Copier**, **Annoter** (fenêtre : flèche, cadre, crayon, 4 couleurs, ⌘Z, l'image annotée revient dans l'île), **Demander à Claude** (chat de l'île, image jointe).
 - Avec Flow : tant que la capture est dans l'île (3 min max), maintenir la touche de dictée colle l'image puis les mots au relâchement.
 - Les captures restent dans le dossier temporaire (les 20 dernières) et ne partent vers Claude que si on les colle ou qu'on demande à Claude.

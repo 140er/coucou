@@ -3,7 +3,7 @@ import AppKit
 import Carbon.HIToolbox
 import SwiftUI
 
-/// ⌃⌥X: capture a part of the screen (a bug in a page, an error, a mock-up), Mochi swallows it,
+/// ⌘⇧S: capture a part of the screen (a bug in a page, an error, a mock-up), Mochi swallows it,
 /// and the island offers what to do with it: paste it into the prompt you were typing in, copy
 /// it, annotate it, or ask Claude about it in the island's chat.
 ///
@@ -35,8 +35,13 @@ final class ScreenCapture: ObservableObject {
     // MARK: - Capturing
 
     func begin() {
-        guard !running else { return }
+        guard !running else {
+            appendAppLog("nb.log", "[Capture] already selecting a zone")
+            return
+        }
+        SoundEngine.shared.play("tick")
         guard CGPreflightScreenCaptureAccess() else {
+            appendAppLog("nb.log", "[Capture] no Screen Recording permission: asking")
             // macOS asks once; then Coucou is to be allowed in Privacy → Screen Recording.
             _ = CGRequestScreenCaptureAccess()
             AppState.shared.noteMessage = String(localized: "capture.permission")
@@ -66,6 +71,7 @@ final class ScreenCapture: ObservableObject {
         do {
             running = true
             try task.run()
+            appendAppLog("nb.log", "[Capture] selection started")
         } catch {
             running = false
             appendAppLog("nb.log", "[Capture] screencapture failed: \(error)")
@@ -74,6 +80,7 @@ final class ScreenCapture: ObservableObject {
 
     private func finished(_ file: URL) {
         running = false
+        appendAppLog("nb.log", "[Capture] selection ended, image: \(FileManager.default.fileExists(atPath: file.path) ? "yes" : "no (cancelled)")")
         // Esc: no file, nothing happens.
         guard FileManager.default.fileExists(atPath: file.path), let picture = NSImage(contentsOf: file) else { return }
         show(file, picture)
