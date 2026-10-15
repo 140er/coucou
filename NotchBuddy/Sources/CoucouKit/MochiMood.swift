@@ -52,7 +52,7 @@ extension BotEngine {
     }
 
     /// Gravity of the sweat drops, in R per second².
-    private static let dropGravity: CGFloat = 5.5
+    private static let dropGravity: CGFloat = 6.0
 
     /// Takes back last frame's hop offset before anything else moves Mochi.
     func undoMoodOffsets() {
@@ -177,9 +177,9 @@ extension BotEngine {
     private func throwDrop(now: Double) {
         let side: CGFloat = Bool.random() ? 1 : -1
         let drop = MoodDrop(
-            x: side * 1.0 + ox, y: -0.3 + oy,
-            vx: side * CGFloat.random(in: 0.45...0.75),
-            vy: -CGFloat.random(in: 1.4...2.0),
+            x: side * 1.0 + ox, y: -0.4 + oy,
+            vx: side * CGFloat.random(in: 0.6...0.9),
+            vy: -CGFloat.random(in: 1.7...2.3),
             born: now,
             size: CGFloat.random(in: 0.11...0.15))
         moodDrops.append(drop)
