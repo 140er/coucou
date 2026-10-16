@@ -391,6 +391,526 @@
         }
       }
     },
+    "flow.ai.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الموجّه والترجمة"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "প্রম্পট ও অনুবাদ"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prompt and translation"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prompt y traducción"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prompt et traduction"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "प्रॉम्प्ट और अनुवाद"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prompt dan terjemahan"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prompt e tradução"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Промпт и перевод"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "提示词与翻译"
+          }
+        }
+      }
+    },
+    "flow.prompt-mode" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "وضع الموجّه"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "প্রম্পট মোড"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prompt mode"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modo prompt"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mode prompt"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "प्रॉम्प्ट मोड"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mode prompt"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modo prompt"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Режим промпта"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "提示词模式"
+          }
+        }
+      }
+    },
+    "flow.prompt-mode-detail" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "قل فكرتك كيفما اتفق: تُلصق كموجّه واضح (الهدف، السياق، الخطوات، القيود، متى يكتمل)، جاهز لـ Claude Code أو Cursor أو ChatGPT."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আপনার আইডিয়া যেমন খুশি বলুন: সেটি স্পষ্ট প্রম্পট হয়ে পেস্ট হবে (লক্ষ্য, প্রসঙ্গ, ধাপ, শর্ত, কখন শেষ), Claude Code, Cursor বা ChatGPT-এর জন্য তৈরি।"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Say your idea any old way: it's pasted as a clear prompt (goal, context, steps, constraints, done when), ready for Claude Code, Cursor or ChatGPT."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Di tu idea como te salga: se pega como un prompt claro (objetivo, contexto, pasos, restricciones, terminado cuando), listo para Claude Code, Cursor o ChatGPT."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dis ton idée en vrac : elle est collée comme un prompt clair (objectif, contexte, étapes, contraintes, fini quand), prêt pour Claude Code, Cursor ou ChatGPT."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "अपना आइडिया जैसे भी बोलें: वह एक साफ़ प्रॉम्प्ट (लक्ष्य, संदर्भ, चरण, शर्तें, कब पूरा) बनकर पेस्ट होगा, Claude Code, Cursor या ChatGPT के लिए तैयार।"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ucapkan idemu sesukamu: hasilnya ditempel sebagai prompt yang jelas (tujuan, konteks, langkah, batasan, selesai jika), siap untuk Claude Code, Cursor, atau ChatGPT."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fale sua ideia do jeito que vier: ela é colada como um prompt claro (objetivo, contexto, etapas, restrições, pronto quando), pronto para Claude Code, Cursor ou ChatGPT."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Говорите идею как получится: она вставится как чёткий промпт (цель, контекст, шаги, ограничения, критерии готовности) для Claude Code, Cursor или ChatGPT."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "随口说出你的想法：粘贴出来的是清晰的提示词（目标、背景、步骤、约束、完成标准），可直接用于 Claude Code、Cursor 或 ChatGPT。"
+          }
+        }
+      }
+    },
+    "flow.translate" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الترجمة إلى"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অনুবাদ করুন"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Translate into"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traducir a"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traduire en"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "अनुवाद करें"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terjemahkan ke"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traduzir para"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Переводить на"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "翻译成"
+          }
+        }
+      }
+    },
+    "flow.translate-detail" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تحدّث بأي لغة: تُلصق كلماتك باللغة التي تختارها."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "যেকোনো ভাষায় বলুন: আপনার কথা আপনার বেছে নেওয়া ভাষায় পেস্ট হবে।"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speak in any language: your words are pasted in the one you pick."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Habla en cualquier idioma: tus palabras se pegan en el que elijas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parle dans n'importe quelle langue : tes mots sont collés dans celle que tu choisis."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "किसी भी भाषा में बोलें: आपके शब्द आपकी चुनी भाषा में पेस्ट होंगे।"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bicara dalam bahasa apa pun: kata-katamu ditempel dalam bahasa yang kamu pilih."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fale em qualquer idioma: suas palavras são coladas no que você escolher."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Говорите на любом языке: слова вставятся на выбранном."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用任何语言说话：粘贴出来的是你选择的语言。"
+          }
+        }
+      }
+    },
+    "flow.translate-on %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مهما كانت لغتك، يُلصق بـ %@."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আপনি যে ভাষাতেই বলুন, %@ ভাষায় পেস্ট হবে।"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Whatever you speak, it's pasted in %@."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hables lo que hables, se pega en %@."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quoi que tu parles, c'est collé en %@."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "आप जो भी बोलें, %@ में पेस्ट होगा।"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apa pun bahasamu, ditempel dalam %@."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fale o que falar, é colado em %@."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "На каком бы языке вы ни говорили, вставится на: %@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无论你说什么语言，都会以%@粘贴。"
+          }
+        }
+      }
+    },
+    "flow.translate-off" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "كما أتحدث"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "যেমন বলি"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "As spoken"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Como hablo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comme je parle"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "जैसा बोलूँ"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sesuai ucapan"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Como eu falo"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Как говорю"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "按原语言"
+          }
+        }
+      }
+    },
+    "flow.ai-privacy" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "كلاهما يستخدم Claude بمفتاحك: الكلمات فقط تذهب إلى Anthropic، وصوتك لا يغادر جهاز Mac. إذا لم يرد Claude في الوقت المناسب، تُلصق الكلمات كما سُمعت."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "দুটোই আপনার নিজের কী দিয়ে Claude ব্যবহার করে: শুধু কথাগুলো Anthropic-এ যায়, আপনার কণ্ঠ কখনো নয়, সেটি আপনার Mac-এ থাকে। Claude সময়মতো উত্তর না দিলে কথাগুলো যেমন শোনা গেছে তেমনই পেস্ট হয়।"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Both use Claude with your own key: only the words go to Anthropic, never your voice, which stays on your Mac. If Claude doesn't answer in time, the words are pasted as heard."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ambos usan Claude con tu propia clave: solo las palabras van a Anthropic, nunca tu voz, que se queda en tu Mac. Si Claude no responde a tiempo, las palabras se pegan tal cual."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les deux passent par Claude avec ta propre clé : seuls les mots partent chez Anthropic, jamais ta voix, qui reste sur ton Mac. Si Claude ne répond pas à temps, les mots sont collés tels qu'entendus."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "दोनों आपकी अपनी कुंजी से Claude का उपयोग करते हैं: सिर्फ़ शब्द Anthropic को जाते हैं, आपकी आवाज़ कभी नहीं, वह आपके Mac पर रहती है। अगर Claude समय पर जवाब न दे, तो शब्द जैसे सुने गए वैसे पेस्ट होते हैं।"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keduanya memakai Claude dengan kuncimu sendiri: hanya kata-kata yang dikirim ke Anthropic, suaramu tidak pernah, tetap di Mac-mu. Jika Claude tidak menjawab tepat waktu, kata-kata ditempel apa adanya."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Os dois usam o Claude com sua própria chave: só as palavras vão para a Anthropic, nunca sua voz, que fica no seu Mac. Se o Claude não responder a tempo, as palavras são coladas como foram ouvidas."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Оба режима используют Claude с вашим ключом: в Anthropic уходят только слова, а голос остаётся на вашем Mac. Если Claude не ответит вовремя, слова вставятся как услышаны."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "两者都通过你自己的密钥使用 Claude：只有文字会发送给 Anthropic，声音始终留在你的 Mac 上。如果 Claude 没有及时回复，就按听到的原文粘贴。"
+          }
+        }
+      }
+    },
     "vitals.title" : {
       "extractionState" : "manual",
       "localizations" : {
