@@ -117,7 +117,8 @@ const TOOL_LABELS: Record<string, string> = {
 };
 
 function stepLabel(tool: string, input: Record<string, unknown>): string {
-  const label = TOOL_LABELS[tool] ? t(TOOL_LABELS[tool]) : tool;
+  const labelTool = tool === "ask_question" || tool.endsWith(":ask_question") ? "ask_question" : tool;
+  const label = TOOL_LABELS[labelTool] ? t(TOOL_LABELS[labelTool]) : tool;
   const str = (k: string) => (typeof input[k] === "string" ? (input[k] as string) : null);
   const cmd = str("command");
   if (cmd) return `${label} · ${cmd.slice(0, 40)}`;

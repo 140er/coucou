@@ -627,7 +627,12 @@ final class HookServer: @unchecked Sendable {
         case "StopFailure":
             RecapStore.shared.stop(sessionId: recapSessionId)
             guard sessions.endTurn(pill: agentId, session: sessionId) == .pill else { break }
+            nbLog("StopFailure \(sessionId.prefix(8)) — \(payload.keys.sorted().joined(separator: ", ")): \(Self.stopFailureDetail(payload) ?? "no detail")")
             state.updateTask(id: agentId, state: .error)
+            // The error view shows what went wrong (finalLine), not the last thing said before it.
+            if let idx = state.tasks.firstIndex(where: { $0.id == agentId }) {
+                state.tasks[idx].finalLine = Self.stopFailureDetail(payload)
+            }
             SoundEngine.shared.play("error")
             if focused {
                 expandIfNeeded(to: .error)
@@ -1151,14 +1156,16 @@ final class HookServer: @unchecked Sendable {
             "Task":         String(localized: "step.agent",      defaultValue: "Agent"),
             "LS":           String(localized: "step.lists",      defaultValue: "Lists"),
             "MultiEdit":    String(localized: "step.edits",      defaultValue: "Edits"),
-             // Codex tools
+            "NotebookEdit": String(localized: "step.notebook",   defaultValue: "Notebook"),
+            // Codex tools
             "apply_patch":  String(localized: "step.edits",     defaultValue: "Edits"),
             "update_plan":  String(localized: "step.tasks",     defaultValue: "Tasks"),
             "spawn_agent":  String(localized: "step.agent",     defaultValue: "Agent"),
             // Antigravity tools
             "ask_question": String(localized: "step.needs-input", defaultValue: "Needs input"),
         ]
-        var label = labels[tool] ?? tool
+        let labelTool = tool == "ask_question" || tool.hasSuffix(":ask_question") ? "ask_question" : tool
+        var label = labels[labelTool] ?? tool
 
         // Codex MCP tools arrive as mcp__server__tool — show "server · tool"
         if tool.hasPrefix("mcp__") {
@@ -1182,6 +1189,7 @@ final class HookServer: @unchecked Sendable {
                     }
                 }
             }
+            return label
         }
 
         // ask_question: extract the question string
@@ -3801,3 +3809,33 @@ except Exception:
     pass
 sys.exit(0)
 """
+
+
+extension HookServer {
+    /// What stopped a Claude Code turn, from its StopFailure hook: Claude Code's own message when
+    /// it sends one, else a sentence for the kind of error. nil when nothing says.
+    static func stopFailureDetail(_ payload: [String: Any]) -> String? {
+        for key in ["error_message", "error_details", "message"] {
+            if let text = payload[key] as? String, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                return DiffEngine.toOneLine(text)
+            }
+        }
+        if let error = payload["error"] as? [String: Any], let text = error["message"] as? String, !text.isEmpty {
+            return DiffEngine.toOneLine(text)
+        }
+        let kind = (payload["error_type"] as? String) ?? (payload["error"] as? String) ?? ""
+        switch kind {
+        case "rate_limit":            return String(localized: "Claude's rate limit is reached. Try again in a moment.")
+        case "overloaded":            return String(localized: "Claude is overloaded. Try again in a moment.")
+        case "authentication_failed", "oauth_org_not_allowed":
+                                      return String(localized: "Claude Code is not signed in, or its key is no longer valid.")
+        case "billing_error":         return String(localized: "Billing problem on the Claude account.")
+        case "server_error":          return String(localized: "Claude's servers had a problem. Try again.")
+        case "max_output_tokens":     return String(localized: "The answer was too long and was cut.")
+        case "model_not_found":       return String(localized: "This model is not available.")
+        default:
+            // A readable error is shown as it is; a bare status code ("500") says nothing.
+            return kind.count > 3 && Int(kind) == nil ? kind : nil
+        }
+    }
+}
