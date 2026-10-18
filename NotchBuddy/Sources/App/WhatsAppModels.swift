@@ -131,10 +131,14 @@ struct WAInbox: Equatable, Sendable {
         if seenIds.count > 2_000 { seenIds = Set(seenIds.suffix(1_000)) }
 
         let isGroup = WAJID.isGroup(chat)
+        let number = WAJID.displayNumber(chat)
+        // In a private chat the other person names it: never your own name on your own message.
+        let personName = isGroup || message.fromMe ? nil : nonEmpty(message.senderName)
         var conversation = conversations[chat] ?? WAConversation(
-            id: chat, name: name ?? message.chatName ?? (isGroup ? WAJID.displayNumber(chat) : nonEmpty(message.senderName) ?? WAJID.displayNumber(chat)),
+            id: chat, name: name ?? message.chatName ?? personName ?? number,
             isGroup: isGroup, lastActivity: message.date)
         if let name = name ?? message.chatName, !name.isEmpty { conversation.name = name }
+        else if conversation.name == number, let personName { conversation.name = personName }
         var msg = message
         msg.chat = chat
         conversation.messages.append(msg)
@@ -162,6 +166,11 @@ struct WAInbox: Equatable, Sendable {
 
     mutating func markRead(_ chat: String) {
         conversations[WAJID.normalized(chat)]?.unread = 0
+    }
+
+    /// History loaded at connection: whether it was read is unknown, so nothing counts as new.
+    mutating func markAllRead() {
+        for key in conversations.keys { conversations[key]?.unread = 0 }
     }
 
     mutating func rename(_ chat: String, to name: String) {
@@ -240,7 +249,7 @@ struct WAHTTPRequest: Equatable, Sendable {
 // MARK: - Hex
 
 extension Data {
-    var hexString: String { map { String(format: "%02x", $0) }.joined() }
+    var waHex: String { map { String(format: "%02x", $0) }.joined() }
 }
 
 /// Compares two strings in constant time (signatures).

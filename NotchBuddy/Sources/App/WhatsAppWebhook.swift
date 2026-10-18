@@ -12,6 +12,8 @@ final class WhatsAppWebhook: @unchecked Sendable {
 
     /// Called on `queue` with each complete request; returns the HTTP status to answer.
     var onRequest: (@Sendable (WAHTTPRequest) -> Int)?
+    /// Called on `queue`: true once listening, false when the port can't be used.
+    var onListening: (@Sendable (Bool) -> Void)?
 
     /// Starts listening; false when the port is taken or invalid.
     @discardableResult
@@ -24,9 +26,15 @@ final class WhatsAppWebhook: @unchecked Sendable {
         params.acceptLocalOnly = true
         guard let listener = try? NWListener(using: params) else { return false }
         listener.newConnectionHandler = { [weak self] connection in self?.serve(connection) }
-        listener.stateUpdateHandler = { state in
-            if case .failed(let error) = state {
+        listener.stateUpdateHandler = { [weak self] state in
+            switch state {
+            case .ready:
+                self?.onListening?(true)
+            case .failed(let error):
                 appendAppLog("nb.log", "[WhatsApp] webhook listener failed: \(error.localizedDescription)")
+                self?.onListening?(false)
+            default:
+                break
             }
         }
         listener.start(queue: queue)
@@ -68,7 +76,7 @@ final class WhatsAppWebhook: @unchecked Sendable {
                 self.receive(connection, buffer: buffer)
             case .done(let request):
                 let status = self.onRequest?(request) ?? 503
-                let reason = status == 200 ? "OK" : (status == 401 ? "Unauthorized" : "Error")
+                let reason = status == 200 ? "OK" : status == 401 ? "Unauthorized" : status == 404 ? "Not Found" : "Error"
                 connection.send(content: WAHTTPRequest.response(status, reason), completion: .contentProcessed { _ in connection.cancel() })
             default:
                 connection.send(content: WAHTTPRequest.response(400, "Bad Request"), completion: .contentProcessed { _ in connection.cancel() })
