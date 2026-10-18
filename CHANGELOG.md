@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased (macOS, GitHub build)
+
+- **WhatsApp in the notch** *(experimental)* — your incoming WhatsApp messages in a new green pill, one row per conversation with initials, name, the last message and the unread count; photos, voice messages and documents show as a label. Click a conversation to see its last ten messages and reply: Return sends, Shift-Return starts a new line, Esc goes back. Mochi smiles at a new message (with a sound if sounds are on). Groups stay quiet unless you're mentioned, chats you ignore never show, and read receipts go only when you open a conversation or reply. It goes through an unofficial gateway that runs on your Mac ([GOWA](https://github.com/aldinokemal/go-whatsapp-web-multidevice), or [OpenWA](https://github.com/rmyndharis/OpenWA)), which Coucou can start for you; scan its QR code right in Settings → Integrations → WhatsApp. Nothing leaves your Mac: messages stay in memory, are never logged or saved, and are forgotten when Coucou quits. Use it on your own account only: WhatsApp may restrict accounts that abuse it. Off by default; see [WhatsApp (experimental)](README.md#whatsapp-experimental)
+
 ## Windows and Linux 0.5.0 — October 15, 2026
 
 Windows and Linux catch up with the Mac's 0.3.0 and 0.4.0: the Coucou window, Flow dictation, the Notetaker and « OK Coucou ». All of it free and open source.
