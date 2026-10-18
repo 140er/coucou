@@ -273,6 +273,12 @@ extension WhatsAppTests {
             inbox.add(WAMessage(id: "o2", chat: "33600000003@s.whatsapp.net", sender: "x", senderName: "Marie", text: "yo",
                                 date: Date()), filters: WAFilters())
             check("…their reply does", inbox.conversations["33600000003@s.whatsapp.net"]?.name == "Marie")
+            let before = inbox.conversations["33600000003@s.whatsapp.net"]?.unread
+            check("history loaded on opening is quiet and unread untouched",
+                  inbox.add(WAMessage(id: "h1", chat: "33600000003@s.whatsapp.net", sender: "x", senderName: "Marie", text: "old",
+                                      date: Date(timeIntervalSinceNow: -3600)), filters: WAFilters(), history: true) == .quiet
+                  && inbox.conversations["33600000003@s.whatsapp.net"]?.unread == before
+                  && inbox.conversations["33600000003@s.whatsapp.net"]?.messages.first?.id == "h1")
         }
     }
 }

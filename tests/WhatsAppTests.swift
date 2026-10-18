@@ -80,6 +80,17 @@ enum WhatsAppTests {
             check("again a minute later", limit.allow(now: now.addingTimeInterval(61)))
         }
 
+        print("\nReplies")
+        do {
+            var inbox = WAInbox()
+            inbox.add(msg("r1", chat: "33600000001@s.whatsapp.net"), filters: WAFilters())
+            check("a reply in an open conversation", WAReply.check("ok !", to: "33600000001@s.whatsapp.net", in: inbox) == nil)
+            check("…under its other form too", WAReply.check("ok", to: "33600000001@c.us", in: inbox) == nil)
+            check("never to a new chat", WAReply.check("hi", to: "33699999999@s.whatsapp.net", in: inbox) == .notAConversation)
+            check("nothing empty", WAReply.check("  \n ", to: "33600000001@s.whatsapp.net", in: inbox) == .empty)
+            check("not too long", WAReply.check(String(repeating: "a", count: 4097), to: "33600000001@s.whatsapp.net", in: inbox) == .tooLong)
+        }
+
         print("\nThe webhook's HTTP request")
         do {
             let body = #"{"event":"message"}"#

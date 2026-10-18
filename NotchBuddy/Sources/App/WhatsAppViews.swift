@@ -12,18 +12,30 @@ let whatsAppAccent = "#25D366"
 /// When the gateway isn't linked, the card says why and leads to Settings.
 struct WhatsAppCardView: View {
     @ObservedObject private var wa = WhatsAppController.shared
+    /// The conversation opened in the card (phase 2: read and reply).
+    @State private var openChat: String? = nil
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            header
-            if wa.link == .connected {
-                list
+        Group {
+            if wa.link == .connected, let chat = openChat, let conversation = wa.inbox.conversations[chat] {
+                WhatsAppConversationView(conversation: conversation) {
+                    withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) { openChat = nil }
+                }
+                .transition(.opacity)
             } else {
-                status
+                VStack(alignment: .leading, spacing: 0) {
+                    header
+                    if wa.link == .connected {
+                        list
+                    } else {
+                        status
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .padding(.top, 4)
+                .transition(.opacity)
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .padding(.top, 4)
     }
 
     private var header: some View {
@@ -63,7 +75,12 @@ struct WhatsAppCardView: View {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 3) {
                     ForEach(conversations) { conversation in
-                        WhatsAppRow(conversation: conversation)
+                        WhatsAppRow(conversation: conversation) {
+                            wa.open(conversation.id)
+                            withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
+                                openChat = conversation.id
+                            }
+                        }
                     }
                 }
             }
@@ -174,6 +191,183 @@ struct WhatsAppRow: View {
     }
 }
 
+// MARK: - Conversation
+
+/// One conversation opened in the card: its last ten messages and a reply field.
+/// Return sends, Shift-Return starts a new line, Escape goes back to the list.
+/// Nothing is sent without the user's own Return or click.
+struct WhatsAppConversationView: View {
+    let conversation: WAConversation
+    let onClose: () -> Void
+    @ObservedObject private var wa = WhatsAppController.shared
+    @State private var draft = ""
+    @FocusState private var focused: Bool
+
+    private var shown: [WAMessage] { Array(conversation.messages.suffix(10)) }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            // Header: back, initials, name
+            HStack(spacing: 6) {
+                Button(action: onClose) {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundColor(Color(hex: "#6B7079"))
+                        .frame(width: 20, height: 20)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                WhatsAppAvatar(name: conversation.name, isGroup: conversation.isGroup, size: 16)
+                Text(conversation.name)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(Color(hex: "#F5F6F8"))
+                    .lineLimit(1).truncationMode(.tail)
+                    .help(WAJID.displayNumber(conversation.id))
+                Spacer(minLength: 2)
+            }
+            // The card's ↗ button sits in the top-right corner (36 pt, like every card header).
+            .padding(.trailing, 24)
+
+            // The last messages, newest at the bottom.
+            ScrollViewReader { proxy in
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        ForEach(shown) { message in
+                            WhatsAppBubble(message: message, isGroup: conversation.isGroup)
+                                .id(message.id)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .onAppear {
+                    if let last = shown.last?.id { proxy.scrollTo(last, anchor: .bottom) }
+                }
+                .onChange(of: shown.last?.id) { _, last in
+                    guard let last else { return }
+                    withAnimation(.easeOut(duration: 0.2)) { proxy.scrollTo(last, anchor: .bottom) }
+                }
+            }
+            .frame(maxHeight: .infinity)
+
+            // Reply
+            HStack(spacing: 6) {
+                TextField(String(localized: "whatsapp.reply.placeholder"), text: $draft, axis: .vertical)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 11))
+                    .lineLimit(1...3)
+                    .focused($focused)
+                    .onSubmit(submit)
+                    .onExitCommand(perform: onClose)
+                    .disabled(wa.sending)
+                if wa.sending {
+                    ProgressView().controlSize(.mini)
+                } else {
+                    Button(action: send) {
+                        Image(systemName: "arrow.up.circle.fill")
+                            .font(.system(size: 14))
+                            .foregroundColor(Color(hex: whatsAppAccent)
+                                .opacity(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.3 : 1))
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
+            .padding(.horizontal, 8).padding(.vertical, 4)
+            .background(RoundedRectangle(cornerRadius: 7).fill(Color.white.opacity(0.06)))
+
+            if let error = wa.sendError {
+                Text(verbatim: error)
+                    .font(.system(size: 9.5))
+                    .foregroundColor(Color(hex: "#F4505E"))
+                    .lineLimit(1).truncationMode(.tail)
+            }
+        }
+        .padding(.top, 4)
+        .padding(.leading, 108)
+        .padding(.trailing, 12)
+        .padding(.bottom, 4)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .contentShape(Rectangle())
+        .onAppear { focused = true }
+        .onChange(of: draft) { _, text in
+            wa.composing = !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
+        .onDisappear { wa.composing = false }
+    }
+
+    /// Return: sends. Shift-Return: a new line instead.
+    private func submit() {
+        if NSEvent.modifierFlags.contains(.shift) {
+            draft += "\n"
+            focused = true
+            return
+        }
+        send()
+    }
+
+    private func send() {
+        let text = draft
+        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        Task {
+            if await wa.send(text, to: conversation.id) { draft = "" }
+            focused = true
+        }
+    }
+}
+
+/// One message in the conversation: theirs on the left, yours tinted green on the right.
+struct WhatsAppBubble: View {
+    let message: WAMessage
+    let isGroup: Bool
+
+    var body: some View {
+        let (key, value) = message.previewKey
+        let label = key.isEmpty ? nil : NSLocalizedString(key, comment: "")
+        HStack(spacing: 0) {
+            if message.fromMe { Spacer(minLength: 40) }
+            VStack(alignment: .leading, spacing: 1) {
+                if isGroup && !message.fromMe && !message.senderName.isEmpty {
+                    Text(message.senderName)
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundColor(Color(hex: whatsAppAccent).opacity(0.8))
+                        .lineLimit(1)
+                }
+                if let label {
+                    Label(label, systemImage: Self.icon(message.media))
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(Color(hex: "#9398A1"))
+                }
+                if !value.isEmpty {
+                    Text(value)
+                        .font(.system(size: 10.5))
+                        .foregroundColor(Color(hex: message.fromMe ? "#E8E9EC" : "#C5C8CD"))
+                        .textSelection(.enabled)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .padding(.horizontal, 7).padding(.vertical, 3)
+            .background(
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(message.fromMe ? Color(hex: whatsAppAccent).opacity(0.16) : Color.white.opacity(0.06))
+            )
+            if !message.fromMe { Spacer(minLength: 40) }
+        }
+    }
+
+    private static func icon(_ media: WAMedia) -> String {
+        switch media {
+        case .image:            return "photo"
+        case .video:            return "video"
+        case .audio, .voice:    return "waveform"
+        case .document:         return "doc"
+        case .sticker:          return "face.smiling"
+        case .location:         return "mappin.and.ellipse"
+        case .contact:          return "person.crop.circle"
+        case .none, .other:     return "ellipsis.bubble"
+        }
+    }
+}
+
 /// Initials on WhatsApp green: no photo is ever fetched (they live on WhatsApp's servers).
 struct WhatsAppAvatar: View {
     let name: String
@@ -234,6 +428,7 @@ struct WhatsAppSettingsSection: View {
     @State private var credential = KeychainStore.shared.get(WhatsAppSettings.credentialKey) ?? ""
     @State private var port = String(WhatsAppSettings.port)
     @State private var respectFocus = WhatsAppSettings.respectFocus
+    @State private var markReadOnOpen = WhatsAppSettings.markReadOnOpen
     @State private var testResult: String?
     @State private var testing = false
     @State private var ignoreEntry = ""
@@ -319,6 +514,13 @@ struct WhatsAppSettingsSection: View {
                         .foregroundColor(Color(hex: "#8E939C"))
                         .fixedSize(horizontal: false, vertical: true)
                 }
+
+                Toggle("whatsapp.mark-read-on-open", isOn: $markReadOnOpen)
+                    .onChange(of: markReadOnOpen) { _, on in WhatsAppSettings.markReadOnOpen = on }
+                Text("whatsapp.mark-read.hint")
+                    .font(.system(size: 10))
+                    .foregroundColor(Color(hex: "#8E939C"))
+                    .fixedSize(horizontal: false, vertical: true)
 
                 ignoredChats
 

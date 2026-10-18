@@ -79,6 +79,17 @@
    "ru": "7 дней",
    "id": "7 hari"
   },
+  "A few replies a minute at most: wait a moment.": {
+   "zh-Hans": "每分钟最多回复几条：请稍等。",
+   "hi": "एक मिनट में कुछ ही जवाब: थोड़ा रुकें।",
+   "es": "Unas pocas respuestas por minuto como máximo: espera un momento.",
+   "ar": "بضعة ردود في الدقيقة كحد أقصى: انتظر قليلًا.",
+   "fr": "Quelques réponses par minute au maximum : attends un instant.",
+   "bn": "মিনিটে সর্বোচ্চ কয়েকটি উত্তর: একটু অপেক্ষা করুন।",
+   "pt-BR": "No máximo algumas respostas por minuto: espere um pouco.",
+   "ru": "Не больше нескольких ответов в минуту: подождите немного.",
+   "id": "Paling banyak beberapa balasan per menit: tunggu sebentar."
+  },
   "A wrong word, or the wrong person? Fix it from the line's ⋯ menu. Words you correct are remembered for your next calls.": {
    "zh-Hans": "词听错了，或说话人不对？在该行的 ⋯ 菜单里修改。你改正的词会被记住，用于之后的通话。",
    "hi": "कोई शब्द गलत है, या व्यक्ति गलत? पंक्ति के ⋯ मेनू से ठीक करें। आप जो शब्द सुधारते हैं, वे अगली कॉल के लिए याद रखे जाते हैं।",
@@ -3016,6 +3027,17 @@
    "ru": "Отметить как прочитанное",
    "id": "Tandai sudah dibaca"
   },
+  "Mark as read when I open a conversation": {
+   "zh-Hans": "打开对话时标记为已读",
+   "hi": "बातचीत खोलने पर पढ़ा हुआ मार्क करें",
+   "es": "Marcar como leído al abrir una conversación",
+   "ar": "تعليم كمقروء عند فتح محادثة",
+   "fr": "Marquer comme lu quand j’ouvre une conversation",
+   "bn": "কথোপকথন খুললে পড়া হিসেবে চিহ্নিত করো",
+   "pt-BR": "Marcar como lida ao abrir uma conversa",
+   "ru": "Отмечать прочитанным при открытии беседы",
+   "id": "Tandai dibaca saat saya membuka percakapan"
+  },
   "Me": {
    "zh-Hans": "我",
    "hi": "मैं",
@@ -3763,6 +3785,17 @@
    "pt-BR": "Ok, vou deixar como está",
    "ru": "Хорошо, оставляю как есть",
    "id": "Baik, biarkan seperti itu"
+  },
+  "Off: marked read only when you reply. Never when a message just arrives.": {
+   "zh-Hans": "关闭时：仅在你回复时标记为已读。收到消息时从不标记。",
+   "hi": "बंद: सिर्फ़ जवाब देने पर पढ़ा हुआ। संदेश आने भर से कभी नहीं।",
+   "es": "Desactivado: se marca como leído solo al responder. Nunca solo por recibirlo.",
+   "ar": "عند الإيقاف: تُعلَّم كمقروءة فقط عند الرد. لا تُعلَّم أبدًا لمجرد الوصول.",
+   "fr": "Désactivé : marqué comme lu seulement quand tu réponds. Jamais à la simple réception.",
+   "bn": "বন্ধ: শুধু উত্তর দিলে পড়া হিসেবে চিহ্নিত। বার্তা এলেই কখনও নয়।",
+   "pt-BR": "Desativado: marcada como lida só quando você responde. Nunca só por chegar.",
+   "ru": "Выключено: прочитанным отмечается только при ответе. Никогда при простом получении.",
+   "id": "Mati: ditandai dibaca hanya saat kamu membalas. Tidak pernah hanya karena pesan masuk."
   },
   "Ollama disconnected.": {
    "zh-Hans": "Ollama 已断开连接。",
@@ -4716,9 +4749,9 @@
    "es": "Quitar",
    "ar": "إزالة",
    "fr": "Retirer",
-   "bn": "সরাও",
+   "bn": "সরান",
    "pt-BR": "Remover",
-   "ru": "Убрать",
+   "ru": "Удалить",
    "id": "Hapus"
   },
   "Remove from favorites": {
@@ -4830,6 +4863,17 @@
    "pt-BR": "Responder no terminal",
    "ru": "Ответить в терминале",
    "id": "Balas di terminal"
+  },
+  "Reply…  (⇧↩ new line)": {
+   "zh-Hans": "回复…（⇧↩ 换行）",
+   "hi": "जवाब दें…  (⇧↩ नई लाइन)",
+   "es": "Responder…  (⇧↩ nueva línea)",
+   "ar": "رد…  (⇧↩ سطر جديد)",
+   "fr": "Répondre…  (⇧↩ nouvelle ligne)",
+   "bn": "উত্তর দিন…  (⇧↩ নতুন লাইন)",
+   "pt-BR": "Responder…  (⇧↩ nova linha)",
+   "ru": "Ответить…  (⇧↩ новая строка)",
+   "id": "Balas…  (⇧↩ baris baru)"
   },
   "Request permissions": {
    "zh-Hans": "请求权限",
@@ -6029,6 +6073,17 @@
    "pt-BR": "Hoje",
    "ru": "Сегодня",
    "id": "Hari ini"
+  },
+  "Too long for one message (4,096 characters at most).": {
+   "zh-Hans": "单条消息过长（最多 4096 个字符）。",
+   "hi": "एक संदेश के लिए बहुत लंबा (अधिकतम 4,096 अक्षर)।",
+   "es": "Demasiado largo para un mensaje (4096 caracteres como máximo).",
+   "ar": "طويل جدًا لرسالة واحدة (4096 حرفًا كحد أقصى).",
+   "fr": "Trop long pour un seul message (4 096 caractères au maximum).",
+   "bn": "একটি বার্তার জন্য খুব লম্বা (সর্বোচ্চ ৪০৯৬ অক্ষর)।",
+   "pt-BR": "Longo demais para uma mensagem (no máximo 4.096 caracteres).",
+   "ru": "Слишком длинно для одного сообщения (не больше 4096 символов).",
+   "id": "Terlalu panjang untuk satu pesan (maksimal 4.096 karakter)."
   },
   "Too many hits at once.": {
    "zh-Hans": "一次点击太多次了。",

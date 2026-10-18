@@ -28,6 +28,12 @@ enum WhatsAppSettings {
         get { let p = ud.integer(forKey: "whatsappPort"); return (1024...65535).contains(p) ? p : defaultPort }
         set { ud.set(newValue, forKey: "whatsappPort") }
     }
+    /// Read receipts: sent when a conversation is opened (on), or only when replying (off).
+    /// Never on mere reception.
+    static var markReadOnOpen: Bool {
+        get { ud.object(forKey: "whatsappMarkReadOnOpen") as? Bool ?? true }
+        set { ud.set(newValue, forKey: "whatsappMarkReadOnOpen") }
+    }
     static var respectFocus: Bool {
         get { ud.object(forKey: "whatsappRespectFocus") as? Bool ?? true }
         set { ud.set(newValue, forKey: "whatsappRespectFocus") }
@@ -111,6 +117,12 @@ final class WhatsAppController: ObservableObject {
     @Published private(set) var me: String?
     /// Whether macOS lets Coucou read the Focus state (nil: not asked yet).
     @Published private(set) var focusReadable: Bool?
+    /// A reply on its way.
+    @Published private(set) var sending = false
+    /// A reply is being typed: the island stays open until it is sent or cleared.
+    var composing = false
+    /// Why the last reply didn't go (shown under the field until the next try).
+    @Published private(set) var sendError: String?
     @Published var filters = WhatsAppSettings.filters {
         didSet { WhatsAppSettings.filters = filters }
     }
@@ -129,6 +141,9 @@ final class WhatsAppController: ObservableObject {
     private var lastPoll = Date()
     private var lastAnnounce: Date = .distantPast
     private var namingGroups: Set<String> = []
+    private var rateLimit = WARateLimit(limit: 6, window: 60)
+    /// Failed checks in a row (the gateway down, refusing, unreachable).
+    private var failures = 0
     private var cancellables = Set<AnyCancellable>()
 
     private var shouldRun: Bool {
@@ -210,6 +225,7 @@ final class WhatsAppController: ObservableObject {
         backfilled = false
         lastWebhook = nil
         namingGroups = []
+        failures = 0
         if forget {
             inbox.clear()
             resetTask()
@@ -227,7 +243,10 @@ final class WhatsAppController: ObservableObject {
     private func onTick() {
         tick += 1
         if link != .connected {
-            refresh()                      // every 5 s while linking (QR, gateway coming up)
+            // Every 5 s while linking (QR, gateway coming up); every 30 s once the gateway
+            // has been down for a minute.
+            if failures > 12 && tick % 6 != 0 { return }
+            refresh()
         } else {
             if tick % 12 == 0 { refresh() } // every minute: still linked?
             if tick % 4 == 0 { poll() }     // every 20 s, unless the webhook delivers
@@ -244,6 +263,7 @@ final class WhatsAppController: ObservableObject {
             do {
                 let status = try await provider.status()
                 guard self.provider != nil else { return }
+                if failures > 0 { failures = 0; showDown(false) }
                 me = status.me
                 switch status.link {
                 case .connected:
@@ -265,7 +285,7 @@ final class WhatsAppController: ObservableObject {
             } catch let error as WAError {
                 apply(error)
             } catch {
-                link = .unreachable
+                apply(.unreachable)
             }
         }
     }
@@ -277,6 +297,18 @@ final class WhatsAppController: ObservableObject {
         case .notLoggedIn:      link = .needsQR
         case .refused(let why): link = .failed(why)
         }
+        guard error != .notLoggedIn else { return }
+        failures += 1
+        // Twice in a row (not a gateway still starting): a small red dot on the pill, nothing more.
+        if failures == 2 { showDown(true) }
+    }
+
+    /// The discreet error pill: the pill's red badge while the gateway is down.
+    private func showDown(_ down: Bool) {
+        let state = AppState.shared
+        guard let i = state.tasks.firstIndex(where: { $0.id == Self.pillId }) else { return }
+        if down { state.tasks[i].pillBadge = .error }
+        else if state.tasks[i].pillBadge == .error { state.tasks[i].pillBadge = nil }
     }
 
     /// One check from Settings' "Test connection": what the gateway says, in a sentence.
@@ -397,6 +429,81 @@ final class WhatsAppController: ObservableObject {
         Task {
             if let name = await provider.groupName(chat) { inbox.rename(chat, to: name) }
         }
+    }
+
+    // MARK: - Conversation (phase 2)
+
+    /// A conversation opened in the card: its latest messages from the gateway, and the read
+    /// receipt when Settings says so.
+    func open(_ chat: String) {
+        sendError = nil
+        guard let provider else { return }
+        if WhatsAppSettings.markReadOnOpen { markRead(chat) }
+        Task {
+            guard let history = try? await provider.messages(chat: chat, limit: 10, me: me), self.provider != nil else { return }
+            for message in history { inbox.add(message, filters: filters, history: true) }
+        }
+    }
+
+    /// Marks the chat read here and on WhatsApp (up to its newest received message).
+    func markRead(_ chat: String) {
+        let key = WAJID.normalized(chat)
+        guard let provider, let conv = inbox.conversations[key] else { return }
+        let hadUnread = conv.unread > 0
+        inbox.markRead(key)
+        if inbox.totalUnread == 0 { clearBadge() }
+        // Nothing new: no receipt to send.
+        guard hadUnread else { return }
+        let last = conv.messages.last { !$0.fromMe }?.id
+        Task { try? await provider.markRead(chat: key, lastIncoming: last) }
+    }
+
+    /// Sends a reply. Only to a conversation already in the inbox, one at a time, a few a minute.
+    /// True once the gateway took it.
+    func send(_ text: String, to chat: String) async -> Bool {
+        let key = WAJID.normalized(chat)
+        guard let provider, !sending else { return false }
+        if let refusal = WAReply.check(text, to: key, in: inbox) {
+            if refusal == .tooLong { sendError = String(localized: "whatsapp.reply.too-long") }
+            return false
+        }
+        guard rateLimit.allow() else {
+            sendError = String(localized: "whatsapp.reply.too-fast")
+            return false
+        }
+        let body = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        sending = true
+        sendError = nil
+        defer { sending = false }
+        do {
+            let id = try await provider.send(text: body, to: key)
+            var mine = WAMessage(id: id ?? "coucou-\(UUID().uuidString)", chat: key, sender: me ?? "",
+                                 senderName: "", text: body, date: Date(), fromMe: true)
+            mine.chatName = inbox.conversations[key]?.name
+            inbox.add(mine, filters: filters)
+            // Replying reads the conversation, whatever the setting.
+            let last = inbox.conversations[key]?.messages.last { !$0.fromMe }?.id
+            if inbox.totalUnread == 0 { clearBadge() }
+            Task { try? await provider.markRead(chat: key, lastIncoming: last) }
+            return true
+        } catch let error as WAError {
+            switch error {
+            case .unreachable:      sendError = String(localized: "whatsapp.status.unreachable")
+            case .unauthorized:     sendError = String(localized: "whatsapp.status.unauthorized")
+            case .notLoggedIn:      sendError = String(localized: "whatsapp.status.needs-qr")
+            case .refused(let why): sendError = why
+            }
+            return false
+        } catch {
+            sendError = String(localized: "whatsapp.status.unreachable")
+            return false
+        }
+    }
+
+    private func clearBadge() {
+        let state = AppState.shared
+        guard let i = state.tasks.firstIndex(where: { $0.id == Self.pillId }) else { return }
+        state.tasks[i].pillBadge = nil
     }
 
     // MARK: - Mochi

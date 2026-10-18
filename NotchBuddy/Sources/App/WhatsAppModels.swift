@@ -123,7 +123,9 @@ struct WAInbox: Equatable, Sendable {
     /// Adds a message to its conversation. `.notify` when it should reach you (Mochi reacts),
     /// `.quiet` when it is kept but stays silent (a muted group, your own message).
     @discardableResult
-    mutating func add(_ message: WAMessage, filters: WAFilters, name: String? = nil) -> Outcome {
+    /// `history`: an older message loaded on demand (a conversation opened): kept, never counted
+    /// as unread, never announced.
+    mutating func add(_ message: WAMessage, filters: WAFilters, name: String? = nil, history: Bool = false) -> Outcome {
         guard !seenIds.contains(message.id) else { return .duplicate }
         let chat = WAJID.normalized(message.chat)
         guard !filters.ignored.contains(chat) else { return .ignored }
@@ -147,7 +149,9 @@ struct WAInbox: Equatable, Sendable {
         conversation.lastActivity = max(conversation.lastActivity, message.date)
 
         let outcome: Outcome
-        if message.fromMe {
+        if history {
+            outcome = .quiet
+        } else if message.fromMe {
             // You answered from the phone: it is read there.
             conversation.unread = 0
             outcome = .quiet
@@ -185,6 +189,22 @@ struct WAInbox: Equatable, Sendable {
     }
 
     private func nonEmpty(_ s: String) -> String? { s.isEmpty ? nil : s }
+}
+
+/// What may be sent from the notch: a reply, in a conversation already there, one at a time.
+enum WAReply {
+    enum Refusal: Equatable, Sendable { case empty, tooLong, notAConversation }
+    /// The gateways' own cap (OpenWA's send-text takes 4,096 characters at most).
+    static let maxLength = 4096
+
+    static func check(_ text: String, to chat: String, in inbox: WAInbox) -> Refusal? {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty { return .empty }
+        if trimmed.count > maxLength { return .tooLong }
+        // Never a new chat, never a list of recipients: only a conversation that wrote to you.
+        guard inbox.conversations[WAJID.normalized(chat)] != nil else { return .notAConversation }
+        return nil
+    }
 }
 
 /// A few sends a minute at most, whatever is clicked: Coucou is no bulk sender.
