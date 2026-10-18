@@ -203,6 +203,8 @@ final class WhatsAppController: ObservableObject {
         link = .connecting
         startListener(kind: provider.kind)
         if WhatsAppSettings.respectFocus { askFocus() }
+        // GOWA started by Coucou when asked to (Settings), before the first check.
+        WhatsAppGOWAProcess.shared.startIfNeeded()
         let t = Timer(timeInterval: 5, repeats: true) { _ in
             MainActor.assumeIsolated { WhatsAppController.shared.onTick() }
         }
@@ -226,6 +228,8 @@ final class WhatsAppController: ObservableObject {
         lastWebhook = nil
         namingGroups = []
         failures = 0
+        // Started again on the next begin() with the new settings, or gone for good.
+        WhatsAppGOWAProcess.shared.stop()
         if forget {
             inbox.clear()
             resetTask()
@@ -301,6 +305,8 @@ final class WhatsAppController: ObservableObject {
         failures += 1
         // Twice in a row (not a gateway still starting): a small red dot on the pill, nothing more.
         if failures == 2 { showDown(true) }
+        // GOWA started by Coucou and gone (crash, killed): started again, once a minute at most.
+        if error == .unreachable { WhatsAppGOWAProcess.shared.startIfNeeded() }
     }
 
     /// The discreet error pill: the pill's red badge while the gateway is down.

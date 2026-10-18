@@ -429,6 +429,8 @@ struct WhatsAppSettingsSection: View {
     @State private var port = String(WhatsAppSettings.port)
     @State private var respectFocus = WhatsAppSettings.respectFocus
     @State private var markReadOnOpen = WhatsAppSettings.markReadOnOpen
+    @State private var autoStart = WhatsAppGOWAProcess.autoStart
+    @State private var gowaPath = WhatsAppGOWAProcess.binaryPath
     @State private var testResult: String?
     @State private var testing = false
     @State private var ignoreEntry = ""
@@ -468,6 +470,7 @@ struct WhatsAppSettingsSection: View {
                                              : String(localized: "whatsapp.credential.openwa"),
                             text: $credential)
                     .textFieldStyle(.roundedBorder)
+                if gateway == .gowa { autoStartRow }
                 HStack(spacing: 6) {
                     Text("whatsapp.port").font(.system(size: 11))
                     TextField(String(WhatsAppSettings.defaultPort), text: $port)
@@ -575,6 +578,44 @@ struct WhatsAppSettingsSection: View {
         }
     }
 
+    /// Phase 3: Coucou starts the GOWA binary itself (GitHub build: the App Store build is
+    /// sandboxed and never compiles this).
+    @ViewBuilder private var autoStartRow: some View {
+        Toggle("whatsapp.autostart", isOn: $autoStart)
+            .onChange(of: autoStart) { _, on in
+                WhatsAppGOWAProcess.autoStart = on
+                wa.settingsChanged()
+            }
+        if autoStart {
+            HStack(spacing: 6) {
+                TextField(String(localized: "whatsapp.autostart.path"), text: $gowaPath)
+                    .textFieldStyle(.roundedBorder)
+                    .onSubmit { savePath() }
+                Button("whatsapp.choose") { chooseBinary() }
+            }
+            Text("whatsapp.autostart.hint")
+                .font(.system(size: 10))
+                .foregroundColor(Color(hex: "#8E939C"))
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private func chooseBinary() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = false
+        panel.treatsFilePackagesAsDirectories = true
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        gowaPath = url.path
+        savePath()
+    }
+
+    private func savePath() {
+        WhatsAppGOWAProcess.binaryPath = gowaPath.trimmingCharacters(in: .whitespaces)
+        wa.settingsChanged()
+    }
+
     private var webhookLine: String {
         switch wa.webhook {
         case .registered:        return String(localized: "whatsapp.webhook.live")
@@ -623,6 +664,7 @@ struct WhatsAppSettingsSection: View {
         if trimmedCredential.isEmpty { KeychainStore.shared.remove(WhatsAppSettings.credentialKey) }
         else { KeychainStore.shared.set(WhatsAppSettings.credentialKey, value: trimmedCredential) }
         WhatsAppSettings.gateway = gateway
+        WhatsAppGOWAProcess.binaryPath = gowaPath.trimmingCharacters(in: .whitespaces)
         if let p = Int(port), (1024...65535).contains(p) { WhatsAppSettings.port = p }
         port = String(WhatsAppSettings.port)
         wa.settingsChanged()

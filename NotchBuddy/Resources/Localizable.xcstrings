@@ -1,6 +1,266 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "whatsapp.autostart" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تشغيل GOWA تلقائيًا"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GOWA স্বয়ংক্রিয়ভাবে চালু করো"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start GOWA automatically"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Iniciar GOWA automáticamente"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lancer GOWA automatiquement"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GOWA अपने-आप शुरू करें"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jalankan GOWA otomatis"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Iniciar o GOWA automaticamente"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Запускать GOWA автоматически"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自动启动 GOWA"
+          }
+        }
+      }
+    },
+    "whatsapp.autostart.hint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يشغّله Coucou على هذا الـMac فقط (127.0.0.1، منفذ العنوان)، دون تنزيل الوسائط، ويوقفه عند إغلاق Coucou. تبقى جلسة واتساب في ‎~/Library/Application Support/Coucou/GOWA."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coucou এটি শুধু এই Mac-এ চালায় (127.0.0.1, URL-এর পোর্ট), মিডিয়া ডাউনলোড ছাড়াই, এবং Coucou বন্ধ হলে থামিয়ে দেয়। এর WhatsApp সেশন থাকে ~/Library/Application Support/Coucou/GOWA-তে।"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coucou runs it on this Mac only (127.0.0.1, the URL’s port), without downloading media, and stops it when Coucou quits. Its WhatsApp session stays in ~/Library/Application Support/Coucou/GOWA."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coucou lo ejecuta solo en este Mac (127.0.0.1, el puerto de la URL), sin descargar archivos, y lo detiene al cerrar Coucou. Su sesión de WhatsApp queda en ~/Library/Application Support/Coucou/GOWA."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coucou le lance sur ce Mac uniquement (127.0.0.1, le port de l’URL), sans télécharger les médias, et l’arrête quand Coucou quitte. Sa session WhatsApp reste dans ~/Library/Application Support/Coucou/GOWA."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coucou इसे सिर्फ़ इस Mac पर चलाता है (127.0.0.1, URL का पोर्ट), मीडिया डाउनलोड किए बिना, और Coucou बंद होने पर रोक देता है। इसका WhatsApp सेशन ~/Library/Application Support/Coucou/GOWA में रहता है।"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coucou menjalankannya hanya di Mac ini (127.0.0.1, port dari URL), tanpa mengunduh media, dan menghentikannya saat Coucou ditutup. Sesi WhatsApp-nya ada di ~/Library/Application Support/Coucou/GOWA."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Coucou o executa só neste Mac (127.0.0.1, a porta da URL), sem baixar mídias, e o encerra quando o Coucou fecha. A sessão do WhatsApp fica em ~/Library/Application Support/Coucou/GOWA."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coucou запускает его только на этом Mac (127.0.0.1, порт из адреса), без загрузки медиа, и останавливает при выходе. Сессия WhatsApp хранится в ~/Library/Application Support/Coucou/GOWA."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coucou 仅在这台 Mac 上运行它（127.0.0.1，使用地址中的端口），不下载媒体，并在 Coucou 退出时停止它。其 WhatsApp 会话保存在 ~/Library/Application Support/Coucou/GOWA。"
+          }
+        }
+      }
+    },
+    "whatsapp.autostart.path" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مسار ملف GOWA التنفيذي (whatsapp)"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GOWA বাইনারির পাথ (whatsapp)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Path to the GOWA binary (whatsapp)"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ruta del binario de GOWA (whatsapp)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chemin du binaire GOWA (whatsapp)"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GOWA बाइनरी का पाथ (whatsapp)"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jalur biner GOWA (whatsapp)"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Caminho do binário do GOWA (whatsapp)"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Путь к бинарнику GOWA (whatsapp)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GOWA 程序路径（whatsapp）"
+          }
+        }
+      }
+    },
+    "whatsapp.choose" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اختيار…"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বেছে নাও…"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elegir…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choisir…"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "चुनें…"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pilih…"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escolher…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выбрать…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择…"
+          }
+        }
+      }
+    },
     "whatsapp.mark-read-on-open" : {
       "extractionState" : "manual",
       "localizations" : {

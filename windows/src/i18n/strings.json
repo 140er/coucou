@@ -838,6 +838,17 @@
    "ru": "Выбери инструменты, которые ты используешь. Coucou показывает только то, что ты здесь объявишь.",
    "id": "Pilih alat yang Anda gunakan. Coucou hanya menampilkan yang Anda deklarasikan di sini."
   },
+  "Choose…": {
+   "zh-Hans": "选择…",
+   "hi": "चुनें…",
+   "es": "Elegir…",
+   "ar": "اختيار…",
+   "fr": "Choisir…",
+   "bn": "বেছে নাও…",
+   "pt-BR": "Escolher…",
+   "ru": "Выбрать…",
+   "id": "Pilih…"
+  },
   "City": {
    "zh-Hans": "城市",
    "hi": "शहर",
@@ -1442,6 +1453,17 @@
    "pt-BR": "Coucou responde em voz alta",
    "ru": "Coucou отвечает вслух",
    "id": "Coucou merespons dengan suara"
+  },
+  "Coucou runs it on this Mac only (127.0.0.1, the URL’s port), without downloading media, and stops it when Coucou quits. Its WhatsApp session stays in ~/Library/Application Support/Coucou/GOWA.": {
+   "zh-Hans": "Coucou 仅在这台 Mac 上运行它（127.0.0.1，使用地址中的端口），不下载媒体，并在 Coucou 退出时停止它。其 WhatsApp 会话保存在 ~/Library/Application Support/Coucou/GOWA。",
+   "hi": "Coucou इसे सिर्फ़ इस Mac पर चलाता है (127.0.0.1, URL का पोर्ट), मीडिया डाउनलोड किए बिना, और Coucou बंद होने पर रोक देता है। इसका WhatsApp सेशन ~/Library/Application Support/Coucou/GOWA में रहता है।",
+   "es": "Coucou lo ejecuta solo en este Mac (127.0.0.1, el puerto de la URL), sin descargar archivos, y lo detiene al cerrar Coucou. Su sesión de WhatsApp queda en ~/Library/Application Support/Coucou/GOWA.",
+   "ar": "يشغّله Coucou على هذا الـMac فقط (127.0.0.1، منفذ العنوان)، دون تنزيل الوسائط، ويوقفه عند إغلاق Coucou. تبقى جلسة واتساب في ‎~/Library/Application Support/Coucou/GOWA.",
+   "fr": "Coucou le lance sur ce Mac uniquement (127.0.0.1, le port de l’URL), sans télécharger les médias, et l’arrête quand Coucou quitte. Sa session WhatsApp reste dans ~/Library/Application Support/Coucou/GOWA.",
+   "bn": "Coucou এটি শুধু এই Mac-এ চালায় (127.0.0.1, URL-এর পোর্ট), মিডিয়া ডাউনলোড ছাড়াই, এবং Coucou বন্ধ হলে থামিয়ে দেয়। এর WhatsApp সেশন থাকে ~/Library/Application Support/Coucou/GOWA-তে।",
+   "pt-BR": "O Coucou o executa só neste Mac (127.0.0.1, a porta da URL), sem baixar mídias, e o encerra quando o Coucou fecha. A sessão do WhatsApp fica em ~/Library/Application Support/Coucou/GOWA.",
+   "ru": "Coucou запускает его только на этом Mac (127.0.0.1, порт из адреса), без загрузки медиа, и останавливает при выходе. Сессия WhatsApp хранится в ~/Library/Application Support/Coucou/GOWA.",
+   "id": "Coucou menjalankannya hanya di Mac ini (127.0.0.1, port dari URL), tanpa mengunduh media, dan menghentikannya saat Coucou ditutup. Sesi WhatsApp-nya ada di ~/Library/Application Support/Coucou/GOWA."
   },
   "Coucou writes your calls on your Mac with Parakeet, and tells the voices apart with a second small model. Both are downloaded once (about 650 MB), then everything works offline.": {
    "zh-Hans": "Coucou 用 Parakeet 在你的 Mac 上转写通话，并用第二个小模型区分说话人。两者只需下载一次（约 650 MB），之后一切离线运行。",
@@ -4314,6 +4336,17 @@
    "ru": "Вставить · или нажмите {0}",
    "id": "Tempel · atau tekan {0}"
   },
+  "Path to the GOWA binary (whatsapp)": {
+   "zh-Hans": "GOWA 程序路径（whatsapp）",
+   "hi": "GOWA बाइनरी का पाथ (whatsapp)",
+   "es": "Ruta del binario de GOWA (whatsapp)",
+   "ar": "مسار ملف GOWA التنفيذي (whatsapp)",
+   "fr": "Chemin du binaire GOWA (whatsapp)",
+   "bn": "GOWA বাইনারির পাথ (whatsapp)",
+   "pt-BR": "Caminho do binário do GOWA (whatsapp)",
+   "ru": "Путь к бинарнику GOWA (whatsapp)",
+   "id": "Jalur biner GOWA (whatsapp)"
+  },
   "Pause": {
    "zh-Hans": "暂停",
    "hi": "रोकें",
@@ -5490,6 +5523,17 @@
    "pt-BR": "Spotify não está instalado",
    "ru": "Spotify не установлен",
    "id": "Spotify belum terpasang"
+  },
+  "Start GOWA automatically": {
+   "zh-Hans": "自动启动 GOWA",
+   "hi": "GOWA अपने-आप शुरू करें",
+   "es": "Iniciar GOWA automáticamente",
+   "ar": "تشغيل GOWA تلقائيًا",
+   "fr": "Lancer GOWA automatiquement",
+   "bn": "GOWA স্বয়ংক্রিয়ভাবে চালু করো",
+   "pt-BR": "Iniciar o GOWA automaticamente",
+   "ru": "Запускать GOWA автоматически",
+   "id": "Jalankan GOWA otomatis"
   },
   "Startup": {
    "zh-Hans": "启动",

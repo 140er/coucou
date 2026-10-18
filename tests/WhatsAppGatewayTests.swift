@@ -235,6 +235,9 @@ extension WhatsAppTests {
             let login = #"{"code":"SUCCESS","message":"Success","results":{"device_id":"coucou","qr_duration":30,"qr_link":"http://localhost:3000/statics/qrcode/scan-qr-b0b7bb43-9a22-455a-814f-5a225c743310.png"}}"#
             let qr = WAGOWA.qrPath(Data(login.utf8))
             check("GOWA: QR path only, fetched from the gateway", qr?.path == "/statics/qrcode/scan-qr-b0b7bb43-9a22-455a-814f-5a225c743310.png" && qr?.seconds == 30)
+            check("GOWA launched on this Mac only, no media download",
+                  WAGOWA.launchArguments(for: URL(string: "http://127.0.0.1:3001")!)
+                  == ["rest", "--host=127.0.0.1", "--port=3001", "--auto-download-media=false"])
             check("GOWA: error code", WAGOWA.errorCode(Data(#"{"code":"ALREADY_LOGGED_IN","message":"you are already logged in."}"#.utf8)) == "ALREADY_LOGGED_IN")
 
             let msgs = #"{"code":"SUCCESS","message":"ok","results":{"data":[{"id":"M2","chat_jid":"120363402106000001@g.us","sender_jid":"628123456789@s.whatsapp.net","sender_display_name":"John","content":"","timestamp":"2025-07-13T11:06:00Z","is_from_me":false,"media_type":"document","filename":"devis.pdf"},{"id":"M1","chat_jid":"120363402106000001@g.us","sender_jid":"628987654321@s.whatsapp.net","content":"salut","timestamp":"2025-07-13T11:05:00Z","is_from_me":true,"media_type":""}],"pagination":{"limit":10,"offset":0,"total":2},"chat_info":{"jid":"120363402106000001@g.us","name":"Famille","last_message_time":"2025-07-13T11:06:00Z"}}}"#

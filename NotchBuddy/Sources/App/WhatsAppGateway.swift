@@ -180,6 +180,13 @@ enum WAGOWA {
         return (url.path, (r["qr_duration"] as? Int) ?? 30)
     }
 
+    /// `./whatsapp rest` for Coucou's "Start GOWA automatically": on this Mac only, on the
+    /// URL's port, and media never downloaded (Coucou shows a label), so GOWA keeps no photo
+    /// or voice note on disk.
+    static func launchArguments(for url: URL) -> [String] {
+        ["rest", "--host=127.0.0.1", "--port=\(url.port ?? 3000)", "--auto-download-media=false"]
+    }
+
     /// The error code of a refused call (`ALREADY_LOGGED_IN`, `DEVICE_ID_REQUIRED`…).
     static func errorCode(_ data: Data) -> String? {
         ((try? JSONSerialization.jsonObject(with: data)) as? [String: Any])?["code"] as? String
