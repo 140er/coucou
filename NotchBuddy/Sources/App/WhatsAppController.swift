@@ -141,6 +141,8 @@ final class WhatsAppController: ObservableObject {
     private var lastPoll = Date()
     private var lastAnnounce: Date = .distantPast
     private var namingGroups: Set<String> = []
+    /// The conversation open in the card: what arrives there is seen, so it isn't unread.
+    private(set) var openChat: String?
     private var rateLimit = WARateLimit(limit: 6, window: 60)
     /// Failed checks in a row (the gateway down, refusing, unreachable).
     private var failures = 0
@@ -207,7 +209,7 @@ final class WhatsAppController: ObservableObject {
         startListener(kind: provider.kind)
         if WhatsAppSettings.respectFocus { askFocus() }
         // GOWA started by Coucou when asked to (Settings), before the first check.
-        WhatsAppGOWAProcess.shared.startIfNeeded()
+        WhatsAppGOWAProcess.shared.sync()
         let t = Timer(timeInterval: 5, repeats: true) { _ in
             MainActor.assumeIsolated { WhatsAppController.shared.onTick() }
         }
@@ -234,9 +236,11 @@ final class WhatsAppController: ObservableObject {
         lastWebhook = nil
         namingGroups = []
         failures = 0
-        // Started again on the next begin() with the new settings, or gone for good.
-        WhatsAppGOWAProcess.shared.stop()
+        // Turned off: GOWA goes too. Otherwise begin() keeps it, or restarts it if its
+        // settings changed.
+        if !shouldRun { WhatsAppGOWAProcess.shared.stopNow() }
         if forget {
+            openChat = nil
             inbox.clear()
             resetTask()
         }
@@ -285,6 +289,9 @@ final class WhatsAppController: ObservableObject {
                 case .needsQR:
                     link = .needsQR
                     if qrPNG == nil || Date() > qrExpiry {
+                        // Not asked again for 15 s even when nothing came: each GOWA login call
+                        // restarts the pairing.
+                        qrExpiry = Date().addingTimeInterval(15)
                         if let qr = try await provider.qrCode(), gen == generation {
                             qrPNG = qr.png
                             qrExpiry = Date().addingTimeInterval(TimeInterval(qr.seconds))
@@ -313,7 +320,7 @@ final class WhatsAppController: ObservableObject {
         // Twice in a row (not a gateway still starting): a small red dot on the pill, nothing more.
         if failures == 2 { showDown(true) }
         // GOWA started by Coucou and gone (crash, killed): started again, once a minute at most.
-        if error == .unreachable { WhatsAppGOWAProcess.shared.startIfNeeded() }
+        if error == .unreachable { WhatsAppGOWAProcess.shared.sync() }
     }
 
     /// The discreet error pill: the pill's red badge while the gateway is down.
@@ -326,9 +333,21 @@ final class WhatsAppController: ObservableObject {
 
     /// One check from Settings' "Test connection": what the gateway says, in a sentence.
     func testConnection() async -> String {
-        guard let provider = WhatsAppSettings.makeProvider() else { return String(localized: "whatsapp.status.bad-url") }
+        // The running connection when there is one (a second one could race it for OpenWA's session).
+        guard let provider = provider ?? WhatsAppSettings.makeProvider() else { return String(localized: "whatsapp.status.bad-url") }
         do {
-            let status = try await provider.status()
+            var status: WAStatus
+            var attempt = 0
+            while true {
+                do {
+                    status = try await provider.status()
+                    break
+                } catch WAError.unreachable where WhatsAppGOWAProcess.shared.isRunning && attempt < 8 {
+                    // GOWA just started by Coucou: give it a few seconds to come up.
+                    attempt += 1
+                    try? await Task.sleep(for: .seconds(1))
+                }
+            }
             switch status.link {
             case .connected:
                 let who = status.me.map(WAJID.displayNumber) ?? ""
@@ -407,8 +426,9 @@ final class WhatsAppController: ObservableObject {
         backfilled = true
         let since = Date().addingTimeInterval(-12 * 3600)
         guard let messages = try? await provider.recentMessages(since: since, me: me), gen == generation else { return }
-        ingest(messages, announce: false)
-        inbox.markAllRead()
+        // History: kept, never counted as unread (whether it was read is unknown), never announced.
+        for message in messages { inbox.add(message, filters: filters, history: true) }
+        for message in messages { nameGroupIfNeeded(WAJID.normalized(message.chat)) }
         lastPoll = Date()
     }
 
@@ -429,9 +449,16 @@ final class WhatsAppController: ObservableObject {
     private func ingest(_ messages: [WAMessage], announce: Bool) {
         var fresh: WAMessage?
         for message in messages {
+            let key = WAJID.normalized(message.chat)
             let outcome = inbox.add(message, filters: filters)
+            nameGroupIfNeeded(key)
+            if key == openChat {
+                // Read on screen: no unread, no Mochi. The receipt waits for a reply (or the
+                // next opening), as Settings says.
+                inbox.markRead(key)
+                continue
+            }
             if outcome == .notify, !message.fromMe { fresh = message }
-            nameGroupIfNeeded(WAJID.normalized(message.chat))
         }
         if announce, let fresh { self.announce(fresh) }
     }
@@ -453,6 +480,7 @@ final class WhatsAppController: ObservableObject {
     /// receipt when Settings says so.
     func open(_ chat: String) {
         sendError = nil
+        openChat = WAJID.normalized(chat)
         guard let provider else { return }
         if WhatsAppSettings.markReadOnOpen { markRead(chat) }
         let gen = generation
@@ -462,13 +490,18 @@ final class WhatsAppController: ObservableObject {
         }
     }
 
+    /// The conversation closed (back to the list, Escape, the island folded).
+    func close(_ chat: String) {
+        if openChat == WAJID.normalized(chat) { openChat = nil }
+    }
+
     /// Marks the chat read here and on WhatsApp (up to its newest received message).
     func markRead(_ chat: String) {
         let key = WAJID.normalized(chat)
         guard let provider, let conv = inbox.conversations[key] else { return }
         let hadUnread = conv.unread > 0
         inbox.markRead(key)
-        if inbox.totalUnread == 0 { clearBadge() }
+        if inbox.visibleUnread(filters: filters) == 0 { clearBadge() }
         // Nothing new: no receipt to send.
         guard hadUnread else { return }
         let last = conv.messages.last { !$0.fromMe }?.id
@@ -492,15 +525,18 @@ final class WhatsAppController: ObservableObject {
         sending = true
         sendError = nil
         defer { sending = false }
+        let gen = generation
         do {
             let id = try await provider.send(text: body, to: key)
+            // Turned off or restarted meanwhile: the inbox it belonged to is gone.
+            guard gen == generation else { return true }
             var mine = WAMessage(id: id ?? "coucou-\(UUID().uuidString)", chat: key, sender: me ?? "",
                                  senderName: "", text: body, date: Date(), fromMe: true)
             mine.chatName = inbox.conversations[key]?.name
             inbox.add(mine, filters: filters)
             // Replying reads the conversation, whatever the setting.
             let last = inbox.conversations[key]?.messages.last { !$0.fromMe }?.id
-            if inbox.totalUnread == 0 { clearBadge() }
+            if inbox.visibleUnread(filters: filters) == 0 { clearBadge() }
             Task { try? await provider.markRead(chat: key, lastIncoming: last) }
             return true
         } catch let error as WAError {
@@ -577,7 +613,8 @@ final class WhatsAppController: ObservableObject {
         case .authorized:
             focusReadable = center.focusStatus.isFocused != nil
         case .notDetermined:
-            center.requestAuthorization { status in
+            // Intents may answer on any queue: the closure is @Sendable and hops to the main actor.
+            center.requestAuthorization { @Sendable status in
                 Task { @MainActor in
                     WhatsAppController.shared.focusReadable = status == .authorized
                         && INFocusStatusCenter.default.focusStatus.isFocused != nil
@@ -591,7 +628,10 @@ final class WhatsAppController: ObservableObject {
     // MARK: - Filters
 
     func ignore(_ chat: String) {
-        filters.ignored.insert(WAJID.normalized(chat))
+        let key = WAJID.normalized(chat)
+        filters.ignored.insert(key)
+        inbox.remove(key)
+        if openChat == key { openChat = nil }
     }
 
     func unignore(_ chat: String) {

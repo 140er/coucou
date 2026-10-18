@@ -10,10 +10,21 @@ final class WhatsAppWebhook: @unchecked Sendable {
     private let queue = DispatchQueue(label: "fr.louisraille.NotchBuddy.whatsapp.webhook")
     private(set) var port: UInt16 = 0
 
+    private let lock = NSLock()
+    private var _onRequest: (@Sendable (WAHTTPRequest) -> Int)?
+    private var _onListening: (@Sendable (Bool) -> Void)?
+
     /// Called on `queue` with each complete request; returns the HTTP status to answer.
-    var onRequest: (@Sendable (WAHTTPRequest) -> Int)?
+    /// Set on the main thread, read on `queue`: behind a lock.
+    var onRequest: (@Sendable (WAHTTPRequest) -> Int)? {
+        get { lock.withLock { _onRequest } }
+        set { lock.withLock { _onRequest = newValue } }
+    }
     /// Called on `queue`: true once listening, false when the port can't be used.
-    var onListening: (@Sendable (Bool) -> Void)?
+    var onListening: (@Sendable (Bool) -> Void)? {
+        get { lock.withLock { _onListening } }
+        set { lock.withLock { _onListening = newValue } }
+    }
 
     /// Starts listening; false when the port is taken or invalid.
     @discardableResult

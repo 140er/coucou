@@ -17,7 +17,8 @@ struct WhatsAppCardView: View {
 
     var body: some View {
         Group {
-            if wa.link == .connected, let chat = openChat, let conversation = wa.inbox.conversations[chat] {
+            // Kept open through a missed check (the draft too): only gone when WhatsApp is off.
+            if wa.link != .off, let chat = openChat, let conversation = wa.inbox.conversations[chat] {
                 WhatsAppConversationView(conversation: conversation) {
                     withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) { openChat = nil }
                 }
@@ -275,7 +276,12 @@ struct WhatsAppConversationView: View {
             .padding(.horizontal, 8).padding(.vertical, 4)
             .background(RoundedRectangle(cornerRadius: 7).fill(Color.white.opacity(0.06)))
 
-            if let error = wa.sendError {
+            if wa.link != .connected {
+                Text(verbatim: WhatsAppStatus.label(wa.link))
+                    .font(.system(size: 9.5))
+                    .foregroundColor(Color(hex: "#F5B83D"))
+                    .lineLimit(1).truncationMode(.tail)
+            } else if let error = wa.sendError {
                 Text(verbatim: error)
                     .font(.system(size: 9.5))
                     .foregroundColor(Color(hex: "#F4505E"))
@@ -292,7 +298,10 @@ struct WhatsAppConversationView: View {
         .onChange(of: draft) { _, text in
             wa.composing = !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         }
-        .onDisappear { wa.composing = false }
+        .onDisappear {
+            wa.composing = false
+            wa.close(conversation.id)
+        }
     }
 
     /// Return: sends. Shift-Return: a new line instead.

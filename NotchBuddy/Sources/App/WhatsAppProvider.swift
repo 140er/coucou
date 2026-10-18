@@ -38,7 +38,17 @@ protocol WhatsAppProvider: Sendable {
     func groupName(_ chat: String) async -> String?
 }
 
-/// HTTP to the local gateway: no cookies, no cache, nothing stored on disk.
+/// Never follows a redirect: a request (with its credentials and, for a send, the reply's
+/// text) goes to the configured gateway and nowhere else.
+final class WANoRedirect: NSObject, URLSessionTaskDelegate, Sendable {
+    func urlSession(_ session: URLSession, task: URLSessionTask,
+                    willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest,
+                    completionHandler: @escaping @Sendable (URLRequest?) -> Void) {
+        completionHandler(nil)
+    }
+}
+
+/// HTTP to the local gateway: no cookies, no cache, no redirect, nothing stored on disk.
 final class WAHTTP: Sendable {
     let base: URL
     let headers: [String: String]
@@ -53,7 +63,7 @@ final class WAHTTP: Sendable {
         config.httpCookieStorage = nil
         config.timeoutIntervalForRequest = 60   // each request sets its own (10 s, longer for a QR)
         config.connectionProxyDictionary = [:]   // straight to the local gateway
-        session = URLSession(configuration: config)
+        session = URLSession(configuration: config, delegate: WANoRedirect(), delegateQueue: nil)
     }
 
     /// `path` is appended to the base URL as given (already percent-encoded where needed).
@@ -74,6 +84,8 @@ final class WAHTTP: Sendable {
         }
         do {
             let (data, response) = try await session.data(for: req)
+            // Second lock: an answer from anywhere but the gateway is not one.
+            if let final = response.url, final.host != url.host || final.port != url.port { throw WAError.unreachable }
             let code = (response as? HTTPURLResponse)?.statusCode ?? 0
             return (data, code)
         } catch {

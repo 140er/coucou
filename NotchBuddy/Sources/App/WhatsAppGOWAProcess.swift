@@ -33,21 +33,33 @@ final class WhatsAppGOWAProcess {
         return base.appendingPathComponent("Coucou/GOWA", isDirectory: true)
     }
 
-    /// Starts GOWA unless it already runs (or was started less than a minute ago).
-    /// Returns false when the binary can't be run.
+    /// What the running GOWA was started with: changed, it is restarted; same, left alone.
+    private var launchedWith: String?
+
+    /// Brings GOWA in line with Settings: started when "Start GOWA automatically" is on (and
+    /// the gateway is GOWA on this Mac), restarted only when its binary, address or password
+    /// changed, stopped when the option is off. A GOWA that keeps dying is started again once
+    /// a minute at most. Returns false when it can't run.
     @discardableResult
-    func startIfNeeded() -> Bool {
-        guard Self.autoStart, WhatsAppSettings.gateway == .gowa else { return false }
-        if isRunning { return true }
-        guard Date().timeIntervalSince(lastStart) > 60 else { return true }
+    func sync() -> Bool {
+        guard Self.autoStart, WhatsAppSettings.gateway == .gowa else { stopNow(); return false }
         let path = (Self.binaryPath as NSString).expandingTildeInPath
         guard !path.isEmpty, FileManager.default.isExecutableFile(atPath: path),
               let url = URL(string: WhatsAppSettings.url) else {
             appendAppLog("nb.log", "[WhatsApp] GOWA binary missing or not executable")
+            stopNow()
             return false
         }
         // Only ever on this Mac: an address elsewhere is someone else's gateway.
-        guard ["127.0.0.1", "localhost", "::1"].contains(url.host ?? "") else { return false }
+        guard ["127.0.0.1", "localhost", "::1"].contains(url.host ?? "") else { stopNow(); return false }
+        let credential = KeychainStore.shared.get(WhatsAppSettings.credentialKey) ?? ""
+        let signature = [path, url.absoluteString, credential].joined(separator: "\u{1F}")
+        if isRunning {
+            if launchedWith == signature { return true }
+            stopNow()   // waits for it to let go of the port and its database
+        } else if launchedWith == signature, Date().timeIntervalSince(lastStart) < 60 {
+            return true
+        }
         try? FileManager.default.createDirectory(at: Self.workingDirectory, withIntermediateDirectories: true)
 
         let p = Process()
@@ -56,9 +68,7 @@ final class WhatsAppGOWAProcess {
         p.currentDirectoryURL = Self.workingDirectory
         var env = ProcessInfo.processInfo.environment
         // The credential goes through the environment, not the command line (`ps` shows that).
-        if let auth = KeychainStore.shared.get(WhatsAppSettings.credentialKey), auth.contains(":") {
-            env["APP_BASIC_AUTH"] = auth
-        }
+        if credential.contains(":") { env["APP_BASIC_AUTH"] = credential }
         p.environment = env
         // GOWA's own output may name contacts or quote messages: it goes nowhere.
         p.standardOutput = FileHandle.nullDevice
@@ -73,6 +83,7 @@ final class WhatsAppGOWAProcess {
             try p.run()
             process = p
             lastStart = Date()
+            launchedWith = signature
             appendAppLog("nb.log", "[WhatsApp] GOWA started (pid \(p.processIdentifier))")
             return true
         } catch {
@@ -81,23 +92,12 @@ final class WhatsAppGOWAProcess {
         }
     }
 
-    /// Stops GOWA if Coucou started it (Coucou quits, the option or WhatsApp is turned off).
-    func stop() {
-        lastStart = .distantPast
-        guard let p = process else { return }
-        process = nil
-        guard p.isRunning else { return }
-        p.terminate()
-        // Still there after 2 s: killed.
-        let pid = p.processIdentifier
-        DispatchQueue.global().asyncAfter(deadline: .now() + 2) {
-            if kill(pid, 0) == 0 { kill(pid, SIGKILL) }
-        }
-    }
-
-    /// At quit: the gateway can't outlive Coucou, and there is no time to wait.
+    /// Stops GOWA if Coucou started it, waiting a second at most for it to go (at quit, or
+    /// before starting it again so two never share its database).
     func stopNow() {
-        guard let p = process, p.isRunning else { return }
+        launchedWith = nil
+        guard let p = process else { return }
+        guard p.isRunning else { process = nil; return }
         p.terminate()
         let deadline = Date().addingTimeInterval(1)
         while p.isRunning && Date() < deadline { usleep(50_000) }

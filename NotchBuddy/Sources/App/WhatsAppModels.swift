@@ -110,6 +110,8 @@ struct WAInbox: Equatable, Sendable {
 
     private(set) var conversations: [String: WAConversation] = [:]
     private var seenIds: Set<String> = []
+    /// The same ids in arrival order, so the oldest are the ones forgotten.
+    private var seenOrder: [String] = []
 
     /// Newest activity first.
     var sorted: [WAConversation] {
@@ -130,7 +132,12 @@ struct WAInbox: Equatable, Sendable {
         let chat = WAJID.normalized(message.chat)
         guard !filters.ignored.contains(chat) else { return .ignored }
         seenIds.insert(message.id)
-        if seenIds.count > 2_000 { seenIds = Set(seenIds.suffix(1_000)) }
+        seenOrder.append(message.id)
+        if seenOrder.count > 2_000 {
+            let dropped = seenOrder.prefix(1_000)
+            seenOrder.removeFirst(1_000)
+            for id in dropped { seenIds.remove(id) }
+        }
 
         let isGroup = WAJID.isGroup(chat)
         let number = WAJID.displayNumber(chat)
@@ -168,6 +175,17 @@ struct WAInbox: Equatable, Sendable {
         sorted.filter { !filters.ignored.contains($0.id) && (!$0.isGroup || !filters.muteGroups || $0.messages.contains { $0.mentionsMe && !$0.fromMe }) }
     }
 
+    /// Unread messages in the conversations the pill shows (a muted group's quiet messages
+    /// and an ignored chat can't be opened, so they don't count).
+    func visibleUnread(filters: WAFilters) -> Int {
+        visible(filters: filters).reduce(0) { $0 + $1.unread }
+    }
+
+    /// A chat dropped from the inbox (the user ignores it).
+    mutating func remove(_ chat: String) {
+        conversations[WAJID.normalized(chat)] = nil
+    }
+
     mutating func markRead(_ chat: String) {
         conversations[WAJID.normalized(chat)]?.unread = 0
     }
@@ -186,6 +204,7 @@ struct WAInbox: Equatable, Sendable {
     mutating func clear() {
         conversations = [:]
         seenIds = []
+        seenOrder = []
     }
 
     private func nonEmpty(_ s: String) -> String? { s.isEmpty ? nil : s }

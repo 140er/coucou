@@ -58,6 +58,14 @@ enum WhatsAppTests {
             for i in 0..<30 { inbox.add(msg("m\(i)", chat: "1@s.whatsapp.net", at: Double(i)), filters: WAFilters()) }
             check("20 kept, newest last", inbox.conversations["1@s.whatsapp.net"]?.messages.count == 20
                   && inbox.conversations["1@s.whatsapp.net"]?.messages.last?.id == "m29")
+            var big = WAInbox()
+            for i in 0..<2_500 { big.add(msg("b\(i)", chat: "2@s.whatsapp.net", at: Double(i)), filters: WAFilters()) }
+            check("the newest ids are still known after 2,000", big.add(msg("b2499", chat: "2@s.whatsapp.net"), filters: WAFilters()) == .duplicate)
+            var groups = WAInbox()
+            groups.add(msg("q1", chat: "120363000000000009@g.us", from: "33@s.whatsapp.net"), filters: WAFilters())
+            check("a muted group's quiet messages don't count as unread to read", groups.visibleUnread(filters: WAFilters()) == 0)
+            groups.remove("120363000000000009@g.us")
+            check("removed", groups.conversations.isEmpty)
             inbox.clear()
             check("cleared", inbox.conversations.isEmpty)
         }
