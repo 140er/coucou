@@ -490,7 +490,7 @@ struct WhatsAppSettingsSection: View {
                 }
 
                 HStack(spacing: 8) {
-                    Button("integrations.save") { save() }
+                    Button("whatsapp.save") { save() }
                         .buttonStyle(.borderedProminent)
                     Button("whatsapp.test") {
                         save()

@@ -5062,6 +5062,17 @@
    "ru": "Сохранить",
    "id": "Simpan"
   },
+  "Save WhatsApp": {
+   "zh-Hans": "保存 WhatsApp",
+   "hi": "WhatsApp सेव करें",
+   "es": "Guardar WhatsApp",
+   "ar": "حفظ واتساب",
+   "fr": "Enregistrer WhatsApp",
+   "bn": "WhatsApp সেভ করো",
+   "pt-BR": "Salvar WhatsApp",
+   "ru": "Сохранить WhatsApp",
+   "id": "Simpan WhatsApp"
+  },
   "Save integrations": {
    "zh-Hans": "保存集成",
    "hi": "इंटीग्रेशन सहेजें",
