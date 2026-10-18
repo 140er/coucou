@@ -144,6 +144,8 @@ final class WhatsAppController: ObservableObject {
     private var rateLimit = WARateLimit(limit: 6, window: 60)
     /// Failed checks in a row (the gateway down, refusing, unreachable).
     private var failures = 0
+    /// Bumped at each start and stop: an answer from before a restart is dropped.
+    private var generation = 0
     private var cancellables = Set<AnyCancellable>()
 
     private var shouldRun: Bool {
@@ -200,6 +202,7 @@ final class WhatsAppController: ObservableObject {
             return
         }
         self.provider = provider
+        generation += 1
         link = .connecting
         startListener(kind: provider.kind)
         if WhatsAppSettings.respectFocus { askFocus() }
@@ -216,6 +219,9 @@ final class WhatsAppController: ObservableObject {
 
     /// Stops talking to the gateway. `forget`: the conversations go too.
     private func stop(forget: Bool) {
+        generation += 1
+        refreshing = false
+        polling = false
         timer?.invalidate()
         timer = nil
         listener.stop()
@@ -262,23 +268,24 @@ final class WhatsAppController: ObservableObject {
     func refresh() {
         guard let provider, !refreshing else { return }
         refreshing = true
+        let gen = generation
         Task {
-            defer { refreshing = false }
+            defer { if gen == generation { refreshing = false } }
             do {
                 let status = try await provider.status()
-                guard self.provider != nil else { return }
+                guard gen == generation else { return }
                 if failures > 0 { failures = 0; showDown(false) }
                 me = status.me
                 switch status.link {
                 case .connected:
                     if link != .connected { qrPNG = nil }
                     link = .connected
-                    if webhook == .listening { await register(provider) }
-                    if !backfilled { await backfill(provider) }
+                    if webhook == .listening { await register(provider, gen: gen) }
+                    if !backfilled, gen == generation { await backfill(provider, gen: gen) }
                 case .needsQR:
                     link = .needsQR
                     if qrPNG == nil || Date() > qrExpiry {
-                        if let qr = try await provider.qrCode() {
+                        if let qr = try await provider.qrCode(), gen == generation {
                             qrPNG = qr.png
                             qrExpiry = Date().addingTimeInterval(TimeInterval(qr.seconds))
                         }
@@ -287,9 +294,9 @@ final class WhatsAppController: ObservableObject {
                     link = .connecting
                 }
             } catch let error as WAError {
-                apply(error)
+                if gen == generation { apply(error) }
             } catch {
-                apply(.unreachable)
+                if gen == generation { apply(.unreachable) }
             }
         }
     }
@@ -366,11 +373,12 @@ final class WhatsAppController: ObservableObject {
 
     private var webhookURL: String { "http://127.0.0.1:\(WhatsAppSettings.port)\(Self.webhookPath)" }
 
-    private func register(_ provider: WhatsAppProvider) async {
+    private func register(_ provider: WhatsAppProvider, gen: Int) async {
         do {
             try await provider.registerWebhook(url: webhookURL, secret: WhatsAppSettings.webhookSecret())
-            if self.provider != nil { webhook = .registered }
+            if gen == generation { webhook = .registered }
         } catch WAError.refused(let why) {
+            guard gen == generation else { return }
             webhook = .refused(why)
             appendAppLog("nb.log", "[WhatsApp] gateway refused the webhook: \(why)")
         } catch {
@@ -395,10 +403,10 @@ final class WhatsAppController: ObservableObject {
     // MARK: - Messages
 
     /// The last hours of history, once linked: kept, but nothing counts as new.
-    private func backfill(_ provider: WhatsAppProvider) async {
+    private func backfill(_ provider: WhatsAppProvider, gen: Int) async {
         backfilled = true
         let since = Date().addingTimeInterval(-12 * 3600)
-        guard let messages = try? await provider.recentMessages(since: since, me: me), self.provider != nil else { return }
+        guard let messages = try? await provider.recentMessages(since: since, me: me), gen == generation else { return }
         ingest(messages, announce: false)
         inbox.markAllRead()
         lastPoll = Date()
@@ -409,9 +417,10 @@ final class WhatsAppController: ObservableObject {
         polling = true
         let since = lastPoll.addingTimeInterval(-30)   // a little overlap; duplicates are dropped
         let started = Date()
+        let gen = generation
         Task {
-            defer { polling = false }
-            guard let messages = try? await provider.recentMessages(since: since, me: me), self.provider != nil else { return }
+            defer { if gen == generation { polling = false } }
+            guard let messages = try? await provider.recentMessages(since: since, me: me), gen == generation else { return }
             lastPoll = started
             ingest(messages, announce: true)
         }
@@ -432,8 +441,9 @@ final class WhatsAppController: ObservableObject {
         guard WAJID.isGroup(chat), let provider, let conv = inbox.conversations[chat],
               conv.name == WAJID.displayNumber(chat), !namingGroups.contains(chat) else { return }
         namingGroups.insert(chat)
+        let gen = generation
         Task {
-            if let name = await provider.groupName(chat) { inbox.rename(chat, to: name) }
+            if let name = await provider.groupName(chat), gen == generation { inbox.rename(chat, to: name) }
         }
     }
 
@@ -445,8 +455,9 @@ final class WhatsAppController: ObservableObject {
         sendError = nil
         guard let provider else { return }
         if WhatsAppSettings.markReadOnOpen { markRead(chat) }
+        let gen = generation
         Task {
-            guard let history = try? await provider.messages(chat: chat, limit: 10, me: me), self.provider != nil else { return }
+            guard let history = try? await provider.messages(chat: chat, limit: 10, me: me), gen == generation else { return }
             for message in history { inbox.add(message, filters: filters, history: true) }
         }
     }

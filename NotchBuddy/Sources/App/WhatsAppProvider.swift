@@ -51,19 +51,20 @@ final class WAHTTP: Sendable {
         config.urlCache = nil
         config.requestCachePolicy = .reloadIgnoringLocalCacheData
         config.httpCookieStorage = nil
-        config.timeoutIntervalForRequest = 10
+        config.timeoutIntervalForRequest = 60   // each request sets its own (10 s, longer for a QR)
         config.connectionProxyDictionary = [:]   // straight to the local gateway
         session = URLSession(configuration: config)
     }
 
     /// `path` is appended to the base URL as given (already percent-encoded where needed).
-    func call(_ method: String, _ path: String, query: [URLQueryItem] = [], json: [String: any Sendable]? = nil) async throws -> (Data, Int) {
+    func call(_ method: String, _ path: String, query: [URLQueryItem] = [], json: [String: any Sendable]? = nil,
+              timeout: TimeInterval = 10) async throws -> (Data, Int) {
         guard var comps = URLComponents(url: base, resolvingAgainstBaseURL: false) else { throw WAError.unreachable }
         comps.percentEncodedPath = comps.percentEncodedPath.trimmingCharacters(in: CharacterSet(charactersIn: "/")).isEmpty
             ? path : "/" + comps.percentEncodedPath.trimmingCharacters(in: CharacterSet(charactersIn: "/")) + path
         if !query.isEmpty { comps.queryItems = query }
         guard let url = comps.url else { throw WAError.unreachable }
-        var req = URLRequest(url: url)
+        var req = URLRequest(url: url, timeoutInterval: timeout)
         req.httpMethod = method
         for (k, v) in headers { req.setValue(v, forHTTPHeaderField: k) }
         req.setValue("application/json", forHTTPHeaderField: "Accept")
@@ -142,7 +143,8 @@ actor GOWAProvider: WhatsAppProvider {
     func qrCode() async throws -> (png: Data, seconds: Int)? {
         let id: String
         if let deviceId { id = deviceId } else { id = try await device().id }
-        let (data, code) = try await http.call("GET", "/devices/\(WAHTTP.pathComponent(id))/login")
+        // GOWA answers once WhatsApp has handed it the first code: a few seconds.
+        let (data, code) = try await http.call("GET", "/devices/\(WAHTTP.pathComponent(id))/login", timeout: 45)
         if WAGOWA.errorCode(data) == "ALREADY_LOGGED_IN" { return nil }
         try check(data, code)
         guard let qr = WAGOWA.qrPath(data) else { return nil }
@@ -150,7 +152,9 @@ actor GOWAProvider: WhatsAppProvider {
         // URL, whatever host the link names.
         let (png, pngCode) = try await http.call("GET", qr.path)
         guard pngCode == 200, png.starts(with: [0x89, 0x50, 0x4E, 0x47]) else { return nil }
-        return (png, max(10, qr.seconds))
+        // qr_duration is half the code's life (the PNG is deleted then, the code stays valid):
+        // asking again sooner would restart the pairing under the user's phone.
+        return (png, max(20, qr.seconds * 2 - 5))
     }
 
     func registerWebhook(url: String, secret: String) async throws {

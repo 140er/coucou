@@ -321,8 +321,9 @@ struct WhatsAppBubble: View {
     let isGroup: Bool
 
     var body: some View {
-        let (key, value) = message.previewKey
-        let label = key.isEmpty ? nil : NSLocalizedString(key, comment: "")
+        let preview = message.previewKey
+        let value = preview.value
+        let label: String? = preview.key.isEmpty ? nil : NSLocalizedString(preview.key, comment: "")
         HStack(spacing: 0) {
             if message.fromMe { Spacer(minLength: 40) }
             VStack(alignment: .leading, spacing: 1) {
