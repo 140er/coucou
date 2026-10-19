@@ -45,6 +45,9 @@ jobs:
       - name: Test WhatsApp (gateway payloads, signatures, inbox, filters)
         run: bash scripts/test-whatsapp.sh
 
+      - name: Test Claude Desktop chat (stop button labels)
+        run: bash scripts/test-claude-desktop-chat.sh
+
       - name: Desktop Mochi and gaze tests
         run: bash scripts/test-desktop-mochi.sh
 
