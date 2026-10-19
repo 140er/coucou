@@ -79,8 +79,10 @@ pub fn retitle(app: &AppHandle) {
         let _ = item.set_text(t(label));
     }
     if let Some(update) = app.try_state::<UpdateItem>() {
-        if let Some(version) = update.version.lock().unwrap().as_deref() {
-            let _ = update.item.set_text(update_label(version));
+        // Copied out first: the menu calls wait for the main thread, never under the lock.
+        let version = update.version.lock().unwrap().clone();
+        if let Some(version) = version {
+            let _ = update.item.set_text(update_label(&version));
         }
     }
 }
@@ -88,14 +90,19 @@ pub fn retitle(app: &AppHandle) {
 /// Shows "Update Coucou to `version`…" right under Open, or takes it out (None).
 pub fn set_update(app: &AppHandle, version: Option<&str>) {
     let Some(update) = app.try_state::<UpdateItem>() else { return };
-    let mut shown = update.version.lock().unwrap();
-    if shown.as_deref() == version {
-        return;
-    }
+    let was_shown = {
+        let mut shown = update.version.lock().unwrap();
+        if shown.as_deref() == version {
+            return;
+        }
+        let was = shown.is_some();
+        *shown = version.map(str::to_string);
+        was
+    };
     match version {
         Some(v) => {
             let _ = update.item.set_text(update_label(v));
-            if shown.is_none() {
+            if !was_shown {
                 let _ = update.menu.insert(&update.item, 1);
             }
         }
@@ -103,5 +110,4 @@ pub fn set_update(app: &AppHandle, version: Option<&str>) {
             let _ = update.menu.remove(&update.item);
         }
     }
-    *shown = version.map(str::to_string);
 }
