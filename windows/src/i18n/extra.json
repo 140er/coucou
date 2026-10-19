@@ -4373,28 +4373,6 @@
    "ru": "Mochi несколько раз в день проверяет релизы Coucou на GitHub и сообщает о новых. О вас ничего не отправляется.",
    "id": "Mochi memeriksa rilis Coucou di GitHub beberapa kali sehari dan memberi tahu saat ada yang baru. Tidak ada data tentangmu yang dikirim."
   },
-  "Yes, tell me": {
-   "zh-Hans": "好的，提醒我",
-   "hi": "हाँ, बताओ",
-   "es": "Sí, avísame",
-   "ar": "نعم، أخبرني",
-   "fr": "Oui, préviens-moi",
-   "bn": "হ্যাঁ, জানাও",
-   "pt-BR": "Sim, me avise",
-   "ru": "Да, сообщать",
-   "id": "Ya, beri tahu saya"
-  },
-  "No thanks": {
-   "zh-Hans": "不用了",
-   "hi": "नहीं, धन्यवाद",
-   "es": "No, gracias",
-   "ar": "لا، شكرًا",
-   "fr": "Non merci",
-   "bn": "না, ধন্যবাদ",
-   "pt-BR": "Não, obrigado",
-   "ru": "Нет, спасибо",
-   "id": "Tidak, terima kasih"
-  },
   "Coucou {version} is out": {
    "zh-Hans": "Coucou {version} 已发布",
    "hi": "Coucou {version} आ गया है",
@@ -4417,17 +4395,6 @@
    "ru": "У вас {version}",
    "id": "Kamu punya {version}"
   },
-  "Update now": {
-   "zh-Hans": "立即更新",
-   "hi": "अभी अपडेट करें",
-   "es": "Actualizar ahora",
-   "ar": "التحديث الآن",
-   "fr": "Mettre à jour",
-   "bn": "এখনই আপডেট",
-   "pt-BR": "Atualizar agora",
-   "ru": "Обновить",
-   "id": "Perbarui sekarang"
-  },
   "What's new": {
    "zh-Hans": "新功能",
    "hi": "क्या नया है",
@@ -4438,28 +4405,6 @@
    "pt-BR": "Novidades",
    "ru": "Что нового",
    "id": "Yang baru"
-  },
-  "Later": {
-   "zh-Hans": "稍后",
-   "hi": "बाद में",
-   "es": "Más tarde",
-   "ar": "لاحقًا",
-   "fr": "Plus tard",
-   "bn": "পরে",
-   "pt-BR": "Depois",
-   "ru": "Позже",
-   "id": "Nanti"
-  },
-  "Get it on GitHub": {
-   "zh-Hans": "前往 GitHub",
-   "hi": "GitHub खोलें",
-   "es": "Abrir GitHub",
-   "ar": "فتح GitHub",
-   "fr": "Ouvrir GitHub",
-   "bn": "GitHub খুলুন",
-   "pt-BR": "Abrir o GitHub",
-   "ru": "Открыть GitHub",
-   "id": "Buka GitHub"
   },
   "Downloading from GitHub… {percent} %": {
    "zh-Hans": "正在从 GitHub 下载… {percent} %",
@@ -4493,50 +4438,6 @@
    "pt-BR": "A atualização não foi concluída",
    "ru": "Обновление не удалось",
    "id": "Pembaruan tidak berhasil"
-  },
-  "Coucou is up to date": {
-   "zh-Hans": "Coucou 已是最新版本",
-   "hi": "Coucou अप-टू-डेट है",
-   "es": "Coucou está actualizado",
-   "ar": "Coucou محدَّث",
-   "fr": "Coucou est à jour",
-   "bn": "Coucou হালনাগাদ আছে",
-   "pt-BR": "O Coucou está atualizado",
-   "ru": "Coucou обновлён",
-   "id": "Coucou sudah terbaru"
-  },
-  "Updates": {
-   "zh-Hans": "更新",
-   "hi": "अपडेट",
-   "es": "Actualizaciones",
-   "ar": "التحديثات",
-   "fr": "Mises à jour",
-   "bn": "আপডেট",
-   "pt-BR": "Atualizações",
-   "ru": "Обновления",
-   "id": "Pembaruan"
-  },
-  "Tell me when a new version is out": {
-   "zh-Hans": "有新版本时提醒我",
-   "hi": "नया वर्ज़न आने पर बताएँ",
-   "es": "Avisarme cuando salga una nueva versión",
-   "ar": "أخبرني عند صدور إصدار جديد",
-   "fr": "Me prévenir quand une nouvelle version sort",
-   "bn": "নতুন সংস্করণ এলে জানাও",
-   "pt-BR": "Me avisar quando sair uma nova versão",
-   "ru": "Сообщать о выходе новой версии",
-   "id": "Beri tahu saya saat ada versi baru"
-  },
-  "Check now": {
-   "zh-Hans": "立即检查",
-   "hi": "अभी जाँचें",
-   "es": "Comprobar ahora",
-   "ar": "التحقق الآن",
-   "fr": "Vérifier maintenant",
-   "bn": "এখনই দেখুন",
-   "pt-BR": "Verificar agora",
-   "ru": "Проверить сейчас",
-   "id": "Periksa sekarang"
   },
   "Install {version}": {
    "zh-Hans": "安装 {version}",
