@@ -4215,6 +4215,17 @@
    "ru": "Открыть чат",
    "id": "Buka chat"
   },
+  "Open for every pill’s alerts": {
+   "zh-Hans": "所有胶囊有提醒时都打开",
+   "hi": "हर पिल के अलर्ट पर खुलें",
+   "es": "Abrir con los avisos de todas las píldoras",
+   "ar": "الفتح عند تنبيهات كل الحبوب",
+   "fr": "S’ouvrir pour les alertes de toutes les pills",
+   "bn": "সব পিলের সতর্কতায় খুলুক",
+   "pt-BR": "Abrir com os alertas de todas as pílulas",
+   "ru": "Открываться при оповещениях всех пилюль",
+   "id": "Buka untuk peringatan semua pil"
+  },
   "Open in Mail": {
    "zh-Hans": "在“邮件”中打开",
    "hi": "Mail में खोलें",
@@ -6733,6 +6744,17 @@
    "pt-BR": "Quando o Coucou ouve as palavras da esquerda, escreve as da direita.",
    "ru": "Услышав слова слева, Coucou пишет слова справа.",
    "id": "Saat Coucou mendengar kata di kiri, ia menulis kata di kanan."
+  },
+  "When a pill other than the one shown finishes or hits an error, the notch shows it for a moment, then the pill you had comes back.": {
+   "zh-Hans": "当非当前显示的胶囊完成或出错时，刘海会短暂显示它，然后回到你原来的胶囊。",
+   "hi": "जब दिखाई जा रही पिल के अलावा कोई और पिल पूरी हो या उसमें गड़बड़ी हो, तो नॉच उसे थोड़ी देर दिखाता है, फिर आपकी पिल वापस आ जाती है।",
+   "es": "Cuando otra píldora distinta de la mostrada termina o da un error, el notch la muestra un momento y luego vuelve la tuya.",
+   "ar": "عندما تنتهي حبة غير المعروضة أو تواجه خطأ، يعرضها النوتش لحظة ثم تعود حبتك.",
+   "fr": "Quand une autre pill que celle affichée termine ou rencontre une erreur, le notch l’affiche un instant, puis ta pill revient.",
+   "bn": "দেখানো পিল ছাড়া অন্য কোনো পিল শেষ হলে বা ত্রুটি হলে, নচ সেটি কিছুক্ষণ দেখায়, তারপর আপনার পিল ফিরে আসে।",
+   "pt-BR": "Quando outra pílula que não a exibida termina ou dá erro, o notch a mostra por um instante e depois a sua volta.",
+   "ru": "Когда другая пилюля, не та что показана, завершает работу или получает ошибку, вырез ненадолго показывает её, затем возвращается ваша.",
+   "id": "Saat pil selain yang ditampilkan selesai atau mengalami galat, notch menampilkannya sebentar, lalu pilmu kembali."
   },
   "When enabled, Coucou listens for the wake word « OK Coucou ». Speech recognition runs entirely on-device — no audio or transcript leaves your Mac.": {
    "zh-Hans": "启用后，Coucou 会监听唤醒词« OK Coucou »。语音识别完全在设备上运行—任何音频或文字记录都不会离开您的 Mac。",

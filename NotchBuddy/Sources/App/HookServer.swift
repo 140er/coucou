@@ -56,6 +56,8 @@ final class HookServer: @unchecked Sendable {
     private var focusBeforeQuestion: String? = nil    // saved focus to restore after question
     private var activeSessionId: String? = nil        // current Claude Code session
     private var focusBeforeApproval: String? = nil    // saved focus to restore after approval
+    private var focusBeforeAlert: String? = nil       // saved focus while another pill's card shows
+    private var alertPill: String? = nil              // the pill that took the focus for its alert
     private var sessions = PillSessionRegistry()      // live sessions behind each pill
 
     private init() {}
@@ -616,7 +618,7 @@ final class HookServer: @unchecked Sendable {
                 state.tasks[idx].finalLine = finalText
             }
             if !terminalInFront { SoundEngine.shared.play("finish") }
-            if focused && !terminalInFront {
+            if !terminalInFront && showsAlert(for: agentId, focused: focused) {
                 expandIfNeeded(to: .finished)
             } else {
                 setPillBadge(id: agentId, badge: .finished)
@@ -644,7 +646,7 @@ final class HookServer: @unchecked Sendable {
                 state.tasks[idx].finalLine = Self.stopFailureDetail(payload)
             }
             if !terminalInFront { SoundEngine.shared.play("error") }
-            if focused && !terminalInFront {
+            if !terminalInFront && showsAlert(for: agentId, focused: focused) {
                 expandIfNeeded(to: .error)
             } else {
                 setPillBadge(id: agentId, badge: .error)
@@ -726,6 +728,36 @@ final class HookServer: @unchecked Sendable {
     }
 
     // MARK: - Helpers
+
+    /// Whether a finish or an error opens the island. The pill shown always does; another pill
+    /// does too with "Show alerts from every pill" (#683): it takes the focus for its card, and
+    /// the pill that was shown comes back when the island closes. Never over an approval, a
+    /// question, or a card the user is busy in (chat, mail, settings…).
+    @MainActor
+    private func showsAlert(for pill: String, focused: Bool) -> Bool {
+        if focused { return true }
+        let state = AppState.shared
+        guard state.alertsFromAllPills, state.pendingApproval == nil, state.pendingQuestion == nil else { return false }
+        if state.mode == .expanded, ![IslandView.overview, .finished, .error, .empty].contains(state.view) { return false }
+        if focusBeforeAlert == nil { focusBeforeAlert = state.focusId }
+        alertPill = pill
+        withAnimation(.spring(response: 0.5, dampingFraction: 0.72)) { state.focusId = pill }
+        return true
+    }
+
+    /// The island closed: the pill that was shown before another pill's alert comes back.
+    @MainActor
+    func restoreAlertFocus() {
+        guard let prev = focusBeforeAlert else { return }
+        let borrowed = alertPill
+        focusBeforeAlert = nil
+        alertPill = nil
+        let state = AppState.shared
+        // Only if the alert's pill is still the one shown (the user may have picked another).
+        guard state.pendingApproval == nil, state.focusId == borrowed, borrowed != prev,
+              state.tasks.contains(where: { $0.id == prev }) else { return }
+        withAnimation(.spring(response: 0.5, dampingFraction: 0.72)) { state.focusId = prev }
+    }
 
     @MainActor
     private func expandIfNeeded(to view: IslandView) {
