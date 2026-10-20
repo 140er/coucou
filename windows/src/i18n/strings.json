@@ -343,6 +343,17 @@
    "ru": "Разрешить",
    "id": "Izinkan"
   },
+  "Allow Coucou in System Settings › Privacy & Security › Accessibility.": {
+   "zh-Hans": "请在“系统设置 › 隐私与安全性 › 辅助功能”中允许 Coucou。",
+   "hi": "System Settings › Privacy & Security › Accessibility में Coucou को अनुमति दें।",
+   "es": "Permite Coucou en Ajustes del Sistema › Privacidad y seguridad › Accesibilidad.",
+   "ar": "اسمح لـ Coucou في إعدادات النظام › الخصوصية والأمن › تسهيلات الاستخدام.",
+   "fr": "Autorise Coucou dans Réglages Système › Confidentialité et sécurité › Accessibilité.",
+   "bn": "System Settings › Privacy & Security › Accessibility-এ Coucou-কে অনুমতি দিন।",
+   "pt-BR": "Permita o Coucou em Ajustes do Sistema › Privacidade e Segurança › Acessibilidade.",
+   "ru": "Разрешите Coucou в Системных настройках › Конфиденциальность и безопасность › Универсальный доступ.",
+   "id": "Izinkan Coucou di Pengaturan Sistem › Privasi & Keamanan › Aksesibilitas."
+  },
   "Allow Coucou in System Settings → Privacy & Security → Screen Recording, then capture again.": {
    "zh-Hans": "请在“系统设置 → 隐私与安全性 → 录屏”中允许 Coucou，然后再截一次。",
    "hi": "System Settings → Privacy & Security → Screen Recording में Coucou को अनुमति दें, फिर दोबारा कैप्चर करें।",
@@ -980,6 +991,17 @@
    "pt-BR": "Claude Code, Codex e os outros agentes que o Mochi acompanha.",
    "ru": "Claude Code, Codex и другие агенты, за которыми следит Мочи.",
    "id": "Claude Code, Codex, dan agen lain yang diikuti Mochi."
+  },
+  "Claude Desktop chats (experimental)": {
+   "zh-Hans": "Claude Desktop 聊天（实验性）",
+   "hi": "Claude Desktop चैट (प्रायोगिक)",
+   "es": "Chats de Claude Desktop (experimental)",
+   "ar": "دردشات Claude Desktop (تجريبي)",
+   "fr": "Chats Claude Desktop (expérimental)",
+   "bn": "Claude Desktop চ্যাট (পরীক্ষামূলক)",
+   "pt-BR": "Chats do Claude Desktop (experimental)",
+   "ru": "Чаты Claude Desktop (экспериментально)",
+   "id": "Chat Claude Desktop (eksperimental)"
   },
   "Claude as Coucou's brain": {
    "zh-Hans": "由 Claude 担任 Coucou 的大脑",
@@ -2213,6 +2235,17 @@
    "ru": "Для более естественного голоса скачай голос Premium: Системные настройки → Универсальный доступ → Устная речь → Системный голос → Управлять голосами. По-английски: Ava — женский, Jamie — мужской (британский).",
    "id": "Untuk suara yang lebih alami, unduh suara Premium: Pengaturan Sistem → Aksesibilitas → Konten Lisan → Suara Sistem → Kelola Suara. Bahasa Inggris: Ava untuk wanita, Jamie untuk pria (Inggris)."
   },
+  "For regular chats in the Claude app, which run no hook. When you leave Claude while it is writing, Coucou checks once a second, through Accessibility, whether its Stop button is still there. Nothing of the chat is read.": {
+   "zh-Hans": "适用于 Claude 应用中的普通聊天（没有 hook）。当 Claude 正在输出时你离开它，Coucou 会每秒通过辅助功能检查“停止”按钮是否还在。不会读取任何聊天内容。",
+   "hi": "Claude ऐप की सामान्य चैट के लिए, जिनमें कोई हुक नहीं होता। Claude के लिखते समय आप उसे छोड़ें, तो Coucou हर सेकंड Accessibility से देखता है कि उसका Stop बटन अब भी है या नहीं। चैट का कुछ भी नहीं पढ़ा जाता।",
+   "es": "Para los chats normales de la app Claude, que no tienen hook. Cuando sales de Claude mientras escribe, Coucou comprueba cada segundo, mediante Accesibilidad, si su botón Detener sigue ahí. No se lee nada del chat.",
+   "ar": "للدردشات العادية في تطبيق Claude التي لا تملك hook. عندما تغادر Claude أثناء الكتابة، يتحقق Coucou كل ثانية عبر تسهيلات الاستخدام من بقاء زر الإيقاف. لا يُقرأ أي شيء من الدردشة.",
+   "fr": "Pour les chats classiques de l’app Claude, qui n’ont pas de hook. Quand tu quittes Claude pendant qu’il écrit, Coucou vérifie chaque seconde, via l’Accessibilité, si son bouton Stop est encore là. Rien du chat n’est lu.",
+   "bn": "Claude অ্যাপের সাধারণ চ্যাটের জন্য, যেগুলোতে কোনো হুক নেই। Claude লেখার সময় আপনি সরে গেলে, Coucou প্রতি সেকেন্ডে Accessibility দিয়ে দেখে তার Stop বোতাম এখনও আছে কি না। চ্যাটের কিছুই পড়া হয় না।",
+   "pt-BR": "Para os chats comuns do app Claude, que não têm hook. Quando você sai do Claude enquanto ele escreve, o Coucou verifica a cada segundo, pela Acessibilidade, se o botão Parar ainda está lá. Nada do chat é lido.",
+   "ru": "Для обычных чатов в приложении Claude, где нет хуков. Когда вы уходите из Claude, пока он пишет, Coucou раз в секунду через Универсальный доступ проверяет, есть ли ещё кнопка «Стоп». Содержимое чата не читается.",
+   "id": "Untuk chat biasa di aplikasi Claude, yang tidak punya hook. Saat kamu meninggalkan Claude ketika ia sedang menulis, Coucou memeriksa setiap detik lewat Aksesibilitas apakah tombol Stop-nya masih ada. Isi chat tidak dibaca."
+  },
   "Forever": {
    "zh-Hans": "永久",
    "hi": "हमेशा",
@@ -3411,6 +3444,17 @@
    "pt-BR": "O Mochi verifica as versões do Coucou no GitHub algumas vezes por dia e avisa quando sai uma. Nada sobre você é enviado.",
    "ru": "Mochi несколько раз в день проверяет релизы Coucou на GitHub и сообщает о новых. О вас ничего не отправляется.",
    "id": "Mochi memeriksa rilis Coucou di GitHub beberapa kali sehari dan memberi tahu saat ada yang baru. Tidak ada data tentangmu yang dikirim."
+  },
+  "Mochi jumps when a chat reply is ready": {
+   "zh-Hans": "聊天回复完成时 Mochi 会跳起来",
+   "hi": "चैट का जवाब तैयार होने पर Mochi उछलता है",
+   "es": "Mochi salta cuando una respuesta del chat está lista",
+   "ar": "يقفز Mochi عندما يجهز رد الدردشة",
+   "fr": "Mochi saute quand une réponse de chat est prête",
+   "bn": "চ্যাটের উত্তর প্রস্তুত হলে Mochi লাফায়",
+   "pt-BR": "O Mochi pula quando uma resposta do chat fica pronta",
+   "ru": "Mochi подпрыгивает, когда ответ в чате готов",
+   "id": "Mochi melompat saat balasan chat siap"
   },
   "Mochi reacts to your Mac": {
    "zh-Hans": "Mochi 会对你的 Mac 做出反应",
@@ -5193,6 +5237,17 @@
    "pt-BR": "Responder no terminal",
    "ru": "Ответить в терминале",
    "id": "Balas di terminal"
+  },
+  "Reply ready": {
+   "zh-Hans": "回复已完成",
+   "hi": "जवाब तैयार",
+   "es": "Respuesta lista",
+   "ar": "الرد جاهز",
+   "fr": "Réponse prête",
+   "bn": "উত্তর প্রস্তুত",
+   "pt-BR": "Resposta pronta",
+   "ru": "Ответ готов",
+   "id": "Balasan siap"
   },
   "Reply…  (⇧↩ new line)": {
    "zh-Hans": "回复…（⇧↩ 换行）",
