@@ -418,6 +418,19 @@
    "de": "Zulassen",
    "tr": "İzin ver"
   },
+  "Allow Coucou in System Settings › Privacy & Security › Accessibility.": {
+   "zh-Hans": "请在“系统设置 › 隐私与安全性 › 辅助功能”中允许 Coucou。",
+   "hi": "System Settings › Privacy & Security › Accessibility में Coucou को अनुमति दें।",
+   "es": "Permite Coucou en Ajustes del Sistema › Privacidad y seguridad › Accesibilidad.",
+   "ar": "اسمح لـ Coucou في إعدادات النظام › الخصوصية والأمن › تسهيلات الاستخدام.",
+   "fr": "Autorise Coucou dans Réglages Système › Confidentialité et sécurité › Accessibilité.",
+   "bn": "System Settings › Privacy & Security › Accessibility-এ Coucou-কে অনুমতি দিন।",
+   "pt-BR": "Permita o Coucou em Ajustes do Sistema › Privacidade e Segurança › Acessibilidade.",
+   "ru": "Разрешите Coucou в Системных настройках › Конфиденциальность и безопасность › Универсальный доступ.",
+   "id": "Izinkan Coucou di Pengaturan Sistem › Privasi & Keamanan › Aksesibilitas.",
+   "de": "Erlaube Coucou unter Systemeinstellungen › Datenschutz & Sicherheit › Bedienungshilfen.",
+   "tr": "Sistem Ayarları › Gizlilik ve Güvenlik › Erişilebilirlik bölümünde Coucou'ya izin ver."
+  },
   "Allow Coucou in System Settings → Privacy & Security → Screen Recording, then capture again.": {
    "zh-Hans": "请在“系统设置 → 隐私与安全性 → 录屏”中允许 Coucou，然后再截一次。",
    "hi": "System Settings → Privacy & Security → Screen Recording में Coucou को अनुमति दें, फिर दोबारा कैप्चर करें।",
@@ -751,7 +764,7 @@
    "fr": "Mode auto",
    "bn": "অটো মোড",
    "pt-BR": "Modo automático",
-   "ru": "Автоматический режим",
+   "ru": "Авторежим",
    "id": "Mode otomatis",
    "de": "Automatikmodus",
    "tr": "Otomatik mod"
@@ -1018,11 +1031,11 @@
   },
   "Change plan": {
    "zh-Hans": "修改计划",
-   "hi": "प्लान बदलें",
+   "hi": "योजना बदलें",
    "es": "Cambiar el plan",
    "ar": "تغيير الخطة",
    "fr": "Modifier le plan",
-   "bn": "প্ল্যান বদলান",
+   "bn": "পরিকল্পনা বদলান",
    "pt-BR": "Mudar o plano",
    "ru": "Изменить план",
    "id": "Ubah rencana",
@@ -1184,6 +1197,19 @@
    "id": "Claude Code, Codex, dan agen lain yang diikuti Mochi.",
    "de": "Claude Code, Codex und die anderen Agenten, denen Mochi folgt.",
    "tr": "Claude Code, Codex ve Mochi'nin takip ettiği diğer ajanlar."
+  },
+  "Claude Desktop chats (experimental)": {
+   "zh-Hans": "Claude Desktop 聊天（实验性）",
+   "hi": "Claude Desktop चैट (प्रायोगिक)",
+   "es": "Chats de Claude Desktop (experimental)",
+   "ar": "دردشات Claude Desktop (تجريبي)",
+   "fr": "Chats Claude Desktop (expérimental)",
+   "bn": "Claude Desktop চ্যাট (পরীক্ষামূলক)",
+   "pt-BR": "Chats do Claude Desktop (experimental)",
+   "ru": "Чаты Claude Desktop (экспериментально)",
+   "id": "Chat Claude Desktop (eksperimental)",
+   "de": "Claude-Desktop-Chats (experimentell)",
+   "tr": "Claude Desktop sohbetleri (deneysel)"
   },
   "Claude as Coucou's brain": {
    "zh-Hans": "由 Claude 担任 Coucou 的大脑",
@@ -2498,6 +2524,19 @@
    "de": "Für eine natürlichere Stimme lade eine Premium-Stimme herunter: Systemeinstellungen → Bedienungshilfen → Gesprochene Inhalte → Systemstimme → Stimmen verwalten. Auf Englisch: Ava für eine weibliche, Jamie für eine männliche Stimme (britisch).",
    "tr": "Daha doğal bir ses için Premium ses indir: Sistem Ayarları → Erişilebilirlik → Seslendirilen İçerik → Sistem Sesi → Sesleri Yönet. İngilizcede: kadın sesi için Ava, erkek sesi için Jamie (Britanya)."
   },
+  "For regular chats in the Claude app, which run no hook. When you leave Claude while it is writing, Coucou checks once a second, through Accessibility, whether its Stop button is still there. Nothing of the chat is read.": {
+   "zh-Hans": "适用于 Claude 应用中的普通聊天（没有 hook）。当 Claude 正在输出时你离开它，Coucou 会每秒通过辅助功能检查“停止”按钮是否还在。不会读取任何聊天内容。",
+   "hi": "Claude ऐप की सामान्य चैट के लिए, जिनमें कोई हुक नहीं होता। Claude के लिखते समय आप उसे छोड़ें, तो Coucou हर सेकंड Accessibility से देखता है कि उसका Stop बटन अब भी है या नहीं। चैट का कुछ भी नहीं पढ़ा जाता।",
+   "es": "Para los chats normales de la app Claude, que no tienen hook. Cuando sales de Claude mientras escribe, Coucou comprueba cada segundo, mediante Accesibilidad, si su botón Detener sigue ahí. No se lee nada del chat.",
+   "ar": "للدردشات العادية في تطبيق Claude التي لا تملك hook. عندما تغادر Claude أثناء الكتابة، يتحقق Coucou كل ثانية عبر تسهيلات الاستخدام من بقاء زر الإيقاف. لا يُقرأ أي شيء من الدردشة.",
+   "fr": "Pour les chats classiques de l’app Claude, qui n’ont pas de hook. Quand tu quittes Claude pendant qu’il écrit, Coucou vérifie chaque seconde, via l’Accessibilité, si son bouton Stop est encore là. Rien du chat n’est lu.",
+   "bn": "Claude অ্যাপের সাধারণ চ্যাটের জন্য, যেগুলোতে কোনো হুক নেই। Claude লেখার সময় আপনি সরে গেলে, Coucou প্রতি সেকেন্ডে Accessibility দিয়ে দেখে তার Stop বোতাম এখনও আছে কি না। চ্যাটের কিছুই পড়া হয় না।",
+   "pt-BR": "Para os chats comuns do app Claude, que não têm hook. Quando você sai do Claude enquanto ele escreve, o Coucou verifica a cada segundo, pela Acessibilidade, se o botão Parar ainda está lá. Nada do chat é lido.",
+   "ru": "Для обычных чатов в приложении Claude, где нет хуков. Когда вы уходите из Claude, пока он пишет, Coucou раз в секунду через Универсальный доступ проверяет, есть ли ещё кнопка «Стоп». Содержимое чата не читается.",
+   "id": "Untuk chat biasa di aplikasi Claude, yang tidak punya hook. Saat kamu meninggalkan Claude ketika ia sedang menulis, Coucou memeriksa setiap detik lewat Aksesibilitas apakah tombol Stop-nya masih ada. Isi chat tidak dibaca.",
+   "de": "Für normale Chats in der Claude-App, die keinen Hook ausführen. Wenn du Claude verlässt, während es schreibt, prüft Coucou einmal pro Sekunde über die Bedienungshilfen, ob die Stopp-Taste noch da ist. Vom Chat wird nichts gelesen.",
+   "tr": "Claude uygulamasındaki, hook çalıştırmayan normal sohbetler için. Claude yazarken ondan ayrılırsan Coucou, Erişilebilirlik üzerinden saniyede bir Durdur düğmesinin hâlâ orada olup olmadığını kontrol eder. Sohbetten hiçbir şey okunmaz."
+  },
   "Forever": {
    "zh-Hans": "永久",
    "hi": "हमेशा",
@@ -3720,6 +3759,19 @@
    "de": "Mochi und dein Mac",
    "tr": "Mochi ve Mac'in"
   },
+  "Mochi jumps when a chat reply is ready": {
+   "zh-Hans": "聊天回复完成时 Mochi 会跳起来",
+   "hi": "चैट का जवाब तैयार होने पर Mochi उछलता है",
+   "es": "Mochi salta cuando una respuesta del chat está lista",
+   "ar": "يقفز Mochi عندما يجهز رد الدردشة",
+   "fr": "Mochi saute quand une réponse de chat est prête",
+   "bn": "চ্যাটের উত্তর প্রস্তুত হলে Mochi লাফায়",
+   "pt-BR": "O Mochi pula quando uma resposta do chat fica pronta",
+   "ru": "Mochi подпрыгивает, когда ответ в чате готов",
+   "id": "Mochi melompat saat balasan chat siap",
+   "de": "Mochi springt, wenn eine Chat-Antwort bereit ist",
+   "tr": "Bir sohbet yanıtı hazır olduğunda Mochi zıplar"
+  },
   "Mochi reacts to your Mac": {
    "zh-Hans": "Mochi 会对你的 Mac 做出反应",
    "hi": "मोची आपके Mac पर प्रतिक्रिया देता है",
@@ -4851,6 +4903,19 @@
    "de": "Chat öffnen",
    "tr": "Sohbeti aç"
   },
+  "Open for every pill’s alerts": {
+   "zh-Hans": "所有胶囊有提醒时都打开",
+   "hi": "हर पिल के अलर्ट पर खुलें",
+   "es": "Abrir con los avisos de todas las píldoras",
+   "ar": "الفتح عند تنبيهات كل الحبوب",
+   "fr": "S’ouvrir pour les alertes de toutes les pills",
+   "bn": "সব পিলের সতর্কতায় খুলুক",
+   "pt-BR": "Abrir com os alertas de todas as pílulas",
+   "ru": "Открываться при оповещениях всех пилюль",
+   "id": "Buka untuk peringatan semua pil",
+   "de": "Bei Meldungen aller Pills öffnen",
+   "tr": "Tüm araçların uyarılarında aç"
+  },
   "Open in Mail": {
    "zh-Hans": "在“邮件”中打开",
    "hi": "Mail में खोलें",
@@ -5825,6 +5890,19 @@
    "id": "Balas di terminal",
    "de": "Im Terminal antworten",
    "tr": "Terminalde yanıtla"
+  },
+  "Reply ready": {
+   "zh-Hans": "回复已完成",
+   "hi": "जवाब तैयार",
+   "es": "Respuesta lista",
+   "ar": "الرد جاهز",
+   "fr": "Réponse prête",
+   "bn": "উত্তর প্রস্তুত",
+   "pt-BR": "Resposta pronta",
+   "ru": "Ответ готов",
+   "id": "Balasan siap",
+   "de": "Antwort bereit",
+   "tr": "Yanıt hazır"
   },
   "Request permissions": {
    "zh-Hans": "请求权限",
@@ -7672,6 +7750,19 @@
    "de": "Wenn Coucou die Wörter links hört, schreibt es die Wörter rechts.",
    "tr": "Coucou soldaki sözcükleri duyduğunda sağdakileri yazar."
   },
+  "When a pill other than the one shown finishes or hits an error, the notch shows it for a moment, then the pill you had comes back.": {
+   "zh-Hans": "当非当前显示的胶囊完成或出错时，刘海会短暂显示它，然后回到你原来的胶囊。",
+   "hi": "जब दिखाई जा रही पिल के अलावा कोई और पिल पूरी हो या उसमें गड़बड़ी हो, तो नॉच उसे थोड़ी देर दिखाता है, फिर आपकी पिल वापस आ जाती है।",
+   "es": "Cuando otra píldora distinta de la mostrada termina o da un error, el notch la muestra un momento y luego vuelve la tuya.",
+   "ar": "عندما تنتهي حبة غير المعروضة أو تواجه خطأ، يعرضها النوتش لحظة ثم تعود حبتك.",
+   "fr": "Quand une autre pill que celle affichée termine ou rencontre une erreur, le notch l’affiche un instant, puis ta pill revient.",
+   "bn": "দেখানো পিল ছাড়া অন্য কোনো পিল শেষ হলে বা ত্রুটি হলে, নচ সেটি কিছুক্ষণ দেখায়, তারপর আপনার পিল ফিরে আসে।",
+   "pt-BR": "Quando outra pílula que não a exibida termina ou dá erro, o notch a mostra por um instante e depois a sua volta.",
+   "ru": "Когда другая пилюля, не та что показана, завершает работу или получает ошибку, вырез ненадолго показывает её, затем возвращается ваша.",
+   "id": "Saat pil selain yang ditampilkan selesai atau mengalami galat, notch menampilkannya sebentar, lalu pilmu kembali.",
+   "de": "Wenn eine andere Pill als die angezeigte fertig wird oder auf einen Fehler stößt, zeigt die Notch sie kurz an, dann kehrt deine Pill zurück.",
+   "tr": "Gösterilenden başka bir araç bittiğinde veya bir hatayla karşılaştığında ada onu kısa bir süre gösterir, sonra kendi aracın geri gelir."
+  },
   "When enabled, Coucou listens for the wake word « OK Coucou ». Speech recognition runs entirely on-device — no audio or transcript leaves your Mac.": {
    "zh-Hans": "启用后，Coucou 会监听唤醒词« OK Coucou »。语音识别完全在设备上运行—任何音频或文字记录都不会离开您的 Mac。",
    "hi": "सक्षम होने पर, Coucou वेक शब्द « OK Coucou » सुनता है। वाक् पहचान पूरी तरह डिवाइस पर चलती है — कोई ऑडियो या ट्रांसक्रिप्ट आपके Mac को नहीं छोड़ता।",
@@ -8230,6 +8321,19 @@
    "id": "fn (🌐)",
    "de": "fn (🌐)",
    "tr": "fn (🌐)"
+  },
+  "has a plan ready": {
+   "zh-Hans": "的计划已就绪",
+   "hi": "की योजना तैयार है",
+   "es": "tiene un plan listo",
+   "ar": "لديه خطة جاهزة",
+   "fr": "a un plan prêt",
+   "bn": "-এর পরিকল্পনা প্রস্তুত",
+   "pt-BR": "tem um plano pronto",
+   "ru": "подготовил план",
+   "id": "punya rencana siap",
+   "de": "hat einen Plan bereit",
+   "tr": "planını hazırladı"
   },
   "in {h} h {m}": {
    "zh-Hans": "{h} 小时 {m} 分后",
