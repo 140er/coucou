@@ -89,7 +89,7 @@ Flow dictation and the Notetaker are on the Mac for now; Windows and Linux are n
 - 🤖 **Coucou for Android** — your agents, approvals with your fingerprint, questions, chat and home-screen widgets on an Android phone, linked to Coucou on Windows or Linux over your Wi-Fi. By [@Rhytam23](https://github.com/Rhytam23). See [Coucou for Android](#coucou-for-android).
 - 📅 **Weekly recap** *(macOS)* — every Monday morning Coucou shows a summary of the past week: time coding, sessions, files, lines changed, commands, permissions, top agent and project, busiest day and longest session. Share it as a 1080 × 1920 image with Mochi — project names optional. All local, no sync.
 - 🌍 **14 languages** — English, 简体中文, 繁體中文, हिन्दी, Español, العربية, Français, বাংলা, Português, Русский, Bahasa Indonesia, Deutsch, Türkçe, ไทย. Pick one in Settings → General → Language; Traditional Chinese and Thai are on the Mac only for now. Community translations welcome.
-- 🔒 **Private by design** — no telemetry, no account. Keys live in your macOS Keychain, Windows Credential Manager or Linux Secret Service (GNOME Keyring, KWallet). The app only talks to the services you plug in.
+- 🔒 **Private by design** — no telemetry, no account. Keys live in your macOS Keychain, Windows Credential Manager or Linux Secret Service (GNOME Keyring, KWallet). The app only talks to the services you plug in (and, once you agree, to GitHub's releases API to tell you about new versions).
 
 ## Coucou on iPhone
 
@@ -248,6 +248,8 @@ This is only because the app isn't signed with a paid certificate yet. Coucou is
 There is no notch on a PC, so the island slides out of the top edge of the screen
 instead of hiding inside one. See [`windows/README.md`](windows/README.md) for the
 rest of the differences.
+
+**New versions.** Once you agree (the island asks once, or Settings → General → Updates), Coucou for Windows and Linux tells you when a new version is out; on Windows, **Update now** downloads the installer you used, checks its SHA-256 against the one GitHub publishes and installs it in one click. See [`windows/README.md`](windows/README.md#new-versions).
 
 ### Linux
 
