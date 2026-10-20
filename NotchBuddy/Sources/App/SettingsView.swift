@@ -647,6 +647,8 @@ struct SettingsView: View {
         }
 
         #if !APPSTORE
+        ClaudeDesktopChatSettingsSection()
+
         GroupBox(String(localized: "hooks.gemini.title")) {
             VStack(alignment: .leading, spacing: 10) {
                 Text(geminiHooksInstalled
