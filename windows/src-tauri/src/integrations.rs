@@ -175,12 +175,15 @@ fn gitlab_activity(events: &[Value], fetched_at: u64) -> GitHubActivity {
 }
 
 async fn poll_gitlab(app: AppHandle) {
+    if PAUSED.load(Ordering::Relaxed) || !enabled(&app, "integration_gitlab") { return; }
     let Some(token) = secrets::get("gitlab-token") else { return };
     let instance = secrets::get("gitlab-url").unwrap_or_else(|| "https://gitlab.com".into());
     let Ok(instance) = reqwest::Url::parse(instance.trim()) else { return };
     if !matches!(instance.scheme(), "http" | "https") || instance.host_str().is_none() { return; }
     let base = instance.as_str().trim_end_matches('/').to_string();
-    let http = client();
+    // PRIVATE-TOKEN must never follow an instance redirect to another server.
+    let Ok(http) = reqwest::Client::builder().timeout(TIMEOUT)
+        .redirect(reqwest::redirect::Policy::none()).build() else { return };
     let headers = |request: reqwest::RequestBuilder| request.header("PRIVATE-TOKEN", &token);
     let user = headers(http.get(format!("{base}/api/v4/user"))).send().await;
     let Ok(user) = user else { return };

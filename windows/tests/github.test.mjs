@@ -271,3 +271,26 @@ test("Ctrl+↓ ↑ highlight a list row, Ctrl+O does what its click does", async
   openRow(undefined);
   assert.equal(sent("open_url").length, 1);
 });
+
+
+test("forge callbacks and selected sections survive rendering a different provider", async () => {
+  const { installFakeDom } = await import("./fakedom.mjs");
+  installFakeDom();
+  const { githubDetail, githubPulseCard, listRows, openRow } = await import("../src/views/github.ts");
+  const pulse = { login: "me", fetchedAt: 1, myPRs: [pr("me/app#1", "success")], toReview: [], mainCI: [] };
+  const options = { title: "GitLab", color: "#FC6D26", provider: "gitlab", refreshId: "integration_gitlab" };
+  const card = githubPulseCard(pulse, null, null, () => {}, options);
+  githubPulseCard(pulse, null, null, () => {});
+  calls.length = 0;
+  card.find(".gh-stat")[0].fire("click");
+  assert.deepEqual(sent("refresh_integration"), [{ id: "integration_gitlab" }]);
+  assert.deepEqual(sent("github_refresh"), []);
+  const rows = listRows(githubDetail(pulse, null, null, () => {}, options));
+  const githubCard = githubPulseCard(pulse, { totalRepos: 1, totalStars: 0 }, activity, () => {});
+  githubCard.find(".gh-spark")[0].fire("click");
+  githubDetail(pulse, null, activity, () => {});
+  openRow(rows[0]);
+  assert.deepEqual(sent("open_gitlab_url"), [{ url: pulse.myPRs[0].url }]);
+  assert.equal(listRows(githubDetail(pulse, null, null, () => {}, options)).length, 1);
+  githubCard.find(".gh-stat")[0].fire("click");
+});
