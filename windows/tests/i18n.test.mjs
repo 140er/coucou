@@ -117,7 +117,7 @@ test("System follows the system's language when Coucou has it, else English", ()
 });
 
 test("the picker offers the Mac's languages, Arabic reads right to left", () => {
-  assert.deepEqual(LANGUAGES.map((l) => l.code), ["en", "zh-Hans", "hi", "es", "ar", "fr", "bn", "pt-BR", "ru", "id", "de"]);
+  assert.deepEqual(LANGUAGES.map((l) => l.code), ["en", "zh-Hans", "hi", "es", "ar", "fr", "bn", "pt-BR", "ru", "id", "de", "tr"]);
   assert.equal(isRtl("ar"), true);
   assert.equal(OTHERS.some((l) => l !== "ar" && isRtl(l)), false);
 });
@@ -200,6 +200,39 @@ function checkAppleTranslations(lang) {
 }
 
 test("German Apple translations keep their placeholders and plural forms", () => checkAppleTranslations("de"));
+
+test("Turkish translates both tables, interpolates and falls back to English", () => {
+  inLanguage("tr", () => {
+    assert.equal(t("Allow"), "İzin ver");
+    assert.equal(t("Deny"), "Reddet");
+    assert.equal(t("Open the chat"), "Sohbeti aç");
+    assert.equal(t("Uploading {name}", { name: "öğrenci.pdf" }), "öğrenci.pdf yükleniyor");
+    assert.equal(t("Some brand new sentence."), "Some brand new sentence.");
+    assert.equal(t("Hello {name}", { name: "Mochi" }), "Hello Mochi");
+    assert.equal(dayMonth(9, 9), "9 Eki");
+    assert.equal(isRtl(), false);
+  });
+});
+
+test("Turkish keeps nouns singular after counts in both tables", () => {
+  inLanguage("tr", () => {
+    for (const count of [0, 1, 2, 21]) {
+      assert.equal(tn("{count} repo", "{count} repos", count), `${count} depo`);
+      assert.equal(tn("✓ Connected · {count} model", "✓ Connected · {count} models", count),
+        `✓ Bağlı · ${count} model`);
+    }
+  });
+});
+
+test("Turkish can be selected or resolved from regional system languages", () => {
+  assert.equal(LANGUAGES.find((l) => l.code === "tr").name, "Türkçe");
+  assert.equal(resolveLanguage("tr", ["en-US"]), "tr");
+  for (const tag of ["tr", "tr-TR", "tr_TR"]) {
+    assert.equal(resolveLanguage("", [tag, "en-US"]), "tr");
+  }
+});
+
+test("Turkish Apple translations keep their placeholders and plural forms", () => checkAppleTranslations("tr"));
 
 test("a language change relabels what was built, in place, and says so once", () => {
   let told = 0;
