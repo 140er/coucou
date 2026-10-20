@@ -45,6 +45,12 @@ struct IslandViewContent: View {
             #else
             EmptyView()
             #endif
+        case .update:
+            #if !APPSTORE
+            UpdateCardView()
+            #else
+            EmptyView()
+            #endif
         }
     }
 }
