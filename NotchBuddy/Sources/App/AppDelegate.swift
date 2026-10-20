@@ -310,6 +310,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         MailController.shared.start()
         WhatsAppController.shared.start()
         MacUpdater.shared.start()
+        ClaudeDesktopChatWatcher.shared.start()
         #endif
         CryptoController.shared.start()
         PortfolioController.shared.start()
