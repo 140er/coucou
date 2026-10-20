@@ -135,12 +135,14 @@ fn gitea_api_base() -> Option<String> {
     if !matches!(parsed.scheme(), "http" | "https") || parsed.host_str().is_none() {
         return None;
     }
-    Some(format!("{}/api/v1", url.trim_end_matches('/')))
+    Some(format!("{}/api/v1", parsed.as_str().trim_end_matches('/')))
 }
 
 async fn poll_gitea(app: AppHandle) {
+    if PAUSED.load(Ordering::Relaxed) || !enabled(&app, "integration_gitea") { return; }
     let (Some(token), Some(base)) = (secrets::get("gitea-token"), gitea_api_base()) else { return };
-    let http = client();
+    let Ok(http) = reqwest::Client::builder().timeout(TIMEOUT)
+        .redirect(reqwest::redirect::Policy::none()).build() else { return };
     let user = http.get(format!("{base}/user")).header("Authorization", format!("token {token}")).send().await;
     let Ok(response) = user else { return };
     if !response.status().is_success() {
@@ -235,13 +237,21 @@ fn civil_day(day: i64) -> (i32, u32, u32, u8) {
 
 fn gitea_activity(heatmap: &[Value], fetched_at: u64) -> GitHubActivity {
     let today = (fetched_at / 86_400_000) as i64;
+    let mut start = today - 364;
+    start -= i64::from(civil_day(start).3);
     let mut weeks: Vec<Vec<ContributionDay>> = Vec::new();
-    for chunk in (0..161).map(|offset| today - 160 + offset).collect::<Vec<_>>().chunks(7) {
-        weeks.push(chunk.iter().map(|&day| {
-            let count = heatmap.iter().find_map(|entry| { let ts = entry.get("timestamp")?.as_i64()?; let d = if ts > 10_000_000_000 { ts / 86_400_000 } else { ts / 86_400 }; (d == day).then(|| entry.get("contributions").and_then(Value::as_i64).unwrap_or(0)) }).unwrap_or(0);
-            let (y, m, d, weekday) = civil_day(day); ContributionDay { date: format!("{y:04}-{m:02}-{d:02}"), count,
-                level: if count == 0 { 0 } else if count == 1 { 1 } else if count < 4 { 2 } else if count < 8 { 3 } else { 4 }, weekday }
-        }).collect());
+    for day in start..=today {
+        let (y, m, d, weekday) = civil_day(day);
+        if weekday == 0 || weeks.is_empty() { weeks.push(Vec::new()); }
+        let count = heatmap.iter().find_map(|entry| {
+            let ts = entry.get("timestamp")?.as_i64()?;
+            let entry_day = if ts > 10_000_000_000 { ts / 86_400_000 } else { ts / 86_400 };
+            (entry_day == day).then(|| entry.get("contributions").and_then(Value::as_i64).unwrap_or(0).max(0))
+        }).unwrap_or(0);
+        weeks.last_mut().unwrap().push(ContributionDay {
+            date: format!("{y:04}-{m:02}-{d:02}"), count, weekday,
+            level: if count == 0 { 0 } else if count == 1 { 1 } else if count < 4 { 2 } else if count < 8 { 3 } else { 4 },
+        });
     }
     let total = weeks.iter().flatten().map(|d| d.count).sum(); GitHubActivity { total, weeks, fetched_at }
 }
@@ -1139,6 +1149,26 @@ fn fmt_value(v: &Value) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn gitea_calendar_keeps_full_weeks_and_yearly_totals() {
+        let today = 20_000_i64;
+        let activity = gitea_activity(&[
+            json!({ "timestamp": (today - 300) * 86_400, "contributions": 5 }),
+            json!({ "timestamp": today * 86_400_000, "contributions": 2 }),
+        ], today as u64 * 86_400_000);
+        assert_eq!(activity.total, 7);
+        assert!(activity.weeks.iter().flatten().count() >= 365);
+        for week in &activity.weeks {
+            assert_eq!(week[0].weekday, 0);
+            for (index, day) in week.iter().enumerate() {
+                assert_eq!(day.weekday as usize, index);
+            }
+        }
+        let last = activity.weeks.last().unwrap().last().unwrap();
+        assert_eq!(last.count, 2);
+    }
+
 
     #[test]
     fn github_card_data_sends_only_what_is_known() {

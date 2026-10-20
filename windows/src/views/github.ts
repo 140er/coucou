@@ -18,15 +18,18 @@ import {
 } from "../core/github";
 
 const GITHUB_RED = "#F4505E";
+export interface ForgeCardOptions {
+  title: string;
+  color: string;
+  provider?: "github" | "gitea";
+  refreshId?: string;
+  profileUrl?: string;
+}
+/** Each provider keeps its selected list across re-renders. */
+const openSections = new Map<string, GitHubSection>();
 
-export interface ForgeCardOptions { title: string; color: string; gitea?: boolean }
-let forge: ForgeCardOptions = { title: "GitHub", color: GITHUB_RED };
-
-/** Which list the detail view shows; kept across re-renders of the card. */
-let openSection: GitHubSection = "myPRs";
-
-function open(url: string) {
-  if (forge.gitea) { void Bridge.openGiteaUrl(url); return; }
+function open(url: string, forge: ForgeCardOptions) {
+  if (forge.provider === "gitea") { void Bridge.openGiteaUrl(url); return; }
   const safe = safeGitHubUrl(url);
   if (safe) void Bridge.openUrl(safe);
 }
@@ -59,11 +62,10 @@ export function githubPulseCard(
   openDetail: () => void,
   options: ForgeCardOptions = { title: "GitHub", color: GITHUB_RED },
 ): HTMLElement {
-  forge = options;
+  const forge = options;
   const show = (section: GitHubSection) => {
-    openSection = section;
-    if (forge.gitea) void Bridge.refreshIntegration("integration_gitea");
-    else void Bridge.githubRefresh(section === "activity" ? "activity" : "pulse");
+    openSections.set(forge.provider ?? "github", section);
+    if (forge.refreshId) void Bridge.refreshIntegration(forge.refreshId); else void Bridge.githubRefresh(section === "activity" ? "activity" : "pulse");
     openDetail();
   };
 
@@ -124,9 +126,9 @@ function row(onOpen: () => void, ...children: (HTMLElement | null)[]): HTMLEleme
   return el;
 }
 
-function prRow(pr: GitHubPR, showCI: boolean): HTMLElement {
+function prRow(pr: GitHubPR, showCI: boolean, forge: ForgeCardOptions): HTMLElement {
   return row(
-    () => open(pr.url),
+    () => open(pr.url, forge),
     showCI ? ciDot(pr.ci) : h("i", { class: "gh-gap" }),
     h("span", { class: "gh-ref", text: `${shortRepo(pr.repo)}#${pr.number}` }),
     h("span", { class: "gh-title", text: pr.title }),
@@ -134,10 +136,10 @@ function prRow(pr: GitHubPR, showCI: boolean): HTMLElement {
   );
 }
 
-function repoRow(repo: GitHubRepoCI): HTMLElement {
+function repoRow(repo: GitHubRepoCI, forge: ForgeCardOptions): HTMLElement {
   const word = ciWord(repo.ci);
   return row(
-    () => open(forge.gitea ? repo.url : actionsUrl(repo.url)),
+    () => open(forge.provider === "gitea" ? repo.url : actionsUrl(repo.url), forge),
     ciDot(repo.ci),
     h("span", { class: "gh-ref", text: shortRepo(repo.repo) }),
     h("span", { class: "gh-title", text: repo.branch }),
@@ -168,11 +170,11 @@ export function openRow(el: HTMLElement | undefined) {
   if (el) rowOpens.get(el)?.();
 }
 
-function listDetail(section: Exclude<GitHubSection, "activity">, pulse: GitHubPulse, onBack: () => void): HTMLElement {
+function listDetail(section: Exclude<GitHubSection, "activity">, pulse: GitHubPulse, onBack: () => void, forge: ForgeCardOptions): HTMLElement {
   const rows: HTMLElement[] =
     section === "mainCI"
-      ? pulse.mainCI.map(repoRow)
-      : (section === "myPRs" ? pulse.myPRs : pulse.toReview).map((pr) => prRow(pr, section === "myPRs"));
+      ? pulse.mainCI.map((repo) => repoRow(repo, forge))
+      : (section === "myPRs" ? pulse.myPRs : pulse.toReview).map((pr) => prRow(pr, section === "myPRs", forge));
   const body =
     rows.length === 0
       ? h("div", { class: "gh-empty", text: GH_STRINGS.nothingHere })
@@ -193,11 +195,12 @@ function activityDetail(
   stats: GitHubStats | null,
   login: string,
   onBack: () => void,
+  forge: ForgeCardOptions,
 ): HTMLElement {
   const right = h("button", {
     class: "gh-head-right",
     text: activityHeader(activity, stats, null),
-    onclick: () => forge.gitea ? void Bridge.openGitea() : open(profileUrl(login)),
+    onclick: () => open(forge.profileUrl ?? profileUrl(login), forge),
   });
 
   let picked: ContributionDay | null = null;
@@ -239,8 +242,9 @@ export function githubDetail(
   onBack: () => void,
   options: ForgeCardOptions = { title: "GitHub", color: GITHUB_RED },
 ): HTMLElement {
-  forge = options;
+  const forge = options;
+  const openSection = openSections.get(forge.provider ?? "github") ?? "myPRs";
   return openSection === "activity"
-    ? activityDetail(activity, stats, pulse.login, onBack)
-    : listDetail(openSection, pulse, onBack);
+    ? activityDetail(activity, stats, pulse.login, onBack, forge)
+    : listDetail(openSection, pulse, onBack, forge);
 }

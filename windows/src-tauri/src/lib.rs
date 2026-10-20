@@ -243,10 +243,21 @@ fn open_gitea() {
 fn open_gitea_url(url: String) {
     let (Ok(target), Some(base)) = (reqwest::Url::parse(&url), secrets::get("gitea-url")) else { return };
     let Ok(instance) = reqwest::Url::parse(&base) else { return };
-    if matches!(target.scheme(), "http" | "https") && target.scheme() == instance.scheme()
-        && target.host_str() == instance.host_str() && target.port_or_known_default() == instance.port_or_known_default() {
+    if is_gitea_instance_url(&target, &instance) {
         open_url(url);
     }
+}
+
+fn is_gitea_instance_url(target: &reqwest::Url, instance: &reqwest::Url) -> bool {
+    if !matches!(target.scheme(), "http" | "https")
+        || target.scheme() != instance.scheme()
+        || target.host_str() != instance.host_str()
+        || target.port_or_known_default() != instance.port_or_known_default()
+    {
+        return false;
+    }
+    let base = instance.path().trim_end_matches('/');
+    base.is_empty() || target.path() == base || target.path().starts_with(&format!("{base}/"))
 }
 
 /// "Open terminal" opens the working folder in VS Code when `code` is on PATH,
@@ -994,7 +1005,25 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
-    use super::diff_file;
+    use super::{diff_file, is_gitea_instance_url};
+
+    #[test]
+    fn gitea_links_stay_on_the_configured_instance() {
+        let instance = reqwest::Url::parse("https://git.example.com/team/").unwrap();
+        assert!(is_gitea_instance_url(
+            &reqwest::Url::parse("https://git.example.com/team/me/project").unwrap(),
+            &instance,
+        ));
+        assert!(!is_gitea_instance_url(
+            &reqwest::Url::parse("https://git.example.com/other/project").unwrap(),
+            &instance,
+        ));
+        assert!(!is_gitea_instance_url(
+            &reqwest::Url::parse("https://evil.example/team/me/project").unwrap(),
+            &instance,
+        ));
+    }
+
 
     #[test]
     fn only_an_existing_file_by_its_full_path_reaches_the_editor() {

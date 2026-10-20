@@ -479,7 +479,7 @@ export function renderIntegrationCard(task: AgentTask, hooks: IntegrationCardHoo
   if (task.id === "integration_gitea") {
     const d = get(task.id); const pulse = readPulse(d);
     if (pulse) {
-      const options: ForgeCardOptions = { title: "Gitea", color: "#609926", gitea: true };
+      const options: ForgeCardOptions = { title: "Gitea", color: "#609926", provider: "gitea", refreshId: "integration_gitea", profileUrl: typeof d.profileUrl === "string" ? d.profileUrl : undefined };
       return hooks.detailOpen ? githubDetail(pulse, readStats(d), readActivity(d), hooks.closeDetail, options) : githubPulseCard(pulse, readStats(d), readActivity(d), hooks.openDetail, options);
     }
   }
