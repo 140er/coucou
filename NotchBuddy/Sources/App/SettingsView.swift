@@ -470,6 +470,7 @@ struct SettingsView: View {
                     Text("Bahasa Indonesia").tag("id")
                     Text("Deutsch").tag("de")
                     Text("Türkçe").tag("tr")
+                    Text("ไทย").tag("th")
                 }
                 .pickerStyle(.menu)
                 .labelsHidden()
