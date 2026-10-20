@@ -53,19 +53,6 @@
    "de": "Eine nicht von Coucou erstellte Hook-Gruppe namens \"coucou\" ist bereits vorhanden — Coucou hat sie nicht verändert.",
    "tr": "Coucou'nun oluşturmadığı \"coucou\" adlı bir hook grubu zaten var — Coucou bunu değiştirmedi."
   },
-  "AI for the chat": {
-   "zh-Hans": "聊天用的 AI",
-   "hi": "चैट के लिए AI",
-   "es": "IA para el chat",
-   "ar": "الذكاء الاصطناعي للدردشة",
-   "fr": "IA pour le chat",
-   "bn": "চ্যাটের জন্য AI",
-   "pt-BR": "IA para o chat",
-   "ru": "ИИ для чата",
-   "id": "AI untuk obrolan",
-   "de": "KI für den Chat",
-   "tr": "Sohbet için yapay zekâ"
-  },
   "API error {code}": {
    "zh-Hans": "API 错误 {code}",
    "hi": "API त्रुटि {code}",
@@ -78,19 +65,6 @@
    "id": "Galat API {code}",
    "de": "API-Fehler {code}",
    "tr": "API hatası {code}"
-  },
-  "API key": {
-   "zh-Hans": "API 密钥",
-   "hi": "API कुंजी",
-   "es": "Clave de API",
-   "ar": "مفتاح API",
-   "fr": "Clé d'API",
-   "bn": "API কী",
-   "pt-BR": "Chave de API",
-   "ru": "API-ключ",
-   "id": "Kunci API",
-   "de": "API-Schlüssel",
-   "tr": "API anahtarı"
   },
   "API key (optional)": {
    "zh-Hans": "API 密钥（可选）",
@@ -182,19 +156,6 @@
    "id": "Lampirkan jendela depan ke obrolan",
    "de": "Vorderstes Fenster an den Chat anhängen",
    "tr": "Öndeki pencereyi sohbete ekle"
-  },
-  "Auto (seasons)": {
-   "zh-Hans": "自动（随季节）",
-   "hi": "ऑटो (मौसम के अनुसार)",
-   "es": "Auto (estaciones)",
-   "ar": "تلقائي (حسب المواسم)",
-   "fr": "Auto (saisons)",
-   "bn": "অটো (ঋতু অনুযায়ী)",
-   "pt-BR": "Auto (estações)",
-   "ru": "Авто (по сезону)",
-   "id": "Otomatis (musim)",
-   "de": "Automatisch (Jahreszeiten)",
-   "tr": "Otomatik (mevsimler)"
   },
   "Auto · follows the seasons (now: {outfit})": {
    "zh-Hans": "自动 · 随季节变化（当前：{outfit}）",
@@ -312,45 +273,6 @@
    "id": "Respons API tidak valid: {error}",
    "de": "Ungültige API-Antwort: {error}",
    "tr": "Geçersiz API yanıtı: {error}"
-  },
-  "Beanie": {
-   "zh-Hans": "毛线帽",
-   "hi": "ऊनी टोपी",
-   "es": "Gorro de lana",
-   "ar": "قبعة صوفية",
-   "fr": "Bonnet",
-   "bn": "উলের টুপি",
-   "pt-BR": "Gorro",
-   "ru": "Шапка",
-   "id": "Kupluk",
-   "de": "Strickmütze",
-   "tr": "Bere"
-  },
-  "Bow": {
-   "zh-Hans": "蝴蝶结",
-   "hi": "बो",
-   "es": "Lazo",
-   "ar": "فيونكة",
-   "fr": "Nœud",
-   "bn": "বো",
-   "pt-BR": "Laço",
-   "ru": "Бантик",
-   "id": "Pita",
-   "de": "Schleife",
-   "tr": "Fiyonk"
-  },
-  "Bunny ears": {
-   "zh-Hans": "兔耳朵",
-   "hi": "खरगोश के कान",
-   "es": "Orejas de conejo",
-   "ar": "أذنا أرنب",
-   "fr": "Oreilles de lapin",
-   "bn": "খরগোশের কান",
-   "pt-BR": "Orelhas de coelho",
-   "ru": "Заячьи ушки",
-   "id": "Telinga kelinci",
-   "de": "Hasenohren",
-   "tr": "Tavşan kulakları"
   },
   "Can't read {path}: {error}": {
    "zh-Hans": "无法读取 {path}：{error}",
@@ -754,19 +676,6 @@
    "id": "Hanya hitungan dan nama proyek — tidak pernah perintah, file, atau prompt. Disimpan di komputer ini selama 12 minggu.",
    "de": "Nur Zähler und Projektnamen — keine Befehle, Dateien oder Prompts. Wird 12 Wochen auf diesem Computer aufbewahrt.",
    "tr": "Yalnızca sayılar ve proje adları; komut, dosya veya istem içermez. Bu bilgisayarda 12 hafta tutulur."
-  },
-  "Crown": {
-   "zh-Hans": "王冠",
-   "hi": "मुकुट",
-   "es": "Corona",
-   "ar": "تاج",
-   "fr": "Couronne",
-   "bn": "মুকুট",
-   "pt-BR": "Coroa",
-   "ru": "Корона",
-   "id": "Mahkota",
-   "de": "Krone",
-   "tr": "Taç"
   },
   "Custom server": {
    "zh-Hans": "自定义服务器",
@@ -1197,19 +1106,6 @@
    "de": "Instanz-URL",
    "tr": "Sunucu URL'si"
   },
-  "Integration": {
-   "zh-Hans": "集成",
-   "hi": "एकीकरण",
-   "es": "Integración",
-   "ar": "تكامل",
-   "fr": "Intégration",
-   "bn": "ইন্টিগ্রেশন",
-   "pt-BR": "Integração",
-   "ru": "Интеграция",
-   "id": "Integrasi",
-   "de": "Integration",
-   "tr": "Entegrasyon"
-  },
   "Integration lacks access": {
    "zh-Hans": "集成没有访问权限",
    "hi": "इंटीग्रेशन के पास पहुँच नहीं है",
@@ -1639,19 +1535,6 @@
    "de": "Keine Telemetrie. Netzwerkanfragen gehen nur an Dienste, die du selbst einrichtest.",
    "tr": "Telemetri yok. Ağ istekleri yalnızca kendin yapılandırdığın servislere gönderilir."
   },
-  "None": {
-   "zh-Hans": "无",
-   "hi": "कोई नहीं",
-   "es": "Ninguno",
-   "ar": "لا شيء",
-   "fr": "Aucun",
-   "bn": "কিছু না",
-   "pt-BR": "Nenhum",
-   "ru": "Нет",
-   "id": "Tidak ada",
-   "de": "Keine",
-   "tr": "Yok"
-  },
   "Not a valid address: {address}": {
    "zh-Hans": "不是有效的地址：{address}",
    "hi": "मान्य पता नहीं: {address}",
@@ -1729,19 +1612,6 @@
    "id": "Hanya file yang diletakkan di pulau yang bisa ditambahkan.",
    "de": "Nur auf der Insel abgelegte Dateien können hinzugefügt werden.",
    "tr": "Yalnızca adaya bırakılan dosyalar eklenebilir."
-  },
-  "Open Claude": {
-   "zh-Hans": "打开 Claude",
-   "hi": "Claude खोलें",
-   "es": "Abrir Claude",
-   "ar": "فتح Claude",
-   "fr": "Ouvrir Claude",
-   "bn": "Claude খুলুন",
-   "pt-BR": "Abrir o Claude",
-   "ru": "Открыть Claude",
-   "id": "Buka Claude",
-   "de": "Claude öffnen",
-   "tr": "Claude'u aç"
   },
   "Open in VS Code": {
    "zh-Hans": "在 VS Code 中打开",
@@ -1847,19 +1717,6 @@
    "de": "PDF",
    "tr": "PDF"
   },
-  "Party hat": {
-   "zh-Hans": "派对帽",
-   "hi": "पार्टी टोपी",
-   "es": "Gorro de fiesta",
-   "ar": "قبعة الحفلة",
-   "fr": "Chapeau de fête",
-   "bn": "পার্টি টুপি",
-   "pt-BR": "Chapéu de festa",
-   "ru": "Праздничный колпак",
-   "id": "Topi pesta",
-   "de": "Partyhut",
-   "tr": "Parti şapkası"
-  },
   "Payment": {
    "zh-Hans": "付款",
    "hi": "भुगतान",
@@ -1938,19 +1795,6 @@
    "de": "Vorherige Pill",
    "tr": "Önceki araç"
   },
-  "Pumpkin": {
-   "zh-Hans": "南瓜",
-   "hi": "कद्दू",
-   "es": "Calabaza",
-   "ar": "يقطينة",
-   "fr": "Citrouille",
-   "bn": "কুমড়া",
-   "pt-BR": "Abóbora",
-   "ru": "Тыква",
-   "id": "Labu",
-   "de": "Kürbis",
-   "tr": "Balkabağı"
-  },
   "Questions": {
    "zh-Hans": "问题",
    "hi": "प्रश्न",
@@ -1976,19 +1820,6 @@
    "id": "Siap",
    "de": "Bereit",
    "tr": "Hazır"
-  },
-  "Ready · no setup needed": {
-   "zh-Hans": "就绪 · 无需设置",
-   "hi": "तैयार · कोई सेटअप ज़रूरी नहीं",
-   "es": "Listo · sin configuración",
-   "ar": "جاهز · لا يحتاج إلى إعداد",
-   "fr": "Prêt · rien à configurer",
-   "bn": "প্রস্তুত · সেটআপ লাগবে না",
-   "pt-BR": "Pronto · sem configuração",
-   "ru": "Готово · настройка не нужна",
-   "id": "Siap · tanpa pengaturan",
-   "de": "Bereit · keine Einrichtung nötig",
-   "tr": "Hazır · kurulum gerekmez"
   },
   "Reinstall hooks…": {
    "zh-Hans": "重新安装 hooks…",
@@ -2120,32 +1951,6 @@
    "de": "Ergebnis",
    "tr": "Sonuç"
   },
-  "Round glasses": {
-   "zh-Hans": "圆框眼镜",
-   "hi": "गोल चश्मा",
-   "es": "Gafas redondas",
-   "ar": "نظارة دائرية",
-   "fr": "Lunettes rondes",
-   "bn": "গোল চশমা",
-   "pt-BR": "Óculos redondos",
-   "ru": "Круглые очки",
-   "id": "Kacamata bulat",
-   "de": "Runde Brille",
-   "tr": "Yuvarlak gözlük"
-  },
-  "Santa hat": {
-   "zh-Hans": "圣诞帽",
-   "hi": "सांता टोपी",
-   "es": "Gorro de Papá Noel",
-   "ar": "قبعة بابا نويل",
-   "fr": "Bonnet de Père Noël",
-   "bn": "সান্তা টুপি",
-   "pt-BR": "Gorro de Papai Noel",
-   "ru": "Шапка Санты",
-   "id": "Topi Sinterklas",
-   "de": "Weihnachtsmütze",
-   "tr": "Noel Baba şapkası"
-  },
   "Saturday": {
    "zh-Hans": "星期六",
    "hi": "शनिवार",
@@ -2224,19 +2029,6 @@
    "de": "Wird gespeichert…",
    "tr": "Kaydediliyor…"
   },
-  "Scarf": {
-   "zh-Hans": "围巾",
-   "hi": "मफ़लर",
-   "es": "Bufanda",
-   "ar": "وشاح",
-   "fr": "Écharpe",
-   "bn": "মাফলার",
-   "pt-BR": "Cachecol",
-   "ru": "Шарф",
-   "id": "Syal",
-   "de": "Schal",
-   "tr": "Atkı"
-  },
   "Secret key": {
    "zh-Hans": "私密密钥",
    "hi": "सीक्रेट कुंजी",
@@ -2289,19 +2081,6 @@
    "de": "Der E-Mail-Versand ist in dieser Version nicht verfügbar.",
    "tr": "Bu sürümde e-postayla gönderme yok."
   },
-  "Services": {
-   "zh-Hans": "服务",
-   "hi": "सेवाएँ",
-   "es": "Servicios",
-   "ar": "الخدمات",
-   "fr": "Services",
-   "bn": "পরিষেবা",
-   "pt-BR": "Serviços",
-   "ru": "Сервисы",
-   "id": "Layanan",
-   "de": "Dienste",
-   "tr": "Servisler"
-  },
   "Sessions — approvals stay in the agent": {
    "zh-Hans": "会话 — 审批仍在代理中进行",
    "hi": "सत्र — अनुमतियाँ एजेंट में ही रहती हैं",
@@ -2340,19 +2119,6 @@
    "id": "Bagikan minggu Anda",
    "de": "Deine Woche teilen",
    "tr": "Haftanı paylaş"
-  },
-  "Show Codex plan in the notch": {
-   "zh-Hans": "在刘海中显示 Codex 套餐",
-   "hi": "नॉच में Codex प्लान दिखाएं",
-   "es": "Mostrar el plan de Codex en el notch",
-   "ar": "عرض خطة Codex في الشريط العلوي",
-   "fr": "Afficher le forfait Codex dans l'encoche",
-   "bn": "নচে Codex প্ল্যান দেখান",
-   "pt-BR": "Mostrar o plano Codex no notch",
-   "ru": "Показывать тариф Codex в нотче",
-   "id": "Tampilkan paket Codex di notch",
-   "de": "Codex-Tarif in der Notch anzeigen",
-   "tr": "Codex planını adada göster"
   },
   "Show in folder": {
    "zh-Hans": "在文件夹中显示",
@@ -2483,19 +2249,6 @@
    "id": "Minggu",
    "de": "Sonntag",
    "tr": "Pazar"
-  },
-  "Sunglasses": {
-   "zh-Hans": "墨镜",
-   "hi": "धूप का चश्मा",
-   "es": "Gafas de sol",
-   "ar": "نظارة شمسية",
-   "fr": "Lunettes de soleil",
-   "bn": "সানগ্লাস",
-   "pt-BR": "Óculos de sol",
-   "ru": "Солнечные очки",
-   "id": "Kacamata hitam",
-   "de": "Sonnenbrille",
-   "tr": "Güneş gözlüğü"
   },
   "Switch provider or model": {
    "zh-Hans": "切换服务商或模型",
@@ -2770,19 +2523,6 @@
    "de": "Donnerstag",
    "tr": "Perşembe"
   },
-  "Token": {
-   "zh-Hans": "令牌",
-   "hi": "टोकन",
-   "es": "Token",
-   "ar": "الرمز المميز",
-   "fr": "Jeton",
-   "bn": "টোকেন",
-   "pt-BR": "Token",
-   "ru": "Токен",
-   "id": "Token",
-   "de": "Token",
-   "tr": "Token"
-  },
   "Token lacks access": {
    "zh-Hans": "令牌没有访问权限",
    "hi": "टोकन के पास पहुँच नहीं है",
@@ -3016,32 +2756,6 @@
    "id": "Rabu",
    "de": "Mittwoch",
    "tr": "Çarşamba"
-  },
-  "Where you code": {
-   "zh-Hans": "编程环境",
-   "hi": "जहाँ आप कोड करते हैं",
-   "es": "Dónde programas",
-   "ar": "مكان البرمجة",
-   "fr": "Où tu codes",
-   "bn": "যেখানে আপনি কোড করেন",
-   "pt-BR": "Onde você programa",
-   "ru": "Где вы пишете код",
-   "id": "Tempat Anda membuat kode",
-   "de": "Deine Entwicklungsumgebung",
-   "tr": "Kod yazdığın araçlar"
-  },
-  "Witch hat": {
-   "zh-Hans": "女巫帽",
-   "hi": "चुड़ैल की टोपी",
-   "es": "Sombrero de bruja",
-   "ar": "قبعة ساحرة",
-   "fr": "Chapeau de sorcière",
-   "bn": "ডাইনির টুপি",
-   "pt-BR": "Chapéu de bruxa",
-   "ru": "Шляпа ведьмы",
-   "id": "Topi penyihir",
-   "de": "Hexenhut",
-   "tr": "Cadı şapkası"
   },
   "Work from any app. Click a shortcut to change it, then press the new keys — Esc cancels, Backspace removes it.": {
    "zh-Hans": "在任何应用中都可使用。点击某个快捷键即可修改，然后按下新的按键 — Esc 取消，Backspace 删除。",

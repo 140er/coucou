@@ -1,4 +1,4 @@
-// Interface language — the Mac's languages except Thai, which is Mac-only for now.
+// Interface language — the Mac's languages except Thai and Traditional Chinese, Mac-only for now.
 //
 // Strings are looked up by their English text, like the Mac's catalog:
 // `t("Allow")`, `t("Uploading {name}", { name })`. Two tables, both keyed by

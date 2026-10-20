@@ -106,6 +106,58 @@
    "de": "Ein falsches Wort oder die falsche Person? Korrigiere es über das ⋯-Menü der Zeile. Wörter, die du korrigierst, werden für deine nächsten Gespräche gespeichert.",
    "tr": "Yanlış bir sözcük veya yanlış bir kişi mi? Satırın ⋯ menüsünden düzelt. Düzelttiğin sözcükler sonraki görüşmelerin için hatırlanır."
   },
+  "AI for the chat": {
+   "zh-Hans": "聊天用的 AI",
+   "hi": "चैट के लिए AI",
+   "es": "IA para el chat",
+   "ar": "الذكاء الاصطناعي للدردشة",
+   "fr": "IA pour le chat",
+   "bn": "চ্যাটের জন্য AI",
+   "pt-BR": "IA para o chat",
+   "ru": "ИИ для чата",
+   "id": "AI untuk obrolan",
+   "de": "KI für den Chat",
+   "tr": "Sohbet için yapay zekâ"
+  },
+  "API key": {
+   "zh-Hans": "API 密钥",
+   "hi": "API कुंजी",
+   "es": "Clave de API",
+   "ar": "مفتاح API",
+   "fr": "Clé d'API",
+   "bn": "API কী",
+   "pt-BR": "Chave de API",
+   "ru": "API-ключ",
+   "id": "Kunci API",
+   "de": "API-Schlüssel",
+   "tr": "API anahtarı"
+  },
+  "API key  (cal_live_…)": {
+   "zh-Hans": "API 密钥（cal_live_…）",
+   "hi": "API कुंजी  (cal_live_…)",
+   "es": "Clave de API  (cal_live_…)",
+   "ar": "مفتاح API  (cal_live_…)",
+   "fr": "Clé d'API  (cal_live_…)",
+   "bn": "API কী  (cal_live_…)",
+   "pt-BR": "Chave de API  (cal_live_…)",
+   "ru": "API-ключ  (cal_live_…)",
+   "id": "Kunci API  (cal_live_…)",
+   "de": "API-Schlüssel  (cal_live_…)",
+   "tr": "API anahtarı  (cal_live_…)"
+  },
+  "API key  (re_…)": {
+   "zh-Hans": "API 密钥（re_…）",
+   "hi": "API कुंजी  (re_…)",
+   "es": "Clave de API  (re_…)",
+   "ar": "مفتاح API  (re_…)",
+   "fr": "Clé d'API  (re_…)",
+   "bn": "API কী  (re_…)",
+   "pt-BR": "Chave de API  (re_…)",
+   "ru": "API-ключ  (re_…)",
+   "id": "Kunci API  (re_…)",
+   "de": "API-Schlüssel  (re_…)",
+   "tr": "API anahtarı  (re_…)"
+  },
   "API key (AI Studio)": {
    "zh-Hans": "API 密钥 (AI Studio)",
    "hi": "API कुंजी (AI Studio)",
@@ -470,6 +522,19 @@
    "de": "Markieren",
    "tr": "İşaretle"
   },
+  "Answer questions and permissions from terminal sessions in the notch": {
+   "zh-Hans": "在刘海中回答终端会话的提问和权限请求",
+   "hi": "टर्मिनल सेशन के सवालों और अनुमतियों का जवाब नॉच में दें",
+   "es": "Responder en el notch las preguntas y permisos de las sesiones de terminal",
+   "ar": "الرد على أسئلة جلسات الطرفية وطلبات أذوناتها من الشريط العلوي",
+   "fr": "Répondre dans le notch aux questions et permissions des sessions du terminal",
+   "bn": "টার্মিনাল সেশনের প্রশ্ন ও অনুমতির উত্তর নচে দিন",
+   "pt-BR": "Responder no notch às perguntas e permissões das sessões do terminal",
+   "ru": "Отвечать в нотче на вопросы и запросы разрешений из сессий терминала",
+   "id": "Jawab pertanyaan dan izin dari sesi terminal di notch",
+   "de": "Fragen und Berechtigungen von Terminal-Sitzungen in der Notch beantworten",
+   "tr": "Terminal oturumlarının sorularını ve izin isteklerini adada yanıtla"
+  },
   "Anthropic API": {
    "zh-Hans": "Anthropic API",
    "hi": "Anthropic API",
@@ -665,6 +730,32 @@
    "de": "Vorderstes Fenster anhängen",
    "tr": "Öndeki pencereyi ekle"
   },
+  "Auto (seasons)": {
+   "zh-Hans": "自动（随季节）",
+   "hi": "ऑटो (मौसम के अनुसार)",
+   "es": "Auto (estaciones)",
+   "ar": "تلقائي (حسب المواسم)",
+   "fr": "Auto (saisons)",
+   "bn": "অটো (ঋতু অনুযায়ী)",
+   "pt-BR": "Auto (estações)",
+   "ru": "Авто (по сезону)",
+   "id": "Otomatis (musim)",
+   "de": "Automatisch (Jahreszeiten)",
+   "tr": "Otomatik (mevsimler)"
+  },
+  "Auto mode": {
+   "zh-Hans": "自动模式",
+   "hi": "ऑटो मोड",
+   "es": "Modo automático",
+   "ar": "الوضع التلقائي",
+   "fr": "Mode auto",
+   "bn": "অটো মোড",
+   "pt-BR": "Modo automático",
+   "ru": "Автоматический режим",
+   "id": "Mode otomatis",
+   "de": "Automatikmodus",
+   "tr": "Otomatik mod"
+  },
   "Auto-close · {seconds}s": {
    "zh-Hans": "自动关闭 · {seconds} 秒",
    "hi": "ऑटो-क्लोज़ · {seconds}स",
@@ -730,6 +821,19 @@
    "de": "Batterie {0} %",
    "tr": "Pil: %{0}"
   },
+  "Beanie": {
+   "zh-Hans": "毛线帽",
+   "hi": "ऊनी टोपी",
+   "es": "Gorro de lana",
+   "ar": "قبعة صوفية",
+   "fr": "Bonnet",
+   "bn": "উলের টুপি",
+   "pt-BR": "Gorro",
+   "ru": "Шапка",
+   "id": "Kupluk",
+   "de": "Strickmütze",
+   "tr": "Bere"
+  },
   "Behavior": {
    "zh-Hans": "行为",
    "hi": "व्यवहार",
@@ -781,6 +885,32 @@
    "id": "Bawah",
    "de": "Unten",
    "tr": "Alt"
+  },
+  "Bow": {
+   "zh-Hans": "蝴蝶结",
+   "hi": "बो",
+   "es": "Lazo",
+   "ar": "فيونكة",
+   "fr": "Nœud",
+   "bn": "বো",
+   "pt-BR": "Laço",
+   "ru": "Бантик",
+   "id": "Pita",
+   "de": "Schleife",
+   "tr": "Fiyonk"
+  },
+  "Bunny ears": {
+   "zh-Hans": "兔耳朵",
+   "hi": "खरगोश के कान",
+   "es": "Orejas de conejo",
+   "ar": "أذنا أرنب",
+   "fr": "Oreilles de lapin",
+   "bn": "খরগোশের কান",
+   "pt-BR": "Orelhas de coelho",
+   "ru": "Заячьи ушки",
+   "id": "Telinga kelinci",
+   "de": "Hasenohren",
+   "tr": "Tavşan kulakları"
   },
   "Busiest day": {
    "zh-Hans": "最忙的一天",
@@ -885,6 +1015,19 @@
    "id": "Tertangkap. Mochi menyimpannya.",
    "de": "Aufgenommen. Mochi hat es.",
    "tr": "Ekran görüntüsü alındı. Mochi'de."
+  },
+  "Change plan": {
+   "zh-Hans": "修改计划",
+   "hi": "प्लान बदलें",
+   "es": "Cambiar el plan",
+   "ar": "تغيير الخطة",
+   "fr": "Modifier le plan",
+   "bn": "প্ল্যান বদলান",
+   "pt-BR": "Mudar o plano",
+   "ru": "Изменить план",
+   "id": "Ubah rencana",
+   "de": "Plan ändern",
+   "tr": "Planı değiştir"
   },
   "Chat": {
    "zh-Hans": "聊天",
@@ -1614,6 +1757,19 @@
    "de": "Wird auf deinem Mac erfasst und nirgendwohin gesendet.",
    "tr": "Mac'inde hesaplanır, hiçbir yere gönderilmez."
   },
+  "Crown": {
+   "zh-Hans": "王冠",
+   "hi": "मुकुट",
+   "es": "Corona",
+   "ar": "تاج",
+   "fr": "Couronne",
+   "bn": "মুকুট",
+   "pt-BR": "Coroa",
+   "ru": "Корона",
+   "id": "Mahkota",
+   "de": "Krone",
+   "tr": "Taç"
+  },
   "Currency": {
    "zh-Hans": "货币",
    "hi": "मुद्रा",
@@ -1639,6 +1795,19 @@
    "id": "Kustom…",
    "de": "Benutzerdefiniert…",
    "tr": "Özel…"
+  },
+  "DeepSeek key saved.": {
+   "zh-Hans": "DeepSeek 密钥已保存。",
+   "hi": "DeepSeek कुंजी सहेजी गई।",
+   "es": "Clave de DeepSeek guardada.",
+   "ar": "تم حفظ مفتاح DeepSeek.",
+   "fr": "Clé DeepSeek enregistrée.",
+   "bn": "DeepSeek কী সংরক্ষিত হয়েছে।",
+   "pt-BR": "Chave do DeepSeek salva.",
+   "ru": "Ключ DeepSeek сохранён.",
+   "id": "Kunci DeepSeek tersimpan.",
+   "de": "DeepSeek-Schlüssel gespeichert.",
+   "tr": "DeepSeek anahtarı kaydedildi."
   },
   "Default": {
    "zh-Hans": "默认",
@@ -1757,6 +1926,19 @@
    "de": "Bereitstellungen",
    "tr": "Dağıtımlar"
   },
+  "Dictate (right-click to choose the language)": {
+   "zh-Hans": "听写（右键点按选择语言）",
+   "hi": "डिक्टेट करें (भाषा चुनने के लिए राइट-क्लिक करें)",
+   "es": "Dictar (clic derecho para elegir el idioma)",
+   "ar": "إملاء (انقر بزر الماوس الأيمن لاختيار اللغة)",
+   "fr": "Dicter (clic droit pour choisir la langue)",
+   "bn": "ডিক্টেট করুন (ভাষা বাছতে রাইট-ক্লিক করুন)",
+   "pt-BR": "Ditar (clique com o botão direito para escolher o idioma)",
+   "ru": "Диктовать (правый клик — выбрать язык)",
+   "id": "Dikte (klik kanan untuk memilih bahasa)",
+   "de": "Diktieren (Rechtsklick, um die Sprache zu wählen)",
+   "tr": "Dikte et (dili seçmek için sağ tıklayın)"
+  },
   "Dictate anywhere on your Mac": {
    "zh-Hans": "在 Mac 上随处听写",
    "hi": "अपने Mac पर कहीं भी डिक्टेट करें",
@@ -1822,6 +2004,19 @@
    "de": "Diktieren ist aus",
    "tr": "Dikte kapalı"
   },
+  "Dictation language": {
+   "zh-Hans": "听写语言",
+   "hi": "डिक्टेशन की भाषा",
+   "es": "Idioma del dictado",
+   "ar": "لغة الإملاء",
+   "fr": "Langue de dictée",
+   "bn": "ডিক্টেশনের ভাষা",
+   "pt-BR": "Idioma do ditado",
+   "ru": "Язык диктовки",
+   "id": "Bahasa dikte",
+   "de": "Diktiersprache",
+   "tr": "Dikte dili"
+  },
   "Dictations": {
    "zh-Hans": "听写次数",
    "hi": "डिक्टेशन",
@@ -1873,6 +2068,19 @@
    "id": "Putuskan",
    "de": "Trennen",
    "tr": "Bağlantıyı kes"
+  },
+  "Display": {
+   "zh-Hans": "显示",
+   "hi": "डिस्प्ले",
+   "es": "Pantalla",
+   "ar": "العرض",
+   "fr": "Affichage",
+   "bn": "ডিসপ্লে",
+   "pt-BR": "Tela",
+   "ru": "Экран",
+   "id": "Tampilan",
+   "de": "Anzeige",
+   "tr": "Ekran"
   },
   "Don't keep": {
    "zh-Hans": "不保留",
@@ -2315,6 +2523,19 @@
    "id": "Dari Open-Meteo untuk kota ini, hanya saat kamu bertanya.",
    "de": "Von Open-Meteo für diese Stadt, nur wenn du fragst.",
    "tr": "Bu şehir için Open-Meteo'dan, yalnızca sorduğunda."
+  },
+  "From address  (you@yourdomain.com)": {
+   "zh-Hans": "发件人地址（you@yourdomain.com）",
+   "hi": "भेजने वाले का पता  (you@yourdomain.com)",
+   "es": "Dirección del remitente  (you@yourdomain.com)",
+   "ar": "عنوان المرسل  (you@yourdomain.com)",
+   "fr": "Adresse d'expédition  (you@yourdomain.com)",
+   "bn": "প্রেরকের ঠিকানা  (you@yourdomain.com)",
+   "pt-BR": "Endereço do remetente  (you@yourdomain.com)",
+   "ru": "Адрес отправителя  (you@yourdomain.com)",
+   "id": "Alamat pengirim  (you@yourdomain.com)",
+   "de": "Absenderadresse  (you@yourdomain.com)",
+   "tr": "Gönderen adresi  (you@yourdomain.com)"
   },
   "Full sentences and paragraphs, for mails.": {
    "zh-Hans": "完整的句子和段落，适合邮件。",
@@ -2914,6 +3135,45 @@
    "de": "Installiert",
    "tr": "Yüklü"
   },
+  "Instance URL  (https://…)": {
+   "zh-Hans": "实例网址（https://…）",
+   "hi": "इंस्टेंस URL  (https://…)",
+   "es": "URL de la instancia  (https://…)",
+   "ar": "رابط النسخة  (https://…)",
+   "fr": "URL de l'instance  (https://…)",
+   "bn": "ইনস্ট্যান্স URL  (https://…)",
+   "pt-BR": "URL da instância  (https://…)",
+   "ru": "URL экземпляра  (https://…)",
+   "id": "URL instans  (https://…)",
+   "de": "Instanz-URL  (https://…)",
+   "tr": "Sunucu URL'si  (https://…)"
+  },
+  "Integration": {
+   "zh-Hans": "集成",
+   "hi": "एकीकरण",
+   "es": "Integración",
+   "ar": "تكامل",
+   "fr": "Intégration",
+   "bn": "ইন্টিগ্রেশন",
+   "pt-BR": "Integração",
+   "ru": "Интеграция",
+   "id": "Integrasi",
+   "de": "Integration",
+   "tr": "Entegrasyon"
+  },
+  "Integration token  (secret_…)": {
+   "zh-Hans": "集成令牌（secret_…）",
+   "hi": "इंटीग्रेशन टोकन  (secret_…)",
+   "es": "Token de integración  (secret_…)",
+   "ar": "رمز التكامل  (secret_…)",
+   "fr": "Jeton d'intégration  (secret_…)",
+   "bn": "ইন্টিগ্রেশন টোকেন  (secret_…)",
+   "pt-BR": "Token de integração  (secret_…)",
+   "ru": "Токен интеграции  (secret_…)",
+   "id": "Token integrasi  (secret_…)",
+   "de": "Integrationstoken  (secret_…)",
+   "tr": "Entegrasyon token'ı  (secret_…)"
+  },
   "Integrations": {
    "zh-Hans": "集成",
    "hi": "एकीकरण",
@@ -3343,6 +3603,19 @@
    "de": "Männlich",
    "tr": "Erkek"
   },
+  "Manual": {
+   "zh-Hans": "手动",
+   "hi": "मैनुअल",
+   "es": "Manual",
+   "ar": "يدوي",
+   "fr": "Manuel",
+   "bn": "ম্যানুয়াল",
+   "pt-BR": "Manual",
+   "ru": "Вручную",
+   "id": "Manual",
+   "de": "Manuell",
+   "tr": "Manuel"
+  },
   "Mark as read": {
    "zh-Hans": "标为已读",
    "hi": "पढ़ा हुआ चिह्नित करें",
@@ -3525,6 +3798,19 @@
    "de": "Monat",
    "tr": "Ay"
   },
+  "Moonshot key saved.": {
+   "zh-Hans": "Moonshot 密钥已保存。",
+   "hi": "Moonshot कुंजी सहेजी गई।",
+   "es": "Clave de Moonshot guardada.",
+   "ar": "تم حفظ مفتاح Moonshot.",
+   "fr": "Clé Moonshot enregistrée.",
+   "bn": "Moonshot কী সংরক্ষিত হয়েছে।",
+   "pt-BR": "Chave do Moonshot salva.",
+   "ru": "Ключ Moonshot сохранён.",
+   "id": "Kunci Moonshot tersimpan.",
+   "de": "Moonshot-Schlüssel gespeichert.",
+   "tr": "Moonshot anahtarı kaydedildi."
+  },
   "Move Mochi to my iPhone's Dynamic Island when my Mac is locked": {
    "zh-Hans": "Mac 锁定时将 Mochi 移至我 iPhone 的灵动岛",
    "hi": "Mac लॉक होने पर Mochi को मेरे iPhone की Dynamic Island पर ले जाएं",
@@ -3576,6 +3862,19 @@
    "id": "PR saya",
    "de": "Meine PRs",
    "tr": "PR'larım"
+  },
+  "My wallet": {
+   "zh-Hans": "我的钱包",
+   "hi": "मेरा वॉलेट",
+   "es": "Mi billetera",
+   "ar": "محفظتي",
+   "fr": "Mon portefeuille",
+   "bn": "আমার ওয়ালেট",
+   "pt-BR": "Minha carteira",
+   "ru": "Мой кошелёк",
+   "id": "Dompet saya",
+   "de": "Mein Wallet",
+   "tr": "Cüzdanım"
   },
   "Name": {
    "zh-Hans": "名字",
@@ -3980,6 +4279,19 @@
    "de": "In dieser Aufnahme war niemand zu hören.",
    "tr": "Bu kayıtta kimsenin sesi duyulmadı."
   },
+  "None": {
+   "zh-Hans": "无",
+   "hi": "कोई नहीं",
+   "es": "Ninguno",
+   "ar": "لا شيء",
+   "fr": "Aucun",
+   "bn": "কিছু না",
+   "pt-BR": "Nenhum",
+   "ru": "Нет",
+   "id": "Tidak ada",
+   "de": "Keine",
+   "tr": "Yok"
+  },
   "Not active": {
    "zh-Hans": "未激活",
    "hi": "सक्रिय नहीं",
@@ -4370,6 +4682,19 @@
    "de": "Einstellungen für Bedienungshilfen öffnen",
    "tr": "Erişilebilirlik ayarlarını aç"
   },
+  "Open Claude": {
+   "zh-Hans": "打开 Claude",
+   "hi": "Claude खोलें",
+   "es": "Abrir Claude",
+   "ar": "فتح Claude",
+   "fr": "Ouvrir Claude",
+   "bn": "Claude খুলুন",
+   "pt-BR": "Abrir o Claude",
+   "ru": "Открыть Claude",
+   "id": "Buka Claude",
+   "de": "Claude öffnen",
+   "tr": "Claude'u aç"
+  },
   "Open Codex": {
    "zh-Hans": "打开 Codex",
    "hi": "Codex खोलें",
@@ -4708,6 +5033,19 @@
    "de": "Andere Apps",
    "tr": "Diğer uygulamalar"
   },
+  "Other languages": {
+   "zh-Hans": "其他语言",
+   "hi": "अन्य भाषाएँ",
+   "es": "Otros idiomas",
+   "ar": "لغات أخرى",
+   "fr": "Autres langues",
+   "bn": "অন্যান্য ভাষা",
+   "pt-BR": "Outros idiomas",
+   "ru": "Другие языки",
+   "id": "Bahasa lain",
+   "de": "Weitere Sprachen",
+   "tr": "Diğer diller"
+  },
   "Others": {
    "zh-Hans": "其他人",
    "hi": "बाकी लोग",
@@ -4759,6 +5097,19 @@
    "id": "Parakeet, di Mac-mu",
    "de": "Parakeet auf deinem Mac",
    "tr": "Parakeet, Mac'inde"
+  },
+  "Party hat": {
+   "zh-Hans": "派对帽",
+   "hi": "पार्टी टोपी",
+   "es": "Gorro de fiesta",
+   "ar": "قبعة الحفلة",
+   "fr": "Chapeau de fête",
+   "bn": "পার্টি টুপি",
+   "pt-BR": "Chapéu de festa",
+   "ru": "Праздничный колпак",
+   "id": "Topi pesta",
+   "de": "Partyhut",
+   "tr": "Parti şapkası"
   },
   "Paste": {
    "zh-Hans": "粘贴",
@@ -4889,6 +5240,19 @@
    "id": "Orang {0}",
    "de": "Person {0}",
    "tr": "Kişi {0}"
+  },
+  "Personal Access Token": {
+   "zh-Hans": "个人访问令牌",
+   "hi": "पर्सनल एक्सेस टोकन",
+   "es": "Token de acceso personal",
+   "ar": "رمز الوصول الشخصي",
+   "fr": "Jeton d'accès personnel",
+   "bn": "পার্সোনাল অ্যাক্সেস টোকেন",
+   "pt-BR": "Token de acesso pessoal",
+   "ru": "Персональный токен доступа",
+   "id": "Token akses pribadi",
+   "de": "Persönliches Zugriffstoken",
+   "tr": "Kişisel erişim token'ı"
   },
   "Pin / unpin notch": {
    "zh-Hans": "固定/取消固定岛",
@@ -5124,6 +5488,19 @@
    "de": "Öffentliche Börsenkurse: ohne Konto und Schlüssel. Werden jede Minute abgerufen, nur solange die Kapsel aktiv ist.",
    "tr": "Borsanın herkese açık fiyatları: hesap ve anahtar gerekmez. Yalnızca araç açıkken dakikada bir okunur."
   },
+  "Pumpkin": {
+   "zh-Hans": "南瓜",
+   "hi": "कद्दू",
+   "es": "Calabaza",
+   "ar": "يقطينة",
+   "fr": "Citrouille",
+   "bn": "কুমড়া",
+   "pt-BR": "Abóbora",
+   "ru": "Тыква",
+   "id": "Labu",
+   "de": "Kürbis",
+   "tr": "Balkabağı"
+  },
   "Quit": {
    "zh-Hans": "退出",
    "hi": "छोड़ें",
@@ -5136,6 +5513,19 @@
    "id": "Keluar",
    "de": "Beenden",
    "tr": "Çıkış"
+  },
+  "Qwen key saved.": {
+   "zh-Hans": "Qwen 密钥已保存。",
+   "hi": "Qwen कुंजी सहेजी गई।",
+   "es": "Clave de Qwen guardada.",
+   "ar": "تم حفظ مفتاح Qwen.",
+   "fr": "Clé Qwen enregistrée.",
+   "bn": "Qwen কী সংরক্ষিত হয়েছে।",
+   "pt-BR": "Chave do Qwen salva.",
+   "ru": "Ключ Qwen сохранён.",
+   "id": "Kunci Qwen tersimpan.",
+   "de": "Qwen-Schlüssel gespeichert.",
+   "tr": "Qwen anahtarı kaydedildi."
   },
   "Reads": {
    "zh-Hans": "读取",
@@ -5162,6 +5552,19 @@
    "id": "Siap · tahan {0}",
    "de": "Bereit · {0} gedrückt halten",
    "tr": "Hazır · {0} tuşunu basılı tut"
+  },
+  "Ready · no setup needed": {
+   "zh-Hans": "就绪 · 无需设置",
+   "hi": "तैयार · कोई सेटअप ज़रूरी नहीं",
+   "es": "Listo · sin configuración",
+   "ar": "جاهز · لا يحتاج إلى إعداد",
+   "fr": "Prêt · rien à configurer",
+   "bn": "প্রস্তুত · সেটআপ লাগবে না",
+   "pt-BR": "Pronto · sem configuração",
+   "ru": "Готово · настройка не нужна",
+   "id": "Siap · tanpa pengaturan",
+   "de": "Bereit · keine Einrichtung nötig",
+   "tr": "Hazır · kurulum gerekmez"
   },
   "Recent": {
    "zh-Hans": "最近",
@@ -5553,6 +5956,19 @@
    "de": "Rechte {0}-Taste",
    "tr": "Sağ {0}"
   },
+  "Round glasses": {
+   "zh-Hans": "圆框眼镜",
+   "hi": "गोल चश्मा",
+   "es": "Gafas redondas",
+   "ar": "نظارة دائرية",
+   "fr": "Lunettes rondes",
+   "bn": "গোল চশমা",
+   "pt-BR": "Óculos redondos",
+   "ru": "Круглые очки",
+   "id": "Kacamata bulat",
+   "de": "Runde Brille",
+   "tr": "Yuvarlak gözlük"
+  },
   "Runs": {
    "zh-Hans": "执行",
    "hi": "चलाता है",
@@ -5591,6 +6007,19 @@
    "id": "Diucapkan oleh",
    "de": "Gesprochen von",
    "tr": "Konuşan"
+  },
+  "Santa hat": {
+   "zh-Hans": "圣诞帽",
+   "hi": "सांता टोपी",
+   "es": "Gorro de Papá Noel",
+   "ar": "قبعة بابا نويل",
+   "fr": "Bonnet de Père Noël",
+   "bn": "সান্তা টুপি",
+   "pt-BR": "Gorro de Papai Noel",
+   "ru": "Шапка Санты",
+   "id": "Topi Sinterklas",
+   "de": "Weihnachtsmütze",
+   "tr": "Noel Baba şapkası"
   },
   "Save": {
    "zh-Hans": "保存",
@@ -5670,6 +6099,19 @@
    "de": "Sprich deine Idee einfach aus: Sie wird als klarer Prompt eingefügt (Ziel, Kontext, Schritte, Einschränkungen und Abschlusskriterien), bereit für Claude Code, Cursor oder ChatGPT.",
    "tr": "Fikrini aklına geldiği gibi anlat: Claude Code, Cursor veya ChatGPT için hazır, açık bir istem olarak yapıştırılır (hedef, bağlam, adımlar, kısıtlar ve tamamlanma ölçütleri)."
   },
+  "Scarf": {
+   "zh-Hans": "围巾",
+   "hi": "मफ़लर",
+   "es": "Bufanda",
+   "ar": "وشاح",
+   "fr": "Écharpe",
+   "bn": "মাফলার",
+   "pt-BR": "Cachecol",
+   "ru": "Шарф",
+   "id": "Syal",
+   "de": "Schal",
+   "tr": "Atkı"
+  },
   "Schedule": {
    "zh-Hans": "日程",
    "hi": "शेड्यूल",
@@ -5734,6 +6176,19 @@
    "id": "Mencari web",
    "de": "Durchsucht das Web",
    "tr": "Web'de arıyor"
+  },
+  "Secret key  (sk_live_… or sk_test_…)": {
+   "zh-Hans": "密钥（sk_live_… 或 sk_test_…）",
+   "hi": "सीक्रेट कुंजी  (sk_live_… या sk_test_…)",
+   "es": "Clave secreta  (sk_live_… o sk_test_…)",
+   "ar": "المفتاح السري  (sk_live_… أو sk_test_…)",
+   "fr": "Clé secrète  (sk_live_… ou sk_test_…)",
+   "bn": "সিক্রেট কী  (sk_live_… বা sk_test_…)",
+   "pt-BR": "Chave secreta  (sk_live_… ou sk_test_…)",
+   "ru": "Секретный ключ  (sk_live_… или sk_test_…)",
+   "id": "Kunci rahasia  (sk_live_… atau sk_test_…)",
+   "de": "Geheimer Schlüssel  (sk_live_… oder sk_test_…)",
+   "tr": "Gizli anahtar  (sk_live_… veya sk_test_…)"
   },
   "See": {
    "zh-Hans": "查看",
@@ -5812,6 +6267,19 @@
    "id": "Mengirim sesi Anda ke iCloud pribadi Anda untuk aplikasi Coucou iPhone. Nama proyek, perintah, dan pertanyaan dienkripsi dengan kunci iCloud Anda. Mematikannya menghapusnya dari iCloud.",
    "de": "Sendet deine Sitzungen an deine private iCloud für Coucou auf dem iPhone. Projektnamen, Befehle und Fragen werden mit deinen iCloud-Schlüsseln verschlüsselt. Beim Deaktivieren werden die Daten aus iCloud entfernt.",
    "tr": "Oturumlarını iPhone'daki Coucou uygulaması için özel iCloud hesabına gönderir. Proje adları, komutlar ve sorular iCloud anahtarlarınla şifrelenir. Kapatıldığında veriler iCloud'dan kaldırılır."
+  },
+  "Services": {
+   "zh-Hans": "服务",
+   "hi": "सेवाएँ",
+   "es": "Servicios",
+   "ar": "الخدمات",
+   "fr": "Services",
+   "bn": "পরিষেবা",
+   "pt-BR": "Serviços",
+   "ru": "Сервисы",
+   "id": "Layanan",
+   "de": "Dienste",
+   "tr": "Servisler"
   },
   "Session finished": {
    "zh-Hans": "会话已结束",
@@ -5930,6 +6398,19 @@
    "de": "Tastenkombinationen",
    "tr": "Kısayollar"
   },
+  "Show Codex plan in the notch": {
+   "zh-Hans": "在刘海中显示 Codex 套餐",
+   "hi": "नॉच में Codex प्लान दिखाएं",
+   "es": "Mostrar el plan de Codex en el notch",
+   "ar": "عرض خطة Codex في الشريط العلوي",
+   "fr": "Afficher le forfait Codex dans l'encoche",
+   "bn": "নচে Codex প্ল্যান দেখান",
+   "pt-BR": "Mostrar o plano Codex no notch",
+   "ru": "Показывать тариф Codex в нотче",
+   "id": "Tampilkan paket Codex di notch",
+   "de": "Codex-Tarif in der Notch anzeigen",
+   "tr": "Codex planını adada göster"
+  },
   "Show Coucou in the Dock": {
    "zh-Hans": "在程序坞中显示 Coucou",
    "hi": "Coucou को Dock में दिखाएँ",
@@ -5942,6 +6423,19 @@
    "id": "Tampilkan Coucou di Dock",
    "de": "Coucou im Dock anzeigen",
    "tr": "Coucou'yu Dock'ta göster"
+  },
+  "Show Mochi on": {
+   "zh-Hans": "Mochi 显示在",
+   "hi": "मोची को यहाँ दिखाएँ",
+   "es": "Mostrar a Mochi en",
+   "ar": "عرض موتشي على",
+   "fr": "Afficher Mochi sur",
+   "bn": "মোচিকে দেখান",
+   "pt-BR": "Mostrar o Mochi em",
+   "ru": "Показывать Мочи на",
+   "id": "Tampilkan Mochi di",
+   "de": "Mochi anzeigen auf",
+   "tr": "Mochi'yi göster:"
   },
   "Show approval requests in the notch": {
    "zh-Hans": "在刘海中显示审批请求",
@@ -6177,6 +6671,19 @@
    "de": "Demo beenden",
    "tr": "Demoyu durdur"
   },
+  "Stop dictation": {
+   "zh-Hans": "停止听写",
+   "hi": "डिक्टेशन रोकें",
+   "es": "Detener el dictado",
+   "ar": "إيقاف الإملاء",
+   "fr": "Arrêter la dictée",
+   "bn": "ডিক্টেশন থামান",
+   "pt-BR": "Parar o ditado",
+   "ru": "Остановить диктовку",
+   "id": "Hentikan dikte",
+   "de": "Diktat beenden",
+   "tr": "Dikteyi durdur"
+  },
   "Stored locally on your Mac. Nothing leaves your Mac. Retained for 12 weeks.": {
    "zh-Hans": "储存在 Mac 本地，不会离开你的 Mac，保留 12 周。",
    "hi": "आपके Mac पर स्थानीय रूप से संग्रहीत। कुछ भी Mac नहीं छोड़ता। 12 सप्ताह तक रखा जाता है।",
@@ -6293,6 +6800,19 @@
    "id": "Ringkasan",
    "de": "Zusammenfassung",
    "tr": "Özet"
+  },
+  "Sunglasses": {
+   "zh-Hans": "墨镜",
+   "hi": "धूप का चश्मा",
+   "es": "Gafas de sol",
+   "ar": "نظارة شمسية",
+   "fr": "Lunettes de soleil",
+   "bn": "সানগ্লাস",
+   "pt-BR": "Óculos de sol",
+   "ru": "Солнечные очки",
+   "id": "Kacamata hitam",
+   "de": "Sonnenbrille",
+   "tr": "Güneş gözlüğü"
   },
   "System": {
    "zh-Hans": "系统",
@@ -6696,6 +7216,19 @@
    "id": "Hari ini",
    "de": "Heute",
    "tr": "Bugün"
+  },
+  "Token": {
+   "zh-Hans": "令牌",
+   "hi": "टोकन",
+   "es": "Token",
+   "ar": "الرمز المميز",
+   "fr": "Jeton",
+   "bn": "টোকেন",
+   "pt-BR": "Token",
+   "ru": "Токен",
+   "id": "Token",
+   "de": "Token",
+   "tr": "Token"
   },
   "Too many hits at once.": {
    "zh-Hans": "一次点击太多次了。",
@@ -7178,6 +7711,19 @@
    "de": "Position der Diktierleiste",
    "tr": "Dikte aracının konumu"
   },
+  "Where you code": {
+   "zh-Hans": "编程环境",
+   "hi": "जहाँ आप कोड करते हैं",
+   "es": "Dónde programas",
+   "ar": "مكان البرمجة",
+   "fr": "Où tu codes",
+   "bn": "যেখানে আপনি কোড করেন",
+   "pt-BR": "Onde você programa",
+   "ru": "Где вы пишете код",
+   "id": "Tempat Anda membuat kode",
+   "de": "Deine Entwicklungsumgebung",
+   "tr": "Kod yazdığın araçlar"
+  },
   "Where you dictate": {
    "zh-Hans": "你在哪里听写",
    "hi": "आप कहाँ डिक्टेट करते हैं",
@@ -7255,6 +7801,19 @@
    "id": "Siapa ini?",
    "de": "Wer ist das?",
    "tr": "Kim konuşuyor?"
+  },
+  "Witch hat": {
+   "zh-Hans": "女巫帽",
+   "hi": "चुड़ैल की टोपी",
+   "es": "Sombrero de bruja",
+   "ar": "قبعة ساحرة",
+   "fr": "Chapeau de sorcière",
+   "bn": "ডাইনির টুপি",
+   "pt-BR": "Chapéu de bruxa",
+   "ru": "Шляпа ведьмы",
+   "id": "Topi penyihir",
+   "de": "Hexenhut",
+   "tr": "Cadı şapkası"
   },
   "With Claude, the transcript (never the audio) goes to Anthropic with your key from Settings → Chat. Apple Intelligence writes it on your Mac (macOS 26).": {
    "zh-Hans": "使用 Claude 时，转写文字（绝不是音频）会用“设置”→“聊天”中的密钥发送给 Anthropic。Apple 智能则在你的 Mac 上生成（macOS 26）。",
