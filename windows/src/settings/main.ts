@@ -777,6 +777,11 @@ const INTEGRATIONS: IntegrationDef[] = [
       { key: "gitlab-token", label: N_("Token"), placeholder: "glpat-…", secret: true },
     ],
     hint: N_("Personal access token with read_api and read_user scopes.") },
+  { id: "integration_gitea", name: "Gitea", color: "#609926",
+    fields: [
+      { key: "gitea-url", label: N_("Instance URL"), placeholder: "https://gitea.example.com", secret: false },
+      { key: "gitea-token", label: N_("Token"), placeholder: "…", secret: true },
+    ] },
   { id: "integration_vercel", name: "Vercel", color: "#7C5CFF",
     fields: [{ key: "vercel-token", label: N_("Token"), placeholder: "…", secret: true }] },
   { id: "integration_n8n", name: "n8n", color: "#F29B38",
@@ -1337,7 +1342,7 @@ async function render() {
   const shortcutReport = await Bridge.shortcutsStatus();
 
   const keys = [
-    "stripe-api-key", "github-token", "gitlab-url", "gitlab-token", "vercel-token",
+    "stripe-api-key", "github-token", "gitlab-url", "gitlab-token", "gitea-url", "gitea-token", "vercel-token",
     "n8n-url", "n8n-api-key", "resend-api-key", "notion-api-key", "calcom-api-key",
   ];
   const present: Record<string, boolean> = {};

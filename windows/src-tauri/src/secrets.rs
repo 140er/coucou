@@ -18,6 +18,8 @@ pub const KNOWN_KEYS: &[&str] = &[
     "github-token",
     "gitlab-url",
     "gitlab-token",
+    "gitea-url",
+    "gitea-token",
     "stripe-api-key",
     "resend-api-key",
     "notion-api-key",

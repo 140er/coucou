@@ -21,7 +21,7 @@ const GITHUB_RED = "#F4505E";
 export interface ForgeCardOptions {
   title: string;
   color: string;
-  provider?: "github" | "gitlab";
+  provider?: "github" | "gitlab" | "gitea";
   refreshId?: string;
   profileUrl?: string;
 }
@@ -30,6 +30,7 @@ const openSections = new Map<string, GitHubSection>();
 
 function open(url: string, forge: ForgeCardOptions) {
   if (forge.provider === "gitlab") { void Bridge.openGitLabUrl(url); return; }
+  if (forge.provider === "gitea") { void Bridge.openGiteaUrl(url); return; }
   const safe = safeGitHubUrl(url);
   if (safe) void Bridge.openUrl(safe);
 }
@@ -139,7 +140,7 @@ function prRow(pr: GitHubPR, showCI: boolean, forge: ForgeCardOptions): HTMLElem
 function repoRow(repo: GitHubRepoCI, forge: ForgeCardOptions): HTMLElement {
   const word = ciWord(repo.ci);
   return row(
-    () => open(forge.provider === "gitlab" ? repo.url : actionsUrl(repo.url), forge),
+    () => open(forge.provider && forge.provider !== "github" ? repo.url : actionsUrl(repo.url), forge),
     ciDot(repo.ci),
     h("span", { class: "gh-ref", text: shortRepo(repo.repo) }),
     h("span", { class: "gh-title", text: repo.branch }),

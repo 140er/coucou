@@ -294,3 +294,58 @@ test("forge callbacks and selected sections survive rendering a different provid
   assert.equal(listRows(githubDetail(pulse, null, null, () => {}, options)).length, 1);
   githubCard.find(".gh-stat")[0].fire("click");
 });
+
+test("Gitea callbacks and selected sections survive rendering a different provider", async () => {
+  const { installFakeDom } = await import("./fakedom.mjs");
+  installFakeDom();
+  const { githubDetail, githubPulseCard, listRows, openRow } = await import("../src/views/github.ts");
+  const pulse = { login: "me", fetchedAt: 1, myPRs: [pr("me/app#1", "success")], toReview: [], mainCI: [] };
+  const options = { title: "Gitea", color: "#609926", provider: "gitea", refreshId: "integration_gitea" };
+  const card = githubPulseCard(pulse, null, null, () => {}, options);
+  githubPulseCard(pulse, null, null, () => {});
+  calls.length = 0;
+  card.find(".gh-stat")[0].fire("click");
+  assert.deepEqual(sent("refresh_integration"), [{ id: "integration_gitea" }]);
+  assert.deepEqual(sent("github_refresh"), []);
+  const rows = listRows(githubDetail(pulse, null, null, () => {}, options));
+  const githubCard = githubPulseCard(pulse, { totalRepos: 1, totalStars: 0 }, activity, () => {});
+  githubCard.find(".gh-spark")[0].fire("click");
+  githubDetail(pulse, null, activity, () => {});
+  openRow(rows[0]);
+  assert.deepEqual(sent("open_gitea_url"), [{ url: pulse.myPRs[0].url }]);
+  assert.equal(listRows(githubDetail(pulse, null, null, () => {}, options)).length, 1);
+  githubCard.find(".gh-stat")[0].fire("click");
+});
+
+
+test("GitHub, GitLab and Gitea cards coexist and keep their own navigation", async () => {
+  const { installFakeDom } = await import("./fakedom.mjs");
+  installFakeDom();
+  const { renderIntegrationCard } = await import("../src/views/integrations.ts");
+  const { listRows, openRow } = await import("../src/views/github.ts");
+  const providers = ["github", "gitlab", "gitea"];
+  const oldIntegrations = State.integrations;
+  State.integrations = {};
+  try {
+    const hooks = { detailOpen: false, openDetail: () => {}, closeDetail: () => {}, openSettings: () => {} };
+    for (const provider of providers) {
+      const id = `integration_${provider}`;
+      const pulse = { login: "me", fetchedAt: 1, myPRs: [{ ...pr("me/app#1", "success"), url: `https://${provider}.com/me/app/pull/1` }], toReview: [], mainCI: [] };
+      State.integrations[id] = { configured: true, loaded: true, error: null, data: { projects: 1, totalRepos: 1, totalStars: 2, pulse } };
+    }
+    const cards = providers.map((provider) => renderIntegrationCard({ id: `integration_${provider}` }, hooks));
+    calls.length = 0;
+    const details = cards.map((card, index) => {
+      card.find(".gh-stat")[0].fire("click");
+      return renderIntegrationCard({ id: `integration_${providers[index]}` }, { ...hooks, detailOpen: true });
+    });
+    assert.deepEqual(sent("github_refresh"), [{ section: "pulse" }]);
+    assert.deepEqual(sent("refresh_integration"), [{ id: "integration_gitlab" }, { id: "integration_gitea" }]);
+    for (const detail of details) openRow(listRows(detail)[0]);
+    assert.deepEqual(sent("open_url"), [{ url: "https://github.com/me/app/pull/1" }]);
+    assert.deepEqual(sent("open_gitlab_url"), [{ url: "https://gitlab.com/me/app/pull/1" }]);
+    assert.deepEqual(sent("open_gitea_url"), [{ url: "https://gitea.com/me/app/pull/1" }]);
+  } finally {
+    State.integrations = oldIntegrations;
+  }
+});

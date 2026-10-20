@@ -279,6 +279,13 @@ function gitlabCard(): HTMLElement {
     statRow(ICONS.eye, "#8AB4F8", t("To review"), String(d.reviewRequests ?? 0))));
 }
 
+function giteaCard(): HTMLElement {
+  const d = get("integration_gitea");
+  return h("div", { class: "int-card" }, header("#609926", "Gitea", t("Overview")),
+    h("div", { class: "int-stats" }, statRow(ICONS.star, "#F5A524", t("Total stars"), String(d.totalStars ?? 0)),
+      statRow(ICONS.stack, "#6B7079", t("Repositories"), String(d.totalRepos ?? 0))));
+}
+
 // ── Stripe ────────────────────────────────────────────────────────────────────
 
 function stripeCard(): HTMLElement {
@@ -443,6 +450,8 @@ export function hasIntegrationData(id: string): boolean {
     case "integration_github":
       return get(id).totalRepos != null || readPulse(get(id)) != null;
     case "integration_gitlab": return get(id).projects != null;
+    case "integration_gitea":
+      return get(id).totalRepos != null;
     case "integration_stripe":
       return info.loaded;
     case "integration_notion":
@@ -481,6 +490,13 @@ export function renderIntegrationCard(task: AgentTask, hooks: IntegrationCardHoo
     if (pulse) { const options: ForgeCardOptions = { title: "GitLab", color: "#FC6D26", provider: "gitlab", refreshId: "integration_gitlab", profileUrl: typeof d.profileUrl === "string" ? d.profileUrl : undefined };
       return hooks.detailOpen ? githubDetail(pulse, readStats(d), readActivity(d), hooks.closeDetail, options) : githubPulseCard(pulse, readStats(d), readActivity(d), hooks.openDetail, options); }
   }
+  if (task.id === "integration_gitea") {
+    const d = get(task.id); const pulse = readPulse(d);
+    if (pulse) {
+      const options: ForgeCardOptions = { title: "Gitea", color: "#609926", provider: "gitea", refreshId: "integration_gitea", profileUrl: typeof d.profileUrl === "string" ? d.profileUrl : undefined };
+      return hooks.detailOpen ? githubDetail(pulse, readStats(d), readActivity(d), hooks.closeDetail, options) : githubPulseCard(pulse, readStats(d), readActivity(d), hooks.openDetail, options);
+    }
+  }
 
   switch (task.id) {
     case "integration_resend":
@@ -488,6 +504,8 @@ export function renderIntegrationCard(task: AgentTask, hooks: IntegrationCardHoo
     case "integration_github":
       return githubCard();
     case "integration_gitlab": return gitlabCard();
+    case "integration_gitea":
+      return giteaCard();
     case "integration_stripe":
       return stripeCard();
     case "integration_notion":

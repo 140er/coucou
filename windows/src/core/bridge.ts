@@ -208,6 +208,10 @@ export const Bridge = {
   openUrl: (url: string) => call<void>("open_url", { url }),
   /** Opens a GitLab link only when it belongs to the configured instance. */
   openGitLabUrl: (url: string) => call<void>("open_gitlab_url", { url }),
+  /** Opens the configured Gitea instance without exposing its URL to the page. */
+  openGitea: () => call<void>("open_gitea"),
+  /** Opens a Gitea link only if it belongs to the configured instance. */
+  openGiteaUrl: (url: string) => call<void>("open_gitea_url", { url }),
 
   /** Which of these sounds have a file of the user's own in the sounds folder. */
   customSounds: (names: readonly string[]) => call<string[]>("custom_sounds", { names }),
