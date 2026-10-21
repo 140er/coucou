@@ -99,6 +99,13 @@ export function applyT3Update(island: Island, update: T3Update): void {
     dropPendingCard(island);
   }
   const approval = update.approval;
+  // The shell opens the card immediately. The thread projection may fill the
+  // prompt a moment later; keep the same card and show that text.
+  if (approval && pending?.pillId === T3_ID && pending.requestId === approval.requestId) {
+    const command = approval.detail || approval.summary;
+    if (command && command !== pending.command) pending.command = command;
+    if (approval.summary && approval.summary !== pending.tool) pending.tool = approval.summary;
+  }
   if (approval && !decided.has(approval.requestId) && !State.pendingApproval) {
     State.beginApproval({
       requestId: approval.requestId,

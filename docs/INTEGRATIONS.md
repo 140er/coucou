@@ -357,7 +357,7 @@ Aucune permission Accessibilité nécessaire.
 
 ## 8. T3 Code (Windows et Linux)
 
-T3 Code ([pingdotgg/t3code](https://github.com/pingdotgg/t3code)) est un serveur, pas un hook. Le client web ouvre `GET /ws` et parle le RPC JSON d'Effect 4 (`RpcSerialization.layerJson`) : une trame, un objet, champ `_tag`. Coucou fait la même chose. Rien n'est gratté dans le HTML.
+T3 Code ([pingdotgg/t3code](https://github.com/pingdotgg/t3code)) est un serveur, pas un hook. Le client web ouvre `GET /ws?orchestrationProtocol=2` et parle le RPC JSON d'Effect 4 (`RpcSerialization.layerJson`) : une trame, un objet, champ `_tag`. Coucou fait la même chose, en protocole d'orchestration v2. Rien n'est gratté dans le HTML.
 
 **TODO macOS.** L'app Mac parle aux agents par des hooks et un socket Unix. Ce n'est pas le même schéma, et la pastille n'est pas dans le catalogue Swift (la version App Store ne change pas). L'identifiant réservé, le jour où ce sera porté, est `agent_t3`.
 
@@ -368,7 +368,7 @@ Sur Windows et Linux (`windows/src-tauri/src/t3.rs`) :
 - Derrière Cloudflare Access, l'identifiant et le secret de service (`t3-cf-client-id`, `t3-cf-client-secret`) partent en en-têtes sur la requête HTTP et sur l'upgrade. Les deux, ou aucun.
 - Pas de redirection : une page de login ne doit pas recevoir le jeton. Rien de secret n'est journalisé.
 
-`orchestration.subscribeShell` donne les projets et les fils (en cours, en attente d'approbation, terminé, erreur). Un fil qui attend est ouvert avec `orchestration.subscribeThread`. Autoriser / Refuser envoie `orchestration.dispatchCommand` avec `thread.approval.respond` (`accept` ou `decline` seulement). S'il n'y a pas de demande que Coucou sache répondre, le fil s'ouvre dans le navigateur (`/<environmentId>/<threadId>`).
+`orchestration.subscribeShell` donne les projets et les fils (en cours, en attente d'approbation, terminé, erreur). Le statut vient de `status` et de `pendingRuntimeRequest` : `user_input` est une question, les autres demandes en attente sont des approbations. Un fil qui attend est ouvert avec `orchestration.subscribeThread` pour le détail (`projection.runtimeRequests`, items `approval_request`). Autoriser / Refuser envoie `orchestration.dispatchCommand` avec `runtime-request.respond` (`accept` ou `decline` seulement). Une image qui ne contient que les projets (`threads: []`) ne vide pas la liste. S'il n'y a pas de demande que Coucou sache répondre, le fil s'ouvre dans le navigateur (`/<environmentId>/<threadId>`).
 
 La pastille `agent_t3` peut être l'outil principal ou une pastille déclarée. Les sons sont ceux des autres agents : approbation, question, fin, erreur. La première image reçue ne célèbre pas le travail déjà terminé ou déjà en erreur.
 

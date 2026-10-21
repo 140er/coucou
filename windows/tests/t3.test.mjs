@@ -1,4 +1,6 @@
 // T3 Code events (src/island/t3.ts) and the project card (src/views/integrations.ts).
+// The wire fixtures for orchestration protocol v2 live in src-tauri/src/t3.rs.
+// What arrives here is already mapped: running, approval, question, done, error.
 
 import { beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";
@@ -102,20 +104,21 @@ test("an approval opens the card once, and a click tells T3 rather than the hook
   applyT3Update(island, update({
     pill: { state: "approval", label: "Coucou · Fix the build" },
     alerts: [{ kind: "approval", label: "Coucou · Fix the build" }],
-    approval: { requestId: "req-1", threadId: "t1", summary: "Run tests", detail: "npm test" },
+    approval: { requestId: "req-1", threadId: "t1", summary: "Command", detail: "Command" },
   }));
   assert.deepEqual(asked, ["alert:approval"]);
   assert.equal(State.pendingApproval.requestId, "req-1");
-  assert.equal(State.pendingApproval.command, "npm test");
+  assert.equal(State.pendingApproval.command, "Command");
   assert.deepEqual(played, ["approval"]);
   const task = State.tasks.find((item) => item.id === T3_ID);
   assert.equal(task.state, "approval");
 
   applyT3Update(island, update({
     pill: { state: "approval", label: "Coucou · Fix the build" },
-    approval: { requestId: "req-1", threadId: "t1", summary: "Run tests", detail: "npm test" },
+    approval: { requestId: "req-1", threadId: "t1", summary: "Command", detail: "npm test" },
   }));
   assert.deepEqual(asked, ["alert:approval"]);
+  assert.equal(State.pendingApproval.command, "npm test");
 
   assert.equal(decideT3("allow"), true);
   assert.deepEqual(calls[calls.length - 1], ["t3_decide", { threadId: "t1", requestId: "req-1", decision: "accept" }]);
@@ -171,6 +174,25 @@ test("the idle line says whether the server answered", () => {
   assert.equal(idleStatus(T3_ID, State.integrations[T3_ID], "").label, "Connected");
   State.integrations[T3_ID] = { data: {}, error: "Not connected", loaded: false, configured: false };
   assert.equal(idleStatus(T3_ID, State.integrations[T3_ID], "").label, "Not connected");
+});
+
+test("v2 statuses keep the same labels as the other agents", () => {
+  applyT3Update(island, update({
+    projects: [{
+      id: "p1",
+      title: "Coucou",
+      threads: [
+        { id: "a", title: "Wait", status: "approval", url: "http://t3code-home:3773/env/a" },
+        { id: "q", title: "Ask", status: "question", url: "http://t3code-home:3773/env/q" },
+        { id: "e", title: "Broke", status: "error", url: "http://t3code-home:3773/env/e" },
+      ],
+    }],
+  }));
+  const task = State.tasks.find((item) => item.id === T3_ID);
+  const card = renderIntegrationCard(task, { openSettings() {}, detailOpen: false, openDetail() {}, closeDetail() {} });
+  assert.ok(card.textContent.includes("Waiting for approval"));
+  assert.ok(card.textContent.includes("Needs input"));
+  assert.ok(card.textContent.includes("Error"));
 });
 
 test("noteT3Decision alone does not invent a command", () => {

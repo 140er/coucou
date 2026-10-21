@@ -234,15 +234,16 @@ and let the relay forward the event.
 
 T3 Code is a server, not a hook. On Windows and Linux, Coucou connects to the
 URL saved in **Settings → Agents → T3 Code** and speaks the same WebSocket RPC
-as the T3 web client (`GET /ws`, Effect JSON RPC). A bearer token, if the
-server requires one, is exchanged for a short-lived ticket and never placed in
-the socket URL. Behind Cloudflare Access, save the service token too (client
-id and secret). All four values stay in the credential store.
+as the T3 web client (`GET /ws?orchestrationProtocol=2`, Effect JSON RPC,
+orchestration protocol v2). A bearer token, if the server requires one, is
+exchanged for a short-lived ticket and never placed in the socket URL. Behind
+Cloudflare Access, save the service token too (client id and secret). All four
+values stay in the credential store.
 
-The pill id is `agent_t3`. It can be the main tool or a declared pill. Threads
-show as running, waiting for approval, done or error. Allow and Deny send
-`thread.approval.respond`. A prompt Coucou cannot answer opens the thread in
-the browser.
+The pill id is `agent_t3`. It can be the main tool or a declared pill. Thread
+status comes from the v2 shell (`status`, `pendingRuntimeRequest`). Allow and
+Deny send `runtime-request.respond`. A prompt Coucou cannot answer opens the
+thread in the browser.
 
 **TODO macOS.** The Mac app reaches agents through hooks and a Unix socket, which
 does not fit a remote WebSocket. The Swift catalog is unchanged. When T3 is

@@ -2,10 +2,12 @@
 //
 // The web client does not scrape HTML. It opens the server's WebSocket at `/ws`
 // and speaks Effect 4's JSON RPC (`RpcSerialization.layerJson`): one JSON object
-// per frame, tagged `_tag`. `orchestration.subscribeShell` streams the projects
-// and the thread shells (running, waiting, done, error). A thread that is
-// waiting is opened with `orchestration.subscribeThread`, and Allow / Deny is
-// `orchestration.dispatchCommand` of `thread.approval.respond`.
+// per frame, tagged `_tag`. The query `orchestrationProtocol=2` is required;
+// without it the upgrade is rejected with 426. `orchestration.subscribeShell`
+// streams orchestration protocol v2 (`snapshot`, `project.updated`,
+// `thread.updated`, …). A thread waiting on an approval is opened with
+// `orchestration.subscribeThread`, and Allow / Deny is
+// `orchestration.dispatchCommand` of `runtime-request.respond`.
 //
 // A bearer session never sits in the socket URL. It is exchanged for a
 // short-lived `wsTicket` (`POST /api/auth/websocket-ticket`), the same way the
@@ -16,7 +18,7 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Mutex;
-use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant};
 
 use futures_util::sink::Sink;
 use futures_util::{SinkExt, StreamExt};
@@ -343,7 +345,6 @@ async fn serve(
                         &decision.thread_id,
                         &decision.request_id,
                         decision.accept,
-                        &rfc3339_now(),
                         &fresh_id("cmd"),
                     );
                     send(&mut write, &rpc_request(&fresh_id("rpc"), DISPATCH_METHOD, command)).await?;
@@ -417,15 +418,13 @@ async fn sync_thread_subs(
     let wanted: HashSet<String> = session
         .threads
         .values()
-        .filter(|thread| !thread.archived && thread.pending_approval)
+        .filter(|thread| !thread.archived && thread.pending_is_approval())
         .map(|thread| thread.id.clone())
         .collect();
     let current = session.subscribed.clone();
     for id in current.difference(&wanted) {
         send(write, &rpc_interrupt(&format!("thread:{id}"))).await?;
         session.subscribed.remove(id);
-        session.activities.remove(id);
-        session.approvals.remove(id);
     }
     for id in wanted.difference(&current) {
         send(
@@ -529,9 +528,10 @@ fn socket_url(base: &reqwest::Url, ticket: Option<&str>) -> String {
     } else {
         "ws"
     };
-    let mut url = format!("{scheme}://{}/ws", host_port(base));
+    // v2 servers reject a socket that does not name the protocol (HTTP 426).
+    let mut url = format!("{scheme}://{}/ws?orchestrationProtocol=2", host_port(base));
     if let Some(ticket) = ticket {
-        url.push_str("?wsTicket=");
+        url.push_str("&wsTicket=");
         url.push_str(&percent_encode(ticket));
     }
     url
@@ -614,20 +614,14 @@ fn rpc_interrupt(id: &str) -> String {
     json!({ "_tag": "Interrupt", "requestId": id }).to_string()
 }
 
-fn approval_command(
-    thread_id: &str,
-    request_id: &str,
-    accept: bool,
-    now: &str,
-    command_id: &str,
-) -> Value {
+fn approval_command(thread_id: &str, request_id: &str, accept: bool, command_id: &str) -> Value {
+    // OrchestrationV2Command. `thread.approval.respond` is not a v2 command.
     json!({
-        "type": "thread.approval.respond",
+        "type": "runtime-request.respond",
         "commandId": command_id,
         "threadId": thread_id,
         "requestId": request_id,
         "decision": if accept { "accept" } else { "decline" },
-        "createdAt": now,
     })
 }
 
@@ -653,13 +647,6 @@ fn chunk_values(frame: &Value) -> Vec<Value> {
         Some(value) => vec![value.clone()],
         None => Vec::new(),
     }
-}
-
-fn rfc3339_now() -> String {
-    let dur = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default();
-    rfc3339(dur.as_secs(), dur.subsec_millis())
 }
 
 fn rfc3339(secs: u64, millis: u32) -> String {
@@ -746,31 +733,70 @@ struct Thread {
     project_id: String,
     title: String,
     updated_at: String,
+    /// Archived or deleted shells stay out of the list.
     archived: bool,
-    session_status: String,
-    turn_state: String,
-    pending_approval: bool,
-    pending_input: bool,
+    /// `activityRunStatus` when the server sent one, otherwise `status`.
+    run_status: String,
+    pending_kind: String,
+    pending_request_id: String,
+    pending_created_at: String,
+    /// Absent on older v2 servers, and true when the field is missing.
+    pending_blocking: bool,
+    last_error: String,
 }
 
 impl Thread {
-    fn status(&self) -> Status {
-        if self.pending_approval {
-            Status::Approval
-        } else if self.pending_input {
-            Status::Question
-        } else if self.session_status == "error" || self.turn_state == "error" {
-            Status::Error
-        } else if self.session_status == "running"
-            || self.session_status == "starting"
-            || self.turn_state == "running"
-        {
-            Status::Running
-        } else if self.turn_state == "completed" {
-            Status::Done
-        } else {
-            Status::Idle
+    /// `user_input` is a question. `auth_refresh` is not an Allow / Deny: the
+    /// run status shows through and the thread opens in the browser. Every
+    /// other pending kind is an approval.
+    fn pending_is_approval(&self) -> bool {
+        !self.pending_request_id.is_empty()
+            && !self.pending_kind.is_empty()
+            && self.pending_kind != "user_input"
+            && self.pending_kind != "auth_refresh"
+    }
+
+    fn pending_is_question(&self) -> bool {
+        if self.pending_kind != "user_input" || self.pending_request_id.is_empty() {
+            return false;
         }
+        // A non-blocking question lets the run keep working.
+        let live = matches!(
+            self.run_status.as_str(),
+            "preparing" | "starting" | "running"
+        );
+        self.pending_blocking || !live
+    }
+
+    fn status(&self) -> Status {
+        if self.pending_is_approval() {
+            return Status::Approval;
+        }
+        if self.pending_is_question() {
+            return Status::Question;
+        }
+        if self.run_status == "failed" || self.stuck_error() {
+            return Status::Error;
+        }
+        match self.run_status.as_str() {
+            "preparing" | "queued" | "starting" | "running" | "waiting" => Status::Running,
+            "completed" => Status::Done,
+            _ => Status::Idle,
+        }
+    }
+
+    fn stuck_error(&self) -> bool {
+        !self.last_error.is_empty()
+            && !matches!(
+                self.run_status.as_str(),
+                "preparing"
+                    | "queued"
+                    | "starting"
+                    | "running"
+                    | "waiting"
+                    | "completed"
+                    | "failed"
+            )
     }
 }
 
@@ -806,7 +832,8 @@ struct Alert {
 struct Session {
     projects: HashMap<String, Project>,
     threads: HashMap<String, Thread>,
-    activities: HashMap<String, Vec<Value>>,
+    /// thread id → request id → prompt, from the thread projection.
+    prompts: HashMap<String, HashMap<String, String>>,
     approvals: HashMap<String, Approval>,
     subscribed: HashSet<String>,
     previous: HashMap<String, Status>,
@@ -815,108 +842,159 @@ struct Session {
 impl Session {
     fn apply_shell(&mut self, item: &Value) {
         match item.get("kind").and_then(Value::as_str) {
-            Some("snapshot") => {
-                self.projects.clear();
-                self.threads.clear();
-                let Some(snapshot) = item.get("snapshot") else {
-                    return;
-                };
-                for project in snapshot
-                    .get("projects")
-                    .and_then(Value::as_array)
-                    .into_iter()
-                    .flatten()
-                {
-                    if let Some(project) = parse_project(project) {
-                        self.projects.insert(project.id.clone(), project);
-                    }
-                }
-                for thread in snapshot
-                    .get("threads")
-                    .and_then(Value::as_array)
-                    .into_iter()
-                    .flatten()
-                {
-                    if let Some(thread) = parse_thread(thread) {
-                        self.threads.insert(thread.id.clone(), thread);
-                    }
-                }
-            }
-            Some("project-upserted") => {
+            Some("snapshot") => self.apply_snapshot(item),
+            Some("synchronized") => {}
+            Some("project.updated") => {
                 if let Some(project) = item.get("project").and_then(parse_project) {
                     self.projects.insert(project.id.clone(), project);
                 }
             }
-            Some("project-removed") => {
+            Some("project.removed") => {
                 if let Some(id) = item.get("projectId").and_then(Value::as_str) {
                     self.projects.remove(id);
                     self.threads.retain(|_, thread| thread.project_id != id);
                 }
             }
-            Some("thread-upserted") => {
-                if let Some(thread) = item.get("thread").and_then(parse_thread) {
-                    self.threads.insert(thread.id.clone(), thread);
+            Some("thread.updated") => {
+                let location = item
+                    .get("location")
+                    .and_then(Value::as_str)
+                    .unwrap_or("active");
+                let id = item
+                    .pointer("/thread/id")
+                    .and_then(Value::as_str)
+                    .unwrap_or("");
+                // Archive is the archived list. It leaves the live shell.
+                if location == "archive" {
+                    if !id.is_empty() {
+                        self.threads.remove(id);
+                    }
+                } else if let Some(thread) = item.get("thread").and_then(parse_thread) {
+                    if thread.archived {
+                        self.threads.remove(&thread.id);
+                    } else {
+                        self.threads.insert(thread.id.clone(), thread);
+                    }
                 }
             }
-            Some("thread-removed") => {
+            Some("thread.removed") => {
                 if let Some(id) = item.get("threadId").and_then(Value::as_str) {
                     self.threads.remove(id);
-                    self.activities.remove(id);
-                    self.approvals.remove(id);
                 }
             }
             _ => {}
         }
-        self.drop_settled_approvals();
+        self.refresh_approvals();
+    }
+
+    /// A full snapshot replaces projects and threads. A project-metadata
+    /// refresh (`resolvedRepositoryIdentityRoots`, or `threads: []` after we
+    /// already have threads) must not wipe the thread list. The server sends
+    /// that empty list within seconds of connect.
+    fn apply_snapshot(&mut self, item: &Value) {
+        let Some(snapshot) = item.get("snapshot") else {
+            return;
+        };
+        let threads = snapshot.get("threads").and_then(Value::as_array);
+        let archived = snapshot.get("archivedThreads").and_then(Value::as_array);
+        let metadata = item.get("resolvedRepositoryIdentityRoots").is_some();
+        let has_projects = snapshot
+            .get("projects")
+            .and_then(Value::as_array)
+            .is_some_and(|projects| !projects.is_empty());
+        let projects_only = metadata
+            || (has_projects
+                && threads.is_some_and(|threads| threads.is_empty())
+                && archived.is_none_or(|archived| archived.is_empty())
+                && !self.threads.is_empty());
+
+        if metadata {
+            for project in array_of(snapshot, "projects") {
+                if let Some(project) = parse_project(project) {
+                    self.projects.insert(project.id.clone(), project);
+                }
+            }
+        } else {
+            self.projects.clear();
+            for project in array_of(snapshot, "projects") {
+                if let Some(project) = parse_project(project) {
+                    self.projects.insert(project.id.clone(), project);
+                }
+            }
+        }
+        if projects_only {
+            return;
+        }
+        self.threads.clear();
+        for thread in threads.into_iter().flatten() {
+            if let Some(thread) = parse_thread(thread) {
+                if !thread.archived {
+                    self.threads.insert(thread.id.clone(), thread);
+                }
+            }
+        }
     }
 
     fn apply_thread(&mut self, thread_id: &str, item: &Value) {
         match item.get("kind").and_then(Value::as_str) {
             Some("snapshot") => {
-                let activities = item
-                    .pointer("/snapshot/thread/activities")
-                    .and_then(Value::as_array)
-                    .cloned()
-                    .unwrap_or_default();
-                self.activities.insert(thread_id.to_string(), activities);
+                let projection = item
+                    .get("projection")
+                    .or_else(|| item.pointer("/snapshot/projection"));
+                if let Some(projection) = projection {
+                    self.prompts
+                        .insert(thread_id.to_string(), prompts_in(projection));
+                }
             }
             Some("event") => {
-                let event = item.get("event");
-                if event
-                    .and_then(|event| event.get("type"))
-                    .and_then(Value::as_str)
-                    == Some("thread.activity-appended")
-                {
-                    if let Some(activity) = event
-                        .and_then(|event| event.pointer("/payload/activity"))
-                        .cloned()
-                    {
-                        let list = self.activities.entry(thread_id.to_string()).or_default();
-                        list.push(activity);
-                        if list.len() > 300 {
-                            let extra = list.len() - 300;
-                            list.drain(0..extra);
+                let Some(event) = item.get("event") else {
+                    return;
+                };
+                let kind = event.get("type").and_then(Value::as_str).unwrap_or("");
+                if kind == "turn-item.updated" || kind == "runtime-request.updated" {
+                    if let Some(payload) = event.get("payload") {
+                        let found = prompts_in(payload);
+                        if !found.is_empty() {
+                            self.prompts
+                                .entry(thread_id.to_string())
+                                .or_default()
+                                .extend(found);
                         }
                     }
                 }
             }
             _ => {}
         }
-        if let Some(activities) = self.activities.get(thread_id) {
-            if let Some(approval) = derive_approval(thread_id, activities) {
-                self.approvals.insert(thread_id.to_string(), approval);
-            } else {
-                self.approvals.remove(thread_id);
-            }
-        }
+        self.refresh_approvals();
     }
 
-    fn drop_settled_approvals(&mut self) {
-        self.approvals.retain(|id, _| {
-            self.threads
-                .get(id)
-                .is_some_and(|thread| !thread.archived && thread.pending_approval)
-        });
+    /// The shell's `pendingRuntimeRequest` decides that an approval is open.
+    /// The thread projection only fills in the prompt.
+    fn refresh_approvals(&mut self) {
+        let mut next = HashMap::new();
+        for thread in self.threads.values() {
+            if thread.archived || !thread.pending_is_approval() {
+                continue;
+            }
+            let prompt = self
+                .prompts
+                .get(&thread.id)
+                .and_then(|prompts| prompts.get(&thread.pending_request_id))
+                .cloned()
+                .unwrap_or_default();
+            next.insert(
+                thread.id.clone(),
+                Approval {
+                    request_id: thread.pending_request_id.clone(),
+                    thread_id: thread.id.clone(),
+                    summary: kind_label(&thread.pending_kind),
+                    detail: prompt,
+                    created_at: thread.pending_created_at.clone(),
+                },
+            );
+        }
+        self.approvals = next;
+        self.prompts.retain(|id, _| self.threads.contains_key(id));
     }
 
     fn view(&mut self, base: &reqwest::Url, environment: Option<&str>, seen: &mut Seen) -> Update {
@@ -1105,7 +1183,33 @@ fn parse_project(value: &Value) -> Option<Project> {
     })
 }
 
+fn array_of<'a>(value: &'a Value, key: &str) -> impl Iterator<Item = &'a Value> {
+    value
+        .get(key)
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+}
+
+fn timestamp_set(value: &Value, key: &str) -> bool {
+    value
+        .get(key)
+        .and_then(Value::as_str)
+        .is_some_and(|at| !at.is_empty())
+}
+
 fn parse_thread(value: &Value) -> Option<Thread> {
+    let pending = value
+        .get("pendingRuntimeRequest")
+        .filter(|pending| !pending.is_null());
+    let activity = value
+        .get("activityRunStatus")
+        .and_then(Value::as_str)
+        .filter(|status| !status.is_empty());
+    let run_status = activity
+        .or_else(|| value.get("status").and_then(Value::as_str))
+        .unwrap_or("")
+        .to_string();
     Some(Thread {
         id: value.get("id")?.as_str()?.to_string(),
         project_id: value
@@ -1123,115 +1227,85 @@ fn parse_thread(value: &Value) -> Option<Thread> {
             .and_then(Value::as_str)
             .unwrap_or("")
             .to_string(),
-        archived: value
-            .get("archivedAt")
-            .and_then(Value::as_str)
-            .is_some_and(|at| !at.is_empty()),
-        session_status: value
-            .pointer("/session/status")
+        archived: timestamp_set(value, "archivedAt") || timestamp_set(value, "deletedAt"),
+        run_status,
+        pending_kind: pending
+            .and_then(|pending| pending.get("kind"))
             .and_then(Value::as_str)
             .unwrap_or("")
             .to_string(),
-        turn_state: value
-            .pointer("/latestTurn/state")
+        pending_request_id: pending
+            .and_then(|pending| pending.get("id"))
             .and_then(Value::as_str)
             .unwrap_or("")
             .to_string(),
-        pending_approval: value
-            .get("hasPendingApprovals")
+        pending_created_at: pending
+            .and_then(|pending| pending.get("createdAt"))
+            .and_then(Value::as_str)
+            .unwrap_or("")
+            .to_string(),
+        pending_blocking: pending
+            .and_then(|pending| pending.get("blocking"))
             .and_then(Value::as_bool)
-            .unwrap_or(false),
-        pending_input: value
-            .get("hasPendingUserInput")
-            .and_then(Value::as_bool)
-            .unwrap_or(false),
+            .unwrap_or(true),
+        last_error: value
+            .get("lastError")
+            .and_then(Value::as_str)
+            .unwrap_or("")
+            .to_string(),
     })
 }
 
-fn derive_approval(thread_id: &str, activities: &[Value]) -> Option<Approval> {
-    let mut ordered: Vec<&Value> = activities.iter().collect();
-    ordered.sort_by(|a, b| {
-        let seq = |value: &Value| value.get("sequence").and_then(Value::as_u64).unwrap_or(0);
-        seq(a).cmp(&seq(b)).then_with(|| {
-            let left = a.get("createdAt").and_then(Value::as_str).unwrap_or("");
-            let right = b.get("createdAt").and_then(Value::as_str).unwrap_or("");
-            left.cmp(right)
-        })
-    });
-    let mut open: Vec<Approval> = Vec::new();
-    for activity in ordered {
-        let kind = activity.get("kind").and_then(Value::as_str).unwrap_or("");
-        let payload = activity.get("payload").filter(|value| value.is_object());
-        let request_id = payload
-            .and_then(|payload| payload.get("requestId"))
-            .and_then(Value::as_str)
-            .unwrap_or("");
-        if request_id.is_empty() {
-            continue;
-        }
-        if kind == "approval.requested" {
-            let detail = payload
-                .and_then(|payload| payload.get("detail"))
-                .and_then(Value::as_str)
-                .unwrap_or("");
-            let summary = activity
-                .get("summary")
-                .and_then(Value::as_str)
-                .unwrap_or("")
-                .to_string();
-            open.retain(|approval| approval.request_id != request_id);
-            open.push(Approval {
-                request_id: request_id.to_string(),
-                thread_id: thread_id.to_string(),
-                summary: if summary.is_empty() {
-                    request_kind_label(payload)
-                } else {
-                    summary
-                },
-                detail: detail.to_string(),
-                created_at: activity
-                    .get("createdAt")
-                    .and_then(Value::as_str)
-                    .unwrap_or("")
-                    .to_string(),
-            });
-        } else if kind == "approval.resolved"
-            || (kind == "provider.approval.respond.failed" && stale_approval(payload))
-        {
-            open.retain(|approval| approval.request_id != request_id);
-        }
-    }
-    open.into_iter()
-        .min_by(|a, b| a.created_at.cmp(&b.created_at))
+/// Prompts live on `approval_request` turn items. A runtime request can also
+/// carry `prompt` or `detail` next to its id.
+fn prompts_in(value: &Value) -> HashMap<String, String> {
+    let mut found = HashMap::new();
+    collect_prompts(value, &mut found);
+    found
 }
 
-fn request_kind_label(payload: Option<&Value>) -> String {
-    let kind = payload
-        .and_then(|payload| payload.get("requestKind"))
-        .and_then(Value::as_str);
-    let request_type = payload
-        .and_then(|payload| payload.get("requestType"))
-        .and_then(Value::as_str);
-    match kind.or(request_type).unwrap_or("") {
-        "command"
-        | "command_execution_approval"
-        | "exec_command_approval"
-        | "dynamic_tool_call" => "Command".into(),
-        "file-read" | "file_read_approval" => "File read".into(),
-        "file-change" | "file_change_approval" | "apply_patch_approval" => "File change".into(),
+fn collect_prompts(value: &Value, found: &mut HashMap<String, String>) {
+    let item = value.get("item").unwrap_or(value);
+    if item.get("type").and_then(Value::as_str) == Some("approval_request") {
+        if let Some(id) = item.get("requestId").and_then(Value::as_str) {
+            if let Some(prompt) = text_field(item, &["prompt"]) {
+                found.entry(id.to_string()).or_insert(prompt);
+            }
+        }
+    }
+    if value.get("kind").is_some() {
+        if let Some(id) = value.get("id").and_then(Value::as_str) {
+            if let Some(text) = text_field(value, &["prompt", "detail", "summary"]) {
+                found.entry(id.to_string()).or_insert(text);
+            }
+        }
+    }
+    for key in ["turnItems", "visibleTurnItems", "runtimeRequests"] {
+        for child in array_of(value, key) {
+            collect_prompts(child, found);
+        }
+    }
+}
+
+fn text_field(value: &Value, keys: &[&str]) -> Option<String> {
+    keys.iter().find_map(|key| {
+        value
+            .get(*key)
+            .and_then(Value::as_str)
+            .filter(|text| !text.is_empty())
+            .map(str::to_string)
+    })
+}
+
+fn kind_label(kind: &str) -> String {
+    match kind {
+        "command" | "dynamic_tool_call" => "Command".into(),
+        "file-read" => "File read".into(),
+        "file-change" => "File change".into(),
+        "mcp-elicitation" => "MCP".into(),
+        "permission" => "Permission".into(),
         other => other.to_string(),
     }
-}
-
-fn stale_approval(payload: Option<&Value>) -> bool {
-    let detail = payload
-        .and_then(|payload| payload.get("detail"))
-        .and_then(Value::as_str)
-        .unwrap_or("");
-    let detail = detail.to_lowercase();
-    detail.contains("stale pending approval")
-        || detail.contains("unknown pending approval")
-        || detail.contains("unknown pending permission")
 }
 
 // ── What the island receives ─────────────────────────────────────────────────
@@ -1325,10 +1399,13 @@ mod tests {
     fn an_http_address_becomes_the_socket_and_drops_the_path() {
         let base = url("http://t3code-home:3773/ignored?token=secret");
         assert_eq!(http_origin(&base), "http://t3code-home:3773");
-        assert_eq!(socket_url(&base, None), "ws://t3code-home:3773/ws");
+        assert_eq!(
+            socket_url(&base, None),
+            "ws://t3code-home:3773/ws?orchestrationProtocol=2"
+        );
         assert_eq!(
             socket_url(&base, Some("ticket value")),
-            "ws://t3code-home:3773/ws?wsTicket=ticket%20value"
+            "ws://t3code-home:3773/ws?orchestrationProtocol=2&wsTicket=ticket%20value"
         );
         assert!(!socket_url(&base, Some("ticket")).contains("secret"));
     }
@@ -1339,7 +1416,7 @@ mod tests {
         assert_eq!(base.scheme(), "https");
         assert_eq!(
             socket_url(&base, Some("abc")),
-            "wss://t3.hoerekind.nl/ws?wsTicket=abc"
+            "wss://t3.hoerekind.nl/ws?orchestrationProtocol=2&wsTicket=abc"
         );
         assert_eq!(
             http_url(
@@ -1378,23 +1455,13 @@ mod tests {
 
     #[test]
     fn approval_is_accept_or_decline() {
-        let command = approval_command(
-            "thread-1",
-            "req-1",
-            true,
-            "2026-10-21T00:00:00.000Z",
-            "cmd-1",
-        );
-        assert_eq!(command["type"], "thread.approval.respond");
+        let command = approval_command("thread-1", "req-1", true, "cmd-1");
+        assert_eq!(command["type"], "runtime-request.respond");
         assert_eq!(command["decision"], "accept");
         assert_eq!(command["threadId"], "thread-1");
-        let denied = approval_command(
-            "thread-1",
-            "req-1",
-            false,
-            "2026-10-21T00:00:00.000Z",
-            "cmd-2",
-        );
+        assert_eq!(command["requestId"], "req-1");
+        assert!(command.get("createdAt").is_none());
+        let denied = approval_command("thread-1", "req-1", false, "cmd-2");
         assert_eq!(denied["decision"], "decline");
     }
 
@@ -1419,44 +1486,56 @@ mod tests {
         assert_eq!(rfc3339(1_582_934_400, 0), "2020-02-29T00:00:00.000Z");
     }
 
+    fn pending(id: &str, kind: &str) -> Value {
+        json!({
+            "id": id,
+            "kind": kind,
+            "createdAt": "2026-10-21T02:00:00.000Z"
+        })
+    }
+
     fn shell_snapshot() -> Value {
         json!({
             "kind": "snapshot",
             "snapshot": {
+                "schemaVersion": 2,
+                "snapshotSequence": 3,
                 "projects": [
                     {"id": "p1", "title": "Coucou"},
                     {"id": "p2", "title": "Notes"}
                 ],
                 "threads": [
-                    thread("t1", "p1", "Fix the build", "running", "running", false, false, None, "2026-10-21T01:00:00.000Z"),
-                    thread("t2", "p1", "Old", "ready", "completed", false, false, Some("2026-10-20T00:00:00.000Z"), "2026-10-20T00:00:00.000Z"),
-                    thread("t3", "p2", "Wait", "running", "running", true, false, None, "2026-10-21T02:00:00.000Z")
-                ]
+                    thread("t1", "p1", "Fix the build", "running", Value::Null, None, None, "2026-10-21T01:00:00.000Z"),
+                    thread("t2", "p1", "Old", "completed", Value::Null, Some("2026-10-20T00:00:00.000Z"), None, "2026-10-20T00:00:00.000Z"),
+                    thread("t3", "p2", "Wait", "running", pending("req-1", "command"), None, None, "2026-10-21T02:00:00.000Z"),
+                    thread("t5", "p1", "Gone", "running", Value::Null, None, Some("2026-10-21T02:30:00.000Z"), "2026-10-21T02:30:00.000Z")
+                ],
+                "archivedThreads": []
             }
         })
     }
 
+    /// One orchestration v2 thread shell. `pending` is the `pendingRuntimeRequest` object, or null.
     fn thread(
         id: &str,
         project: &str,
         title: &str,
-        session: &str,
-        turn: &str,
-        approval: bool,
-        input: bool,
+        status: &str,
+        pending: Value,
         archived: Option<&str>,
+        deleted: Option<&str>,
         updated: &str,
     ) -> Value {
         json!({
             "id": id,
             "projectId": project,
             "title": title,
+            "status": status,
             "updatedAt": updated,
             "archivedAt": archived,
-            "session": {"status": session},
-            "latestTurn": {"state": turn},
-            "hasPendingApprovals": approval,
-            "hasPendingUserInput": input
+            "deletedAt": deleted,
+            "pendingRuntimeRequest": pending,
+            "lastError": null
         })
     }
 
@@ -1471,7 +1550,9 @@ mod tests {
         assert_eq!(view.projects.len(), 2);
         // Approval outranks a running thread, so the pill waits.
         assert_eq!(view.pill.state, "approval");
-        assert!(view.alerts.is_empty());
+        // The request id is on the shell, so the first look rings once.
+        assert_eq!(view.alerts.len(), 1);
+        assert_eq!(view.alerts[0].kind, "approval");
         let coucou = view
             .projects
             .iter()
@@ -1480,30 +1561,88 @@ mod tests {
         assert_eq!(coucou.threads.len(), 1);
         assert_eq!(coucou.threads[0].status, "running");
         assert!(coucou.threads.iter().all(|thread| thread.title != "Old"));
+        assert!(coucou.threads.iter().all(|thread| thread.title != "Gone"));
         let notes = view
             .projects
             .iter()
             .find(|project| project.title == "Notes")
             .unwrap();
         assert_eq!(notes.threads[0].url, "https://t3.hoerekind.nl/env%201/t3");
-        // Already finished, already in error: the first look stays quiet.
+        // Already failed when it first appears: stay quiet.
         session.apply_shell(&json!({
-            "kind": "thread-upserted",
-            "thread": thread("t4", "p1", "Broken", "error", "error", false, false, None, "2026-10-21T03:00:00.000Z")
+            "kind": "thread.updated",
+            "sequence": 4,
+            "location": "active",
+            "thread": thread("t4", "p1", "Broken", "failed", Value::Null, None, None, "2026-10-21T03:00:00.000Z")
         }));
         let again = session.view(&base, Some("env 1"), &mut seen);
         assert!(again.alerts.is_empty());
     }
 
     #[test]
-    fn status_follows_the_shell_flags() {
+    fn a_project_only_snapshot_keeps_the_threads() {
+        let mut session = Session::default();
+        session.apply_shell(&shell_snapshot());
+        session.apply_shell(&json!({
+            "kind": "snapshot",
+            "resolvedRepositoryIdentityRoots": ["/work/coucou"],
+            "snapshot": {
+                "schemaVersion": 2,
+                "snapshotSequence": 4,
+                "projects": [{"id": "p1", "title": "Coucou renamed"}],
+                "threads": [],
+                "archivedThreads": []
+            }
+        }));
+        assert_eq!(session.projects["p1"].title, "Coucou renamed");
+        assert!(session.projects.contains_key("p2"));
+        assert!(session.threads.contains_key("t1"));
+        assert_eq!(session.threads["t3"].status(), Status::Approval);
+
+        // The resume path can send the same empty thread list without the roots field.
+        session.apply_shell(&json!({
+            "kind": "snapshot",
+            "snapshot": {
+                "projects": [
+                    {"id": "p1", "title": "Coucou"},
+                    {"id": "p2", "title": "Notes"}
+                ],
+                "threads": [],
+                "archivedThreads": []
+            }
+        }));
+        assert!(session.threads.contains_key("t3"));
+        assert_eq!(session.projects["p1"].title, "Coucou");
+    }
+
+    #[test]
+    fn status_follows_the_v2_shell() {
         let running = parse_thread(&thread(
-            "t", "p", "A", "running", "running", false, false, None, "",
+            "t",
+            "p",
+            "A",
+            "running",
+            Value::Null,
+            None,
+            None,
+            "",
         ))
         .unwrap();
         assert_eq!(running.status(), Status::Running);
+        for status in ["preparing", "queued", "starting", "waiting"] {
+            let thread =
+                parse_thread(&thread("t", "p", "A", status, Value::Null, None, None, "")).unwrap();
+            assert_eq!(thread.status(), Status::Running, "{status}");
+        }
         let waiting = parse_thread(&thread(
-            "t", "p", "A", "running", "running", true, false, None, "",
+            "t",
+            "p",
+            "A",
+            "running",
+            pending("req-1", "file-read"),
+            None,
+            None,
+            "",
         ))
         .unwrap();
         assert_eq!(waiting.status(), Status::Approval);
@@ -1511,73 +1650,192 @@ mod tests {
             "t",
             "p",
             "A",
-            "ready",
-            "completed",
-            false,
-            true,
+            "waiting",
+            pending("req-2", "user_input"),
+            None,
             None,
             "",
         ))
         .unwrap();
         assert_eq!(question.status(), Status::Question);
+        let mut background = thread(
+            "t",
+            "p",
+            "A",
+            "running",
+            pending("req-3", "user_input"),
+            None,
+            None,
+            "",
+        );
+        background["pendingRuntimeRequest"]["blocking"] = json!(false);
+        assert_eq!(parse_thread(&background).unwrap().status(), Status::Running);
+        let auth = parse_thread(&thread(
+            "t",
+            "p",
+            "A",
+            "waiting",
+            pending("req-4", "auth_refresh"),
+            None,
+            None,
+            "",
+        ))
+        .unwrap();
+        assert_eq!(auth.status(), Status::Running);
         let failed = parse_thread(&thread(
-            "t", "p", "A", "error", "error", false, false, None, "",
+            "t",
+            "p",
+            "A",
+            "failed",
+            Value::Null,
+            None,
+            None,
+            "",
         ))
         .unwrap();
         assert_eq!(failed.status(), Status::Error);
+        let mut stuck = thread("t", "p", "A", "idle", Value::Null, None, None, "");
+        stuck["lastError"] = json!("provider failed");
+        assert_eq!(parse_thread(&stuck).unwrap().status(), Status::Error);
         let done = parse_thread(&thread(
             "t",
             "p",
             "A",
-            "ready",
             "completed",
-            false,
-            false,
+            Value::Null,
+            None,
             None,
             "",
         ))
         .unwrap();
         assert_eq!(done.status(), Status::Done);
         let idle =
-            parse_thread(&thread("t", "p", "A", "idle", "", false, false, None, "")).unwrap();
+            parse_thread(&thread("t", "p", "A", "idle", Value::Null, None, None, "")).unwrap();
         assert_eq!(idle.status(), Status::Idle);
+        for status in ["interrupted", "cancelled", "rolled_back"] {
+            let thread =
+                parse_thread(&thread("t", "p", "A", status, Value::Null, None, None, "")).unwrap();
+            assert_eq!(thread.status(), Status::Idle, "{status}");
+        }
+        let mut active = thread("t", "p", "A", "completed", Value::Null, None, None, "");
+        active["activityRunStatus"] = json!("running");
+        assert_eq!(parse_thread(&active).unwrap().status(), Status::Running);
     }
 
     #[test]
-    fn upsert_and_remove_keep_the_shell() {
+    fn a_v1_shell_is_not_an_approval() {
+        let legacy = json!({
+            "id": "t",
+            "projectId": "p",
+            "title": "Wait",
+            "updatedAt": "2026-10-21T02:00:00.000Z",
+            "archivedAt": null,
+            "session": {"status": "running"},
+            "latestTurn": {"state": "running"},
+            "hasPendingApprovals": true,
+            "hasPendingUserInput": false
+        });
+        let thread = parse_thread(&legacy).unwrap();
+        assert_eq!(thread.status(), Status::Idle);
+        assert!(!thread.pending_is_approval());
+    }
+
+    #[test]
+    fn v2_events_update_the_shell_and_v1_names_do_not() {
         let mut session = Session::default();
         session.apply_shell(&shell_snapshot());
         session.apply_shell(&json!({
             "kind": "thread-upserted",
-            "thread": thread("t1", "p1", "Fix the build", "ready", "completed", false, false, None, "2026-10-21T03:00:00.000Z")
+            "thread": thread("t1", "p1", "Fix the build", "completed", Value::Null, None, None, "2026-10-21T03:00:00.000Z")
+        }));
+        assert_eq!(session.threads["t1"].status(), Status::Running);
+        session.apply_shell(&json!({
+            "kind": "thread.updated",
+            "sequence": 5,
+            "location": "active",
+            "thread": thread("t1", "p1", "Fix the build", "completed", Value::Null, None, None, "2026-10-21T03:00:00.000Z")
         }));
         assert_eq!(session.threads["t1"].status(), Status::Done);
-        session.apply_shell(&json!({"kind": "thread-removed", "threadId": "t3"}));
-        assert!(!session.threads.contains_key("t3"));
-        session.apply_shell(&json!({"kind": "project-removed", "projectId": "p1"}));
-        assert!(!session.projects.contains_key("p1"));
+        session.apply_shell(&json!({
+            "kind": "thread.updated",
+            "sequence": 6,
+            "location": "archive",
+            "thread": thread("t1", "p1", "Fix the build", "completed", Value::Null, Some("2026-10-21T03:01:00.000Z"), None, "2026-10-21T03:01:00.000Z")
+        }));
         assert!(!session.threads.contains_key("t1"));
+        session.apply_shell(&json!({"kind": "thread.removed", "sequence": 7, "location": "active", "threadId": "t3"}));
+        assert!(!session.threads.contains_key("t3"));
+        session.apply_shell(&json!({
+            "kind": "project.updated",
+            "sequence": 8,
+            "project": {"id": "p3", "title": "Extra"}
+        }));
+        assert_eq!(session.projects["p3"].title, "Extra");
+        session.apply_shell(&json!({"kind": "project.removed", "sequence": 9, "projectId": "p1"}));
+        assert!(!session.projects.contains_key("p1"));
+        assert!(!session.threads.contains_key("t5"));
     }
 
     #[test]
-    fn activities_open_and_close_an_approval() {
-        let activities = vec![
-            json!({"kind": "approval.requested", "summary": "Run tests", "createdAt": "2026-10-21T00:00:00.000Z", "sequence": 2,
-                "payload": {"requestId": "req-1", "requestKind": "command", "detail": "npm test"}}),
-            json!({"kind": "approval.requested", "summary": "Earlier", "createdAt": "2026-10-21T00:00:01.000Z", "sequence": 1,
-                "payload": {"requestId": "req-0", "detail": "rm -rf /"}}),
-            json!({"kind": "approval.resolved", "summary": "Resolved", "createdAt": "2026-10-21T00:00:02.000Z", "sequence": 3,
-                "payload": {"requestId": "req-0"}}),
-        ];
-        let approval = derive_approval("t3", &activities).unwrap();
-        assert_eq!(approval.request_id, "req-1");
-        assert_eq!(approval.detail, "npm test");
-        assert_eq!(approval.summary, "Run tests");
-        let stale = vec![
-            activities[0].clone(),
-            json!({"kind": "provider.approval.respond.failed", "sequence": 4, "payload": {"requestId": "req-1", "detail": "unknown pending approval request"}}),
-        ];
-        assert!(derive_approval("t3", &stale).is_none());
+    fn the_projection_fills_the_approval_prompt() {
+        let mut session = Session::default();
+        let mut seen = Seen::default();
+        let base = url("http://t3code-home:3773");
+        session.apply_shell(&shell_snapshot());
+        let first = session.view(&base, None, &mut seen);
+        assert_eq!(first.alerts.len(), 1);
+        assert_eq!(first.approval.as_ref().unwrap().request_id, "req-1");
+        assert_eq!(first.approval.as_ref().unwrap().summary, "Command");
+        session.apply_thread(
+            "t3",
+            &json!({
+                "kind": "snapshot",
+                "snapshotSequence": 4,
+                "projection": {
+                    "runtimeRequests": [{
+                        "id": "req-1",
+                        "kind": "command",
+                        "status": "pending",
+                        "detail": "from the request"
+                    }],
+                    "turnItems": [{
+                        "type": "approval_request",
+                        "requestId": "req-1",
+                        "requestKind": "command",
+                        "prompt": "npm test"
+                    }],
+                    "visibleTurnItems": [{
+                        "item": {
+                            "type": "approval_request",
+                            "requestId": "req-1",
+                            "prompt": "ignored once the turn item was seen"
+                        }
+                    }]
+                }
+            }),
+        );
+        let second = session.view(&base, None, &mut seen);
+        assert!(second.alerts.is_empty());
+        assert_eq!(second.approval.as_ref().unwrap().detail, "npm test");
+        // Clearing the pending request closes the card. A v1 activity stream does not.
+        session.apply_thread(
+            "t3",
+            &json!({
+                "kind": "snapshot",
+                "snapshot": {"thread": {"activities": [{
+                    "kind": "approval.resolved",
+                    "payload": {"requestId": "req-1"}
+                }]}}
+            }),
+        );
+        assert!(session.approvals.contains_key("t3"));
+        session.apply_shell(&json!({
+            "kind": "thread.updated",
+            "sequence": 10,
+            "location": "active",
+            "thread": thread("t3", "p2", "Wait", "running", Value::Null, None, None, "2026-10-21T02:05:00.000Z")
+        }));
+        assert!(session.approvals.get("t3").is_none());
     }
 
     #[test]
@@ -1586,35 +1844,30 @@ mod tests {
         let mut seen = Seen::default();
         let base = url("http://t3code-home:3773");
         session.apply_shell(&shell_snapshot());
-        // No request id yet: the pill waits, and nothing rings.
         let first = session.view(&base, None, &mut seen);
-        assert!(first.alerts.is_empty());
+        assert_eq!(first.alerts.len(), 1);
         assert_eq!(first.pill.state, "approval");
-        session.apply_thread("t3", &json!({
-            "kind": "snapshot",
-            "snapshot": {"thread": {"activities": [{
-                "kind": "approval.requested", "summary": "Run tests", "createdAt": "2026-10-21T02:00:00.000Z",
-                "payload": {"requestId": "req-1", "detail": "npm test"}
-            }]}}
-        }));
         let second = session.view(&base, None, &mut seen);
-        assert_eq!(second.alerts.len(), 1);
-        assert_eq!(second.alerts[0].kind, "approval");
-        assert_eq!(second.approval.as_ref().unwrap().request_id, "req-1");
-        assert_eq!(second.approval.as_ref().unwrap().detail, "npm test");
-        // The same request does not ring again.
-        let third = session.view(&base, None, &mut seen);
-        assert!(third.alerts.is_empty());
-        // The running thread finishes.
+        assert!(second.alerts.is_empty());
         session.apply_shell(&json!({
-            "kind": "thread-upserted",
-            "thread": thread("t1", "p1", "Fix the build", "ready", "completed", false, false, None, "2026-10-21T04:00:00.000Z")
+            "kind": "thread.updated",
+            "sequence": 11,
+            "location": "active",
+            "thread": thread("t1", "p1", "Fix the build", "completed", Value::Null, None, None, "2026-10-21T04:00:00.000Z")
         }));
         let finished = session.view(&base, None, &mut seen);
         assert!(finished
             .alerts
             .iter()
             .any(|alert| alert.kind == "finished" && alert.label.contains("Fix the build")));
+        session.apply_shell(&json!({
+            "kind": "thread.updated",
+            "sequence": 12,
+            "location": "active",
+            "thread": thread("t1", "p1", "Fix the build", "running", pending("req-9", "user_input"), None, None, "2026-10-21T04:01:00.000Z")
+        }));
+        let question = session.view(&base, None, &mut seen);
+        assert!(question.alerts.iter().any(|alert| alert.kind == "question"));
     }
 
     #[test]
