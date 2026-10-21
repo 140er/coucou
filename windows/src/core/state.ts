@@ -108,7 +108,7 @@ export interface Settings {
   absenceInterval: number;
   /** Declared pills next to the main one (at most 4), in the order they were added. */
   activeIntegrations: string[];
-  /** The always-on workspace pill: VS Code, Cursor, Codex or Antigravity. */
+  /** The always-on workspace pill: VS Code, Cursor, Codex, Antigravity or T3 Code. */
   mainPill: string;
   /** "primary", "cursor", or `at:<x>,<y>` for one display (logical origin). */
   screen: string;

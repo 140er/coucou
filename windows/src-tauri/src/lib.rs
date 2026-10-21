@@ -33,6 +33,7 @@ mod shortcuts;
 mod sounds;
 mod speech;
 mod spotify;
+mod t3;
 mod tray;
 mod update;
 mod voice;
@@ -128,6 +129,7 @@ fn save_settings(app: AppHandle, shared: State<Shared>, settings: Settings) {
         island::apply_geometry(&app, &settings.screen, collapsed);
     }
     integrations::settings_saved(&app, &settings.active_integrations);
+    t3::wake();
     spotify::sync(&app, &settings.active_integrations);
     if shortcuts_changed {
         shortcuts::apply(&app, &settings.shortcuts);
@@ -378,6 +380,7 @@ fn quit_app(app: AppHandle) {
 #[tauri::command]
 fn set_paused(paused: bool) {
     integrations::set_paused(paused);
+    t3::wake();
 }
 
 // ── Claude Code hooks ─────────────────────────────────────────────────────────
@@ -593,6 +596,9 @@ fn secret_set(app: AppHandle, key: String, value: String) -> Result<(), String> 
     if key == "gitea-token" || key == "gitea-url" {
         integrations::gitea_credentials_changed(&app);
     }
+    if is_t3_secret(&key) {
+        t3::wake();
+    }
     Ok(())
 }
 
@@ -609,7 +615,31 @@ fn secret_clear(app: AppHandle, key: String) -> Result<(), String> {
     if key == "gitea-token" || key == "gitea-url" {
         integrations::gitea_credentials_changed(&app);
     }
+    if is_t3_secret(&key) {
+        t3::wake();
+    }
     Ok(())
+}
+
+fn is_t3_secret(key: &str) -> bool {
+    matches!(key, "t3-url" | "t3-token" | "t3-cf-client-id" | "t3-cf-client-secret")
+}
+
+/// Allow or deny a T3 Code approval. Ignored unless that request is still waiting.
+#[tauri::command]
+fn t3_decide(thread_id: String, request_id: String, decision: String) {
+    let accept = match decision.as_str() {
+        "accept" => true,
+        "decline" => false,
+        _ => return,
+    };
+    let _ = t3::try_decide(Some(&thread_id), &request_id, accept);
+}
+
+/// The configured T3 Code server, in the browser.
+#[tauri::command]
+fn t3_open() {
+    t3::open_server();
 }
 
 /// Opens the configured n8n instance — the URL lives in the Credential Manager.
@@ -850,6 +880,8 @@ pub fn run() {
             refresh_integration,
             github_refresh,
             open_n8n,
+            t3_decide,
+            t3_open,
             open_settings_window,
             set_paused,
             shortcuts_status,
@@ -989,6 +1021,7 @@ pub fn run() {
             pipe::start(handle.clone());
             phone_link::start_if_enabled(&handle);
             integrations::start(handle.clone());
+            t3::start(handle.clone());
             spotify::sync(&handle, &loaded.active_integrations);
             shortcuts::apply(&handle, &loaded.shortcuts);
             // New versions: nothing goes to GitHub until the user agrees (update.rs).

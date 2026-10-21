@@ -74,6 +74,12 @@ impl Host for TauriHost {
 
     fn decide(&self, request_id: &str, allow: bool) {
         let word = if allow { "allow" } else { "deny" };
+        // A T3 request is not a Claude Code hook, and it must not be written into the recap as one.
+        if crate::t3::try_decide(None, request_id, allow) {
+            log::line(format!("phone link: t3 decision id={request_id} {word}"));
+            let _ = self.app.emit_to(island::WINDOW_LABEL, "phone-link-decided", request_id.to_string());
+            return;
+        }
         log::line(format!("phone link: decision id={request_id} {word}"));
         recap::record_decision(&self.app, request_id, word);
         pipe::answer(&self.app, request_id, word);

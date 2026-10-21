@@ -24,6 +24,7 @@ import { buildHeader, buildViews, type ViewActions, type ViewHost } from "../vie
 import { h } from "../views/dom";
 import { IslandStateMachine } from "./fsm";
 import { refreshHookPills } from "./integrations";
+import { decideT3, T3_ID } from "./t3";
 import { DesktopLink } from "./desktop";
 import type { ViewCommand } from "./shortcuts";
 import { DRAG_THRESHOLD } from "../mochi/desktop-logic";
@@ -192,8 +193,9 @@ export class Island {
         if (task.id === CLAUDE_DESKTOP_ID) void Bridge.openClaudeDesktop();
         else if (task.id === "integration_claude" || task.sessionId) {
           void Bridge.openSession(task.sessionId ?? null, task.sessionCwd ?? null);
-        } else if (task.id === "integration_n8n") void Bridge.openN8n();
+        }         else if (task.id === "integration_n8n") void Bridge.openN8n();
         else if (task.id === "integration_gitea") void Bridge.openGitea();
+        else if (task.id === T3_ID) void Bridge.openT3();
         else if (task.id === SPOTIFY_ID) void Bridge.spotifyOpen();
         else if (urls[task.id]) void Bridge.openUrl(urls[task.id]);
       },
@@ -205,7 +207,7 @@ export class Island {
         void Bridge.log(`decide ${d} req=${req?.requestId ?? "none"}`);
         if (!req) return;
         Sound.play(d === "deny" ? "blip" : "approve");
-        void Bridge.approvalDecision(req.requestId, d);
+        if (!decideT3(d)) void Bridge.approvalDecision(req.requestId, d);
         this.closeApproval();
       },
       answer: (answers) => {

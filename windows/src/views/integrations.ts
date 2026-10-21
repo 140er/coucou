@@ -13,6 +13,7 @@ import { refreshHookPills } from "../island/integrations";
 import { readActivity, readPulse, readStats } from "../core/github";
 import { githubDetail, githubPulseCard, type ForgeCardOptions } from "./github";
 import { N_, language, t } from "../i18n/i18n";
+import { T3_THREAD_RUNNING } from "../core/t3-status";
 
 /** Same shape as the Swift `timeAgo` computed properties. */
 export function timeAgo(value: unknown): string {
@@ -75,6 +76,10 @@ export function idleStatus(
   if (def?.connect.kind === "hooks") return configured ? ok(t("Hooks installed")) : missing(t("Hooks not installed"));
   if (def?.connect.kind === "none") return ok(t("Ready · no setup needed"));
   if (def?.connect.kind === "server") return configured ? ok(t("Connected")) : missing(t("Not connected"));
+  // The address is the key, but the card says whether the server answered.
+  if (id === "agent_t3") {
+    return get(id).connected === true ? ok(t("Connected")) : missing(t("Not connected"));
+  }
   if (def?.category === "ai") {
     if (!configured) return missing(t("Key not configured"));
     return ok(id === "ai_anthropic" ? t("Key configured · {model}", { model: chatModel }) : t("Key configured"));
@@ -116,6 +121,15 @@ function idleCard(task: AgentTask, openSettings: () => void): HTMLElement {
         onclick: () => void Bridge.openN8n(),
       }),
     );
+  } else if (task.id === "agent_t3") {
+    actions.append(
+      h("button", {
+        class: "link-btn",
+        style: `color:${task.color}d9`,
+        text: t("Open {name}", { name: "T3 Code" }),
+        onclick: () => void Bridge.openT3(),
+      }),
+    );
   } else if (OPEN_URLS[task.id]) {
     actions.append(
       h("button", {
@@ -129,6 +143,13 @@ function idleCard(task: AgentTask, openSettings: () => void): HTMLElement {
   const hookPill = def?.connect.kind === "hooks";
   if (isComingSoon(task.id) || def?.connect.kind === "none") {
     // Nothing to set up, and nothing to refresh.
+  } else if (task.id === "agent_t3") {
+    // Live socket: nothing to poll. Without an address, the way in is Settings.
+    if (!configured) {
+      actions.append(
+        h("button", { class: "link-btn", style: "color:#8e939c", text: t("Settings…"), onclick: openSettings }),
+      );
+    }
   } else if (configured && (hookPill || def?.category !== "ai")) {
     actions.append(
       h("button", {
@@ -429,6 +450,75 @@ function n8nDetail(task: AgentTask, onBack: () => void): HTMLElement {
   );
 }
 
+// ── T3 Code ───────────────────────────────────────────────────────────────────
+
+const T3_COLOR = "#8B5CF6";
+
+function t3StatusColor(status: string): string {
+  switch (status) {
+    case "approval": return "#F5A524";
+    case "question": return "#60A5FA";
+    case "error": return "#F4505E";
+    case T3_THREAD_RUNNING: return T3_COLOR;
+    case "done": return "#22C55E";
+    default: return "#6B7079";
+  }
+}
+
+function t3StatusLabel(status: string): string {
+  switch (status) {
+    case T3_THREAD_RUNNING: return t("running");
+    case "approval": return t("Waiting for approval");
+    case "question": return t("Needs input");
+    case "error": return t("Error");
+    case "done": return t("Done");
+    default: return "";
+  }
+}
+
+function t3Card(): HTMLElement {
+  const projects = arr("agent_t3", "projects");
+  const rows = h("div", { class: "int-rows" });
+  let first = true;
+  let shown = 0;
+  for (const project of projects) {
+    const threads = Array.isArray(project.threads) ? project.threads as Record<string, unknown>[] : [];
+    if (threads.length === 0) continue;
+    rows.append(h("div", { class: "int-row" }, h("span", { class: "int-name", text: String(project.title || project.id || "") })));
+    for (const thread of threads) {
+      if (shown >= 24) break;
+      const status = String(thread.status ?? "");
+      const url = typeof thread.url === "string" ? thread.url : "";
+      const row = listRow(
+        t3StatusColor(status),
+        first,
+        h("span", { class: "int-name", text: String(thread.title || thread.id || "") }),
+        h("span", { class: "int-meta", text: t3StatusLabel(status) }),
+      );
+      if (url) row.addEventListener("click", () => void Bridge.openUrl(url));
+      rows.append(row);
+      first = false;
+      shown += 1;
+    }
+  }
+  return h(
+    "div",
+    { class: "int-card" },
+    header(
+      T3_COLOR,
+      "T3 Code",
+      t("Integration"),
+      h("button", {
+        class: "link-btn",
+        style: `color:${T3_COLOR}`,
+        text: t("Open {name}", { name: "T3 Code" }),
+        onclick: () => void Bridge.openT3(),
+      }),
+    ),
+    rows,
+  );
+}
+
 // ── Dispatch ──────────────────────────────────────────────────────────────────
 
 export interface IntegrationCardHooks {
@@ -452,6 +542,8 @@ export function hasIntegrationData(id: string): boolean {
     case "integration_gitlab": return get(id).projects != null;
     case "integration_gitea":
       return get(id).totalRepos != null;
+    case "agent_t3":
+      return arr(id, "projects").some((project) => Array.isArray(project.threads) && project.threads.length > 0);
     case "integration_stripe":
       return info.loaded;
     case "integration_notion":
@@ -512,6 +604,8 @@ export function renderIntegrationCard(task: AgentTask, hooks: IntegrationCardHoo
       return notionCard();
     case "integration_calcom":
       return calcomCard();
+    case "agent_t3":
+      return t3Card();
     default:
       return idleCard(task, hooks.openSettings);
   }

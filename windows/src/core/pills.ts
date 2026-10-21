@@ -81,6 +81,10 @@ export const PILL_CATALOG: readonly PillDefinition[] = [
     subtitle: N_("Integration"), source: "agent", support: "yes", connect: hooks },
   { id: "agent_codex", name: "Codex", color: "#2DD4BF", category: "workspace",
     subtitle: N_("Integration"), source: "agent", support: "yes", connect: hooks },
+  // A T3 Code server (Windows and Linux). The address is t3-url; the session
+  // itself arrives over the server's WebSocket, not through a hook.
+  { id: "agent_t3", name: "T3 Code", color: "#8B5CF6", category: "workspace",
+    subtitle: N_("Integration"), source: "agent", support: "yes", connect: key("t3-url") },
   // ── Agents ─────────────────────────────────────────────────────────────────
   { id: "agent_gemini", name: "Gemini CLI", color: "#8AB4F8", category: "agent",
     subtitle: N_("Agent"), source: "agent", support: "yes", connect: hooks },
@@ -183,6 +187,7 @@ export function sessionSubtitle(id: string): string {
     case "integration_claude": return "Claude Code";
     case "agent_cursor": return "Cursor";
     case "agent_codex": return "Codex";
+    case "agent_t3": return "T3 Code";
     case "agent_hermes": return "Hermes";
     case "agent_claude-desktop": return "Claude Desktop";
     default: return N_("Agent");

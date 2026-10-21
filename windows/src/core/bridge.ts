@@ -283,6 +283,11 @@ export const Bridge = {
 
   approvalDecision: (requestId: string, decision: "allow" | "deny") =>
     call<void>("approval_decision", { requestId, decision }),
+  /** Allow / Deny for a T3 Code request. `threadId` is the thread the request belongs to. */
+  t3Decide: (threadId: string, requestId: string, decision: "accept" | "decline") =>
+    call<void>("t3_decide", { threadId, requestId, decision }),
+  /** The configured T3 Code server, in the browser. */
+  openT3: () => call<void>("t3_open"),
   /** "The card is up" — until this lands the relay only waits a moment. */
   approvalAck: (requestId: string) => call<void>("approval_ack", { requestId }),
   /** Answers a question Claude Code asked: question text → chosen label. */

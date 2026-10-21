@@ -5129,6 +5129,58 @@
    "id": "Perbarui Coucou ke {version}…",
    "de": "Coucou auf {version} aktualisieren…",
    "tr": "Coucou'yu {version} sürümüne güncelle…"
+  },
+  "Waiting for approval": {
+   "zh-Hans": "等待批准",
+   "hi": "मंज़ूरी का इंतज़ार",
+   "es": "Esperando aprobación",
+   "ar": "في انتظار الموافقة",
+   "fr": "En attente d'approbation",
+   "bn": "অনুমোদনের অপেক্ষায়",
+   "pt-BR": "Aguardando aprovação",
+   "ru": "Ждёт одобрения",
+   "id": "Menunggu persetujuan",
+   "de": "Wartet auf Freigabe",
+   "tr": "Onay bekleniyor"
+  },
+  "Cloudflare client ID": {
+   "zh-Hans": "Cloudflare 客户端 ID",
+   "hi": "Cloudflare क्लाइंट ID",
+   "es": "ID de cliente de Cloudflare",
+   "ar": "معرّف عميل Cloudflare",
+   "fr": "ID client Cloudflare",
+   "bn": "Cloudflare ক্লায়েন্ট ID",
+   "pt-BR": "ID de cliente Cloudflare",
+   "ru": "ID клиента Cloudflare",
+   "id": "ID klien Cloudflare",
+   "de": "Cloudflare-Client-ID",
+   "tr": "Cloudflare istemci kimliği"
+  },
+  "Cloudflare client secret": {
+   "zh-Hans": "Cloudflare 客户端密钥",
+   "hi": "Cloudflare क्लाइंट सीक्रेट",
+   "es": "Secreto de cliente de Cloudflare",
+   "ar": "سر عميل Cloudflare",
+   "fr": "Secret client Cloudflare",
+   "bn": "Cloudflare ক্লায়েন্ট সিক্রেট",
+   "pt-BR": "Segredo de cliente Cloudflare",
+   "ru": "Секрет клиента Cloudflare",
+   "id": "Rahasia klien Cloudflare",
+   "de": "Cloudflare-Client-Geheimnis",
+   "tr": "Cloudflare istemci sırrı"
+  },
+  "Turn the T3 Code pill on under Active pills. Address of your T3 Code server, such as http://t3code-home:3773 or https://t3.hoerekind.nl. The token is a bearer session from t3 auth. Behind Cloudflare Access, also save a service token. Tokens stay in the credential store.": {
+   "zh-Hans": "在「活动药丸」中打开 T3 Code 药丸。填写你的 T3 Code 服务器地址，例如 http://t3code-home:3773 或 https://t3.hoerekind.nl。令牌是 t3 auth 的 bearer 会话。如果前面有 Cloudflare Access，还要保存服务令牌。令牌保存在凭据存储中。",
+   "hi": "Active pills में T3 Code पिल चालू करें। अपने T3 Code सर्वर का पता लिखें, जैसे http://t3code-home:3773 या https://t3.hoerekind.nl। टोकन t3 auth का bearer सेशन है। Cloudflare Access के पीछे हो तो सर्विस टोकन भी सहेजें। टोकन क्रेडेंशियल स्टोर में रहते हैं।",
+   "es": "Activa la pastilla T3 Code en Pastillas activas. Dirección de tu servidor T3 Code, por ejemplo http://t3code-home:3773 o https://t3.hoerekind.nl. El token es una sesión bearer de t3 auth. Detrás de Cloudflare Access, guarda también un token de servicio. Los tokens se quedan en el almacén de credenciales.",
+   "ar": "فعّل حبة T3 Code ضمن الحبات النشطة. عنوان خادم T3 Code، مثل http://t3code-home:3773 أو https://t3.hoerekind.nl. الرمز هو جلسة bearer من t3 auth. خلف Cloudflare Access، احفظ أيضًا رمز خدمة. تبقى الرموز في مخزن بيانات الاعتماد.",
+   "fr": "Active la pastille T3 Code dans Pastilles actives. Adresse de ton serveur T3 Code, par exemple http://t3code-home:3773 ou https://t3.hoerekind.nl. Le jeton est une session bearer de t3 auth. Derrière Cloudflare Access, enregistre aussi un jeton de service. Les jetons restent dans le trousseau.",
+   "bn": "Active pills-এ T3 Code পিল চালু করুন। আপনার T3 Code সার্ভারের ঠিকানা, যেমন http://t3code-home:3773 বা https://t3.hoerekind.nl। টোকেনটি t3 auth-এর bearer সেশন। Cloudflare Access-এর পিছনে থাকলে একটি সার্ভিস টোকেনও সেভ করুন। টোকেন ক্রেডেনশিয়াল স্টোরে থাকে।",
+   "pt-BR": "Ative a pílula T3 Code em Pílulas ativas. Endereço do seu servidor T3 Code, como http://t3code-home:3773 ou https://t3.hoerekind.nl. O token é uma sessão bearer do t3 auth. Atrás do Cloudflare Access, salve também um token de serviço. Os tokens ficam no armazenamento de credenciais.",
+   "ru": "Включите пилюлю T3 Code в разделе «Активные пилюли». Адрес вашего сервера T3 Code, например http://t3code-home:3773 или https://t3.hoerekind.nl. Токен — это bearer-сессия из t3 auth. За Cloudflare Access сохраните также сервисный токен. Токены остаются в хранилище учётных данных.",
+   "id": "Nyalakan pil T3 Code di Pil aktif. Alamat server T3 Code kamu, misalnya http://t3code-home:3773 atau https://t3.hoerekind.nl. Token adalah sesi bearer dari t3 auth. Di balik Cloudflare Access, simpan juga token layanan. Token tetap di penyimpanan kredensial.",
+   "de": "Schalte die T3-Code-Pille unter Aktive Pillen ein. Adresse deines T3-Code-Servers, zum Beispiel http://t3code-home:3773 oder https://t3.hoerekind.nl. Das Token ist eine Bearer-Sitzung von t3 auth. Hinter Cloudflare Access speichere zusätzlich ein Service-Token. Tokens bleiben im Anmeldedatenspeicher.",
+   "tr": "T3 Code hapını Etkin haplar altında aç. T3 Code sunucunun adresi, örneğin http://t3code-home:3773 veya https://t3.hoerekind.nl. Belirteç, t3 auth'tan bir bearer oturumudur. Cloudflare Access arkasındaysa bir servis belirteci de kaydet. Belirteçler kimlik bilgisinde kalır."
   }
  }
 }

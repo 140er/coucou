@@ -12,6 +12,7 @@ import type { PlanUsage, CodexPlanUsage } from "../core/plan";
 import { State } from "../core/state";
 import { parseOutfit } from "../mochi/wardrobe";
 import { dropPendingCard } from "./hooks";
+import { noteT3Decision, T3_ID } from "./t3";
 import { serviceCards } from "./phone-services";
 import type { Island } from "./island";
 
@@ -217,7 +218,9 @@ export function registerPhoneLink(island: Island): () => void {
   void onEvent("settings-changed", () => void refresh());
   // The phone answered: Rust has already told the agent; the card goes.
   void onEvent<string>("phone-link-decided", (requestId) => {
-    if (State.pendingApproval?.requestId === requestId) dropPendingCard(island);
+    if (State.pendingApproval?.requestId !== requestId) return;
+    if (State.pendingApproval.pillId === T3_ID) noteT3Decision(requestId);
+    dropPendingCard(island);
   });
   // A phone asked for a file's diff: the answer goes to that phone only (Rust cuts it to the limits).
   void onEvent<{ conn: number; pillId: string; fileId: number }>("phone-link-getdiff", (ask) => {

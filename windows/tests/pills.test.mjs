@@ -47,7 +47,7 @@ test("the catalog holds the Mac's pills with the Claude Code label for Windows a
     ["integration_spotify", "Spotify", "#1DB954", "service", "Integration"],
   ];
   assert.deepEqual(
-    PILL_CATALOG.filter((p) => !["integration_gitlab", "integration_gitea"].includes(p.id))
+    PILL_CATALOG.filter((p) => !["integration_gitlab", "integration_gitea", "agent_t3"].includes(p.id))
       .map((p) => [p.id, p.name, p.color, p.category, p.subtitle]),
     mac,
   );
@@ -60,6 +60,18 @@ test("GitLab is a supported service integration", () => {
   const def = pillDefinition("integration_gitlab");
   assert.deepEqual([def.name, def.color, def.category, def.support], ["GitLab", "#FC6D26", "service", "yes"]);
   assert.ok(!isComingSoon("integration_gitlab"));
+});
+
+test("T3 Code is a workspace pill aimed at a server", () => {
+  assert.deepEqual(
+    pillDefinition("agent_t3"),
+    { id: "agent_t3", name: "T3 Code", color: "#8B5CF6", category: "workspace",
+      subtitle: "Integration", source: "agent", support: "yes", connect: { kind: "key", key: "t3-url" } },
+  );
+  assert.equal(sessionSubtitle("agent_t3"), "T3 Code");
+  assert.ok(!isHookPill("agent_t3"));
+  assert.ok(mainPillChoices("linux").some((p) => p.id === "agent_t3"));
+  assert.ok(mainPillChoices("windows").some((p) => p.id === "agent_t3"));
 });
 
 test("Gitea is an available service pill", () => {
@@ -149,7 +161,7 @@ test("no chat provider that works here says Coming soon", () => {
 
 test("the main pill is a workspace tool that works here", () => {
   assert.deepEqual(mainPillChoices("linux").map((p) => p.id), [
-    "integration_claude", "agent_cursor", "agent_antigravity", "agent_codex",
+    "integration_claude", "agent_cursor", "agent_antigravity", "agent_codex", "agent_t3",
   ]);
   assert.equal(DEFAULT_MAIN_PILL, "integration_claude");
 });
@@ -158,7 +170,7 @@ test("hook-driven pills are the workspace tools and the agents with hooks", () =
   for (const id of ["integration_claude", "agent_cursor", "agent_codex", "agent_gemini", "agent_copilot", "agent_muse", "agent_antigravity", "agent_opencode", "agent_amp", "agent_hermes"]) {
     assert.ok(isHookPill(id), id);
   }
-  for (const id of ["agent_claude-desktop", "ai_anthropic", "integration_stripe", "agent_unknown"]) {
+  for (const id of ["agent_claude-desktop", "ai_anthropic", "integration_stripe", "agent_t3", "agent_unknown"]) {
     assert.ok(!isHookPill(id), id);
   }
 });
