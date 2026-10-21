@@ -103,6 +103,7 @@ const AGENT_NAMES: Record<string, string> = {
   agent_cursor: "Cursor",
   agent_antigravity: "Antigravity",
   agent_codex: "Codex",
+  agent_t3: "T3 Code",
   agent_gemini: "Gemini CLI",
   agent_copilot: "Copilot CLI",
   agent_muse: "Muse Code",

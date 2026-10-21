@@ -24,6 +24,10 @@ pub const KNOWN_KEYS: &[&str] = &[
     "resend-api-key",
     "notion-api-key",
     "calcom-api-key",
+    "t3-url",
+    "t3-token",
+    "t3-cf-client-id",
+    "t3-cf-client-secret",
     // « OK Coucou »'s answers in an ElevenLabs voice.
     "elevenlabs-api-key",
 ];

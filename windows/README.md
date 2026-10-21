@@ -153,8 +153,8 @@ ElevenLabs with yours.
 ## Your pills
 
 **Settings… → Active pills** lists the tools you use, from the same catalog as
-the Mac app. Pick your **main tool** — VS Code, Cursor, Codex or Antigravity —
-which is always there and doesn't take a slot, then declare up to four more:
+the Mac app. Pick your **main tool** — VS Code, Cursor, Codex, Antigravity or
+T3 Code — which is always there and doesn't take a slot, then declare up to four more:
 agents (Gemini CLI, Copilot CLI, Muse Code, OpenCode, Amp, Hermes, Claude
 Desktop), the chat providers (Anthropic, Google AI, OpenAI, Ollama, LM Studio),
 and the services under **Integrations**. A pill fed by hooks says whether its
@@ -434,6 +434,27 @@ Linux.
 | Amp | plugin `.config\amp\plugins\coucou.ts` | asked in Amp |
 | Hermes Agent | plugin `.hermes\plugins\coucou\` — then `hermes plugins enable coucou` once | asked in Hermes |
 | Any other | run `coucou-hook --agent <name> [<Event>]` from your tool's hooks | asked in the tool |
+
+## T3 Code
+
+T3 Code is not a hook. Coucou connects to the server you name.
+
+1. **Settings… → Agents → T3 Code.** Save the server address, for example
+   `http://t3code-home:3773` on Tailscale, or `https://t3.hoerekind.nl`.
+2. If the server asks for a session, save the bearer token from `t3 auth session issue`.
+   It stays in the credential store. Coucou exchanges it for a short-lived
+   WebSocket ticket and does not put it in the socket URL.
+3. Behind Cloudflare Access, also save the service token: client ID and client secret.
+4. **Settings… → Active pills.** Turn the T3 Code pill on, or set it as the main tool.
+
+The pill lists each project's threads and their state: running, waiting for
+approval, done, or error. Allow and Deny answer T3 when it is waiting on a
+command, a file read or a file change. A thread that needs something Coucou
+cannot answer opens in the browser. The same sounds as the other agents play
+for an approval, a question, a finished turn and an error.
+
+The Mac app does not connect to T3 yet. The pill id reserved for that port is
+`agent_t3`.
 
 The relay maps every agent's event and field names onto Claude Code's (Gemini
 CLI's `BeforeTool`, Copilot's `preToolUse`, Cursor's `beforeSubmitPrompt`…), and

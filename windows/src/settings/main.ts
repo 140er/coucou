@@ -434,6 +434,7 @@ function activePillsSection(connected: Record<string, boolean>): HTMLElement {
   function hint(def: PillDefinition): string | null {
     if (isComingSoon(def.id)) return t("Coming soon");
     if (def.connect.kind === "hooks" && !connected[def.id]) return t("Hooks not installed");
+    if (def.id === "agent_t3" && !connected[def.id]) return t("Not connected");
     if (def.connect.kind === "key" && !connected[def.id]) return t("Key not configured");
     if (def.connect.kind === "server" && !settings[def.connect.field]) return t("Not connected");
     return null;
@@ -807,6 +808,60 @@ const declaredViews: (() => void)[] = [];
 function declaredChanged() {
   for (const redraw of declaredViews) redraw();
   void save();
+}
+
+const T3_FIELDS: { key: string; label: string; placeholder: string; secret: boolean }[] = [
+  { key: "t3-url", label: N_("Instance URL"), placeholder: "http://t3code-home:3773", secret: false },
+  { key: "t3-token", label: N_("Token"), placeholder: "…", secret: true },
+  { key: "t3-cf-client-id", label: N_("Cloudflare client ID"), placeholder: "…", secret: true },
+  { key: "t3-cf-client-secret", label: N_("Cloudflare client secret"), placeholder: "…", secret: true },
+];
+
+const T3_HINT = N_("Turn the T3 Code pill on under Active pills. Address of your T3 Code server, such as http://t3code-home:3773 or https://t3.hoerekind.nl. The token is a bearer session from t3 auth. Behind Cloudflare Access, also save a service token. Tokens stay in the credential store.");
+
+/** Settings → Agents. The pill itself is switched on under Active pills. */
+function t3Section(present: Record<string, boolean>, connected: Record<string, boolean>): HTMLElement {
+  const rows = h("div", { style: "display:flex;flex-direction:column;gap:6px" });
+  for (const field of T3_FIELDS) {
+    const input = h("input", {
+      type: field.secret ? "password" : "text",
+      placeholder: present[field.key] ? CHAT_STRINGS.stored : field.placeholder,
+      autocomplete: "off",
+      spellcheck: "false",
+      style: "flex:1 1 auto;min-width:0",
+    }) as HTMLInputElement;
+    const saveBtn = h("button", { text: t("Save") });
+    const dotEl = statusDot(present[field.key] ?? false);
+    saveBtn.addEventListener("click", async () => {
+      const value = input.value.trim();
+      try {
+        await Bridge.secretSet(field.key, value);
+        present[field.key] = value.length > 0;
+        input.value = "";
+        input.placeholder = value ? CHAT_STRINGS.stored : field.placeholder;
+        dotEl.style.background = value ? "#22c55e" : "#f4505e";
+        if (field.key === "t3-url") {
+          connected.agent_t3 = value.length > 0;
+          for (const redraw of declaredViews) redraw();
+        }
+      } catch {
+        dotEl.style.background = "#f5a524";
+      }
+    });
+    rows.append(
+      h("div", { class: "row" },
+        h("label", { style: "min-width:148px", text: t(field.label) }),
+        input, saveBtn, dotEl,
+      ),
+    );
+  }
+  rows.append(h("div", { class: "hint", text: t(T3_HINT) }));
+  return h(
+    "section",
+    {},
+    h("h2", {}, statusDot(present["t3-url"] ?? false), h("span", { text: "T3 Code" })),
+    rows,
+  );
 }
 
 function integrationsSection(present: Record<string, boolean>): HTMLElement {
@@ -1344,6 +1399,7 @@ async function render() {
   const keys = [
     "stripe-api-key", "github-token", "gitlab-url", "gitlab-token", "gitea-url", "gitea-token", "vercel-token",
     "n8n-url", "n8n-api-key", "resend-api-key", "notion-api-key", "calcom-api-key",
+    "t3-url", "t3-token", "t3-cf-client-id", "t3-cf-client-secret",
   ];
   const present: Record<string, boolean> = {};
   for (const k of keys) present[k] = (await Bridge.secretPresent(k)) ?? false;
@@ -1377,7 +1433,7 @@ async function render() {
   const sections: Partial<Record<PageId, () => HTMLElement[]>> = {
     general: () => [generalSection()],
     pills: () => [activePillsSection(connected)],
-    agents: () => [claudeSection(status), agentsSection(agents), planSection(status)],
+    agents: () => [claudeSection(status), agentsSection(agents), t3Section(present, connected), planSection(status)],
     chat: () => [apiSection(hasKey), chatProvidersSection(chatKeys, keyChanged), localSection(customKey)],
     integrations: () => [integrationsSection(present)],
     phone: () => [phoneSection(settings.phoneLink ?? false, toggle, settings)],

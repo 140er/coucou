@@ -416,6 +416,8 @@ function buildOverview(actions: ViewActions): ViewHost {
  * any other tagged agent — with something going on.
  */
 export function hasSessionTicker(task: AgentTask): boolean {
+  // T3 keeps its project list on screen. The pill still follows the session.
+  if (task.id === "agent_t3") return false;
   // A pill made for an agent's session (Gemini CLI, Codex… not declared) only
   // exists while that session does: it keeps the ticker from the first event.
   if (task.source === "agent" && !task.isIntegration) return true;
