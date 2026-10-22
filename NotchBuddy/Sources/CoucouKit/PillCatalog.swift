@@ -139,7 +139,9 @@ enum PillCatalog {
 
     /// Pills available in the current build target.
     static var available: [PillDefinition] {
-        #if APPSTORE
+        #if os(macOS)
+        all.filter { $0.id == "agent_t3" }
+        #elseif APPSTORE
         all.filter { !$0.githubOnly }
         #else
         all
@@ -147,7 +149,11 @@ enum PillCatalog {
     }
 
     /// Default ID for the always-on main workspace pill.
+    #if os(macOS)
+    static let defaultMainPillId = "agent_t3"
+    #else
     static let defaultMainPillId = "integration_claude"
+    #endif
 
     /// Looks up a definition by task ID (nil if not in catalog).
     static func definition(for id: String) -> PillDefinition? {

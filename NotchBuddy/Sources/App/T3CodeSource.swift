@@ -1,6 +1,7 @@
 import AppKit
 import Combine
 import Foundation
+import UniformTypeIdentifiers
 
 // Do not follow redirects with bearer or Cloudflare credentials.
 private final class T3NoRedirect: NSObject, URLSessionTaskDelegate, Sendable {
@@ -27,16 +28,27 @@ final class T3CodeSource: ObservableObject {
     private var socket: URLSessionWebSocketTask?
     private var generation = UUID()
     private var alerts = T3Alerts()
-    private var finishedUntil: Date?
+    @Published private(set) var selectedThreadId: String?
+    @Published private(set) var draftFiles: [String: [T3DraftFile]] = [:]
+    @Published var draftTexts: [String: String] = [:]
+    @Published private(set) var sending: Set<String> = []
+    @Published private(set) var chatError: String?
+    private var subscriptions: Set<String> = []
+    private var pendingRPC: [String: CheckedContinuation<Data, Error>] = [:]
+    private var serverResolvesContext = false
+    private var supportsUploads = false
+    private var maxFileBytes: Int?
+    private var activeUploads = 0
+    private var uploadTasks: [UUID: Task<Void, Never>] = [:]
+    private var draftOrigin: URL?
+    private var draftCommands: [String: (command: String, message: String)] = [:]
     private var cardIds: [String: UUID] = [:]
     private var dispatches: [String: String] = [:]
     private var enabledBefore = false
     private let http = URLSession(configuration: .ephemeral, delegate: T3NoRedirect(), delegateQueue: nil)
 
     private var enabled: Bool {
-        let app = AppState.shared
-        return !DemoEngine.isPollerPaused &&
-            (app.mainPillId == Self.pillId || app.activeIntegrations.contains(Self.pillId))
+        !DemoEngine.isPollerPaused
     }
     func start() {
         guard supervisor == nil else { return }
@@ -49,10 +61,7 @@ final class T3CodeSource: ObservableObject {
                 }
                 if self.connected {
                     self.presentApproval()
-                    if let until = self.finishedUntil, Date() >= until {
-                        self.finishedUntil = nil
-                        self.publish()
-                    }
+
                 }
                 try? await Task.sleep(for: .seconds(1))
             }
@@ -71,6 +80,11 @@ final class T3CodeSource: ObservableObject {
             connection = "Check the server URL and credentials in Settings → Agents."
             return
         }
+        if let draftOrigin, draftOrigin != base {
+            draftFiles = [:]; draftTexts = [:]; draftCommands = [:]
+            chatError = "Server changed. Select a thread and attach files again."
+        }
+        draftOrigin = base
         self.base = base
         let current = generation
         worker = Task { [weak self] in
@@ -97,14 +111,14 @@ final class T3CodeSource: ObservableObject {
     }
     private func clearLive() {
         connected = false; session = T3Session(); deciding.removeAll(); dispatches.removeAll()
-        alerts.disconnected(); cardIds.removeAll(); finishedUntil = nil
+        for task in uploadTasks.values { task.cancel() }
+        alerts.disconnected(); cardIds.removeAll(); subscriptions.removeAll()
+        let waiting = pendingRPC; pendingRPC.removeAll()
+        for continuation in waiting.values { continuation.resume(throwing: T3ClientError(message: "Disconnected. Draft kept; check the thread before retrying a send.")) }
+        supportsUploads = false; maxFileBytes = nil; serverResolvesContext = false
         // Keep seen approvals across reconnects, like the reference's Seen object.
         clearCard()
-        AppState.shared.updateTask(id: Self.pillId, state: .idle)
-        if let index = AppState.shared.tasks.firstIndex(where: { $0.id == Self.pillId }) {
-            AppState.shared.tasks[index].pillBadge = nil
-            AppState.shared.tasks[index].steps = []
-        }
+        AppState.shared.replaceT3Tasks([])
     }
     private func check(_ current: UUID) throws {
         try Task.checkCancellation()
@@ -149,7 +163,7 @@ final class T3CodeSource: ObservableObject {
         socket = ws; ws.resume()
         defer { ws.cancel(with: .goingAway, reason: nil) }
         try await send(T3Protocol.request(id: "shell", method: "orchestration.subscribeShell", payload: [:]), socket: ws)
-        var subscriptions: Set<String> = []
+        try await send(T3Protocol.request(id: "config", method: "server.getConfig", payload: [:]), socket: ws)
         let heartbeat = Task { @MainActor in
             while !Task.isCancelled {
                 do {
@@ -180,19 +194,30 @@ final class T3CodeSource: ObservableObject {
                         if id == "shell" { session.applyShell(item); connected = true; connection = "Connected" }
                         else if id.hasPrefix("thread:") { session.applyThread(id: String(id.dropFirst(7)), item: item) }
                     }
-                    let wanted = Set(session.approvalThreads.map(\.id))
-                    for thread in subscriptions.subtracting(wanted) {
-                        try await send(["_tag": "Interrupt", "requestId": "thread:\(thread)"], socket: ws)
-                    }
-                    for thread in wanted.subtracting(subscriptions) {
-                        try await send(T3Protocol.request(id: "thread:\(thread)", method: "orchestration.subscribeThread",
-                                                          payload: ["threadId": thread]), socket: ws)
-                    }
-                    try check(current)
-                    subscriptions = wanted
                     publish()
+                    try await syncSubscriptions()
+                    try check(current)
                 case "Exit":
                     if id == "shell" { throw URLError(.cannotParseResponse) }
+                    let exit = frame["exit"] as? [String: Any] ?? [:]
+                    if id == "config", exit["_tag"] as? String == "Success",
+                       let config = exit["value"] as? [String: Any],
+                       let env = config["environment"] as? [String: Any] {
+                        environment = env["environmentId"] as? String ?? environment
+                        let caps = env["capabilities"] as? [String: Any] ?? [:]
+                        serverResolvesContext = caps["serverResolvedCommandContext"] as? Bool == true
+                        supportsUploads = caps["attachmentUploads"] as? Bool == true
+                        maxFileBytes = (caps["fileAttachments"] as? [String: Any])?["maxUploadBytes"] as? Int
+                    }
+                    if let continuation = pendingRPC.removeValue(forKey: id) {
+                        if exit["_tag"] as? String == "Success" {
+                            let value = exit["value"] ?? NSNull()
+                            let data = try JSONSerialization.data(withJSONObject: value, options: [.fragmentsAllowed])
+                            continuation.resume(returning: data)
+                        } else {
+                            continuation.resume(throwing: T3ClientError(message: "T3 rejected the request. Check the selected thread and the token’s permissions, then retry."))
+                        }
+                    }
                     if let request = dispatches.removeValue(forKey: id) {
                         let exit = frame["exit"] as? [String: Any]
                         if exit?["_tag"] as? String != "Success" {
@@ -215,7 +240,7 @@ final class T3CodeSource: ObservableObject {
     }
     func decide(cardId: UUID?, accept: Bool) {
         guard connected, let socket, let shown = AppState.shared.pendingApproval,
-              shown.pillId == Self.pillId, cardId == nil || cardId == shown.id,
+              T3ProjectPill.owns(shown.pillId), cardId == nil || cardId == shown.id,
               let thread = session.threads[shown.sessionId], thread.isApproval,
               cardIds[thread.requestId] == shown.id, !deciding.contains(thread.requestId) else { return }
         deciding.insert(thread.requestId)
@@ -253,42 +278,20 @@ final class T3CodeSource: ObservableObject {
         if events.contains(where: { $0 != .approval }), app.pendingApproval == nil {
             NotificationCenter.default.post(name: .hookReveal, object: nil)
         }
-        if let urgent = session.sortedThreads().first {
-            var state: BotState = switch urgent.status {
-            case .approval: .approval
-            case .question: .question
-            case .error: .error
-            case .running: .working
-            case .done, .idle: .idle
-            }
-            if state == .idle {
-                if events.contains(.done) { finishedUntil = Date().addingTimeInterval(5.2) }
-                if let until = finishedUntil, until > Date() { state = .finished }
-            } else { finishedUntil = nil }
-            app.updateTask(id: Self.pillId, state: state)
-            if let index = app.tasks.firstIndex(where: { $0.id == Self.pillId }) {
-                let project = session.projects[urgent.projectId]?.title ?? ""
-                app.tasks[index].steps = [project, urgent.title].filter { !$0.isEmpty }
-                app.tasks[index].stepIndex = 0
-            }
-            if app.focusId != Self.pillId {
-                if let index = app.tasks.firstIndex(where: { $0.id == Self.pillId }) {
-                    app.tasks[index].pillBadge = urgent.status == .approval ? .approval : urgent.status == .error ? .error : ([T3Status.question, .done].contains(urgent.status) && !events.isEmpty ? .finished : nil)
-                }
-            }
-        } else { app.updateTask(id: Self.pillId, state: .idle) }
+        app.replaceT3Tasks(T3ProjectPill.map(session))
+        if let selectedThreadId, session.threads[selectedThreadId] == nil { self.selectedThreadId = nil }
         presentApproval()
     }
     private func clearCard() {
         let app = AppState.shared
-        guard app.pendingApproval?.pillId == Self.pillId else { return }
+        guard let pill = app.pendingApproval?.pillId, T3ProjectPill.owns(pill) else { return }
         app.pendingApproval = nil
         app.isPinned = false
         if app.view == .approval { app.view = .overview }
     }
     private func presentApproval() {
         let app = AppState.shared
-        if let shown = app.pendingApproval, shown.pillId == Self.pillId {
+        if let shown = app.pendingApproval, T3ProjectPill.owns(shown.pillId) {
             if let thread = session.threads[shown.sessionId], cardIds[thread.requestId] == shown.id, thread.isApproval {
                 app.pendingApproval?.command = session.prompts[thread.id]?[thread.requestId] ?? thread.requestLabel
                 app.pendingApproval?.queueCount = session.approvalThreads.count
@@ -296,21 +299,229 @@ final class T3CodeSource: ObservableObject {
             }
             clearCard()
         }
+        let focusedProject = T3ProjectPill.map(session).first { $0.id == app.focusId }?.projectId
+        let requests = session.approvalThreads
         guard app.pendingApproval == nil, app.pendingQuestion == nil,
-              let thread = session.approvalThreads.first else { return }
+              let thread = requests.first(where: { $0.projectId == focusedProject }) ?? requests.first else { return }
         let id = cardIds[thread.requestId] ?? UUID()
         cardIds[thread.requestId] = id
         app.pendingApproval = ApprovalInfo(sessionId: thread.id, tool: thread.requestLabel,
             command: session.prompts[thread.id]?[thread.requestId] ?? thread.requestLabel,
-            inputKey: thread.requestId, pillId: Self.pillId, id: id, queueCount: session.approvalThreads.count,
+            inputKey: thread.requestId, pillId: T3ProjectPill.id(project: thread.projectId), id: id, queueCount: session.approvalThreads.count,
             projectName: session.projects[thread.projectId]?.title ?? thread.title)
         app.isPinned = true
-        app.focusId = Self.pillId
+        app.focusId = T3ProjectPill.id(project: thread.projectId)
+        selectedThreadId = thread.id
+        Task { try? await syncSubscriptions() }
         if app.mode == .expanded { app.view = .approval }
         else { NotificationCenter.default.post(name: .hookExpand, object: IslandView.approval) }
     }
     func open(thread: T3Thread? = nil) {
         guard let base else { return }
-        NSWorkspace.shared.open(thread.map { T3Protocol.threadURL(base: base, environment: environment, thread: $0.id) } ?? base)
+        NSWorkspace.shared.open((thread ?? selectedThread).map { T3Protocol.threadURL(base: base, environment: environment, thread: $0.id) } ?? base)
     }
+    var pills: [T3ProjectPill] { T3ProjectPill.map(session) }
+    var selectedThread: T3Thread? {
+        let project = pills.first { $0.id == AppState.shared.focusId }
+        if let selectedThreadId, let thread = session.threads[selectedThreadId], thread.projectId == project?.projectId { return thread }
+        return project?.threadId.flatMap { session.threads[$0] }
+    }
+    func select(pill id: String, openInT3: Bool = false) {
+        guard let pill = pills.first(where: { $0.id == id }) else { return }
+        AppState.shared.setFocus(id)
+        selectedThreadId = pill.threadId
+        chatError = nil
+        Task { try? await syncSubscriptions() }
+        if openInT3 { open(thread: selectedThread) }
+    }
+    func selectThread(_ id: String) {
+        guard let thread = session.threads[id], pills.contains(where: { $0.projectId == thread.projectId }) else { return }
+        AppState.shared.setFocus(T3ProjectPill.id(project: thread.projectId))
+        selectedThreadId = id
+        chatError = nil
+        Task { try? await syncSubscriptions() }
+    }
+    func openChat() {
+        if let thread = selectedThread { selectedThreadId = thread.id }
+        AppState.shared.view = .prompt
+        Task { try? await syncSubscriptions() }
+    }
+    private func syncSubscriptions() async throws {
+        guard let socket else { return }
+        let current = generation
+        var wanted = Set(session.approvalThreads.map(\.id))
+        if let thread = selectedThread { wanted.insert(thread.id) }
+        let old = subscriptions
+        subscriptions = wanted
+        for id in old.subtracting(wanted) {
+            try await send(["_tag": "Interrupt", "requestId": "thread:\(id)"], socket: socket)
+            try check(current)
+        }
+        for id in wanted.subtracting(old) {
+            try await send(T3Protocol.request(id: "thread:\(id)", method: "orchestration.subscribeThread", payload: ["threadId": id]), socket: socket)
+            try check(current)
+        }
+    }
+    private func rpc(_ method: String, payload: [String: Any]) async throws -> Data {
+        guard connected, let socket else { throw T3ClientError(message: "Connect to T3 Code before sending or uploading.") }
+        let id = UUID().uuidString
+        return try await withCheckedThrowingContinuation { continuation in
+            pendingRPC[id] = continuation
+            Task {
+                do { try await send(T3Protocol.request(id: id, method: method, payload: payload), socket: socket) }
+                catch { pendingRPC.removeValue(forKey: id)?.resume(throwing: T3ClientError(message: "Send failed. Draft kept; check the thread before retrying.")) }
+            }
+            Task {
+                try? await Task.sleep(for: .seconds(30))
+                pendingRPC.removeValue(forKey: id)?.resume(throwing: T3ClientError(message: "T3 did not acknowledge the request. Draft kept; check the thread before retrying."))
+            }
+        }
+    }
+    func updateDraft(thread: String, text: String) {
+        guard !sending.contains(thread) else { return }
+        if draftTexts[thread] != text { draftCommands[thread] = nil }
+        draftTexts[thread] = text
+    }
+    func sendMessage() {
+        guard let thread = selectedThread, !sending.contains(thread.id) else { return }
+        let text = draftTexts[thread.id] ?? ""
+        let files = draftFiles[thread.id] ?? []
+        guard files.allSatisfy({ $0.attachment != nil }) else {
+            chatError = "Wait for uploads to finish, or remove failed files."; return
+        }
+        let ids = draftCommands[thread.id] ?? (command: UUID().uuidString, message: UUID().uuidString)
+        draftCommands[thread.id] = ids
+        do {
+            let command = try T3Composer.message(thread: thread, text: text, attachments: files.compactMap(\.attachment),
+                commandId: ids.command, messageId: ids.message, serverResolvesContext: serverResolvesContext)
+            sending.insert(thread.id); chatError = nil
+            Task {
+                defer { sending.remove(thread.id) }
+                do {
+                    _ = try await rpc("orchestration.dispatchCommand", payload: command)
+                    draftTexts[thread.id] = ""; draftFiles[thread.id] = []; draftCommands[thread.id] = nil
+                } catch { chatError = (error as? T3ClientError)?.message ?? "Message failed. Draft kept." }
+            }
+        } catch { chatError = (error as? T3ClientError)?.message ?? "Message could not be sent." }
+    }
+    func chooseFiles() {
+        openChat()
+        guard let target = selectedThread?.id else { chatError = "Select an existing T3 thread first."; return }
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = false; panel.allowsMultipleSelection = true
+        panel.begin { response in
+            if response == .OK { Task { @MainActor in self.attachFiles(panel.urls, to: target) } }
+        }
+    }
+    func attachText(_ text: String, to target: String? = nil) {
+        do {
+            let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".txt")
+            try Data(text.utf8).write(to: url)
+            attachFiles([url], to: target, removeAfterUpload: true)
+        } catch { chatError = "Could not stage the dropped text." }
+    }
+    func attachFiles(_ urls: [URL], to target: String? = nil, removeAfterUpload: Bool = false) {
+        openChat()
+        let destination = target == nil ? selectedThread : target.flatMap { session.threads[$0] }
+        guard connected, supportsUploads, let thread = destination else {
+            chatError = "Select a thread on a connected T3 server that supports attachment uploads."
+            if removeAfterUpload { urls.forEach { try? FileManager.default.removeItem(at: $0) } }
+            return
+        }
+        guard !sending.contains(thread.id) else {
+            chatError = "Wait for the current message to finish sending."
+            if removeAfterUpload { urls.forEach { try? FileManager.default.removeItem(at: $0) } }
+            return
+        }
+        guard (draftFiles[thread.id]?.count ?? 0) + urls.count <= 100 else {
+            chatError = "Attach at most 100 files per message."
+            if removeAfterUpload { urls.forEach { try? FileManager.default.removeItem(at: $0) } }
+            return
+        }
+        for url in urls {
+            let itemId = UUID()
+            let current = generation
+            let item = T3DraftFile(id: itemId, name: url.lastPathComponent, attachment: nil, error: nil)
+            draftFiles[thread.id, default: []].append(item)
+            uploadTasks[itemId] = Task {
+                defer { uploadTasks.removeValue(forKey: itemId) }
+                let scoped = url.startAccessingSecurityScopedResource()
+                defer {
+                    if scoped { url.stopAccessingSecurityScopedResource() }
+                    if removeAfterUpload { try? FileManager.default.removeItem(at: url) }
+                }
+                var pendingId: String?
+                do {
+                    let values = try url.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey, .contentTypeKey])
+                    guard values.isRegularFile == true else { throw T3ClientError(message: "Attach regular files, not folders.") }
+                    let mime = values.contentType?.preferredMIMEType ?? "application/octet-stream"
+                    if !T3Composer.imageTypes.contains(mime), maxFileBytes == nil { throw T3ClientError(message: "This server does not support file attachments.") }
+                    let metadata = try T3Composer.uploadMetadata(name: url.lastPathComponent, mimeType: mime,
+                        bytes: values.fileSize ?? 0, maxFileBytes: maxFileBytes ?? 0)
+                    guard let index = draftFiles[thread.id]?.firstIndex(where: { $0.id == itemId }) else { return }
+                    let staged = (draftFiles[thread.id] ?? []).filter { $0.id != itemId }.compactMap(\.metadata) + [metadata]
+                    try T3Composer.validate(staged, maxFileBytes: maxFileBytes ?? 0)
+                    draftFiles[thread.id]?[index].metadata = metadata
+                    while activeUploads >= 3 {
+                        try await Task.sleep(for: .milliseconds(200))
+                        try check(current)
+                    }
+                    guard draftFiles[thread.id]?.contains(where: { $0.id == itemId }) == true else { return }
+                    activeUploads += 1
+                    defer { activeUploads -= 1 }
+                    let response = try await rpc("attachments.createUploadUrl", payload: metadata.metadata)
+                    try check(current)
+                    guard let minted = try JSONSerialization.jsonObject(with: response) as? [String: Any],
+                          let id = minted["attachmentId"] as? String, let relative = minted["relativeUrl"] as? String,
+                          let base else { throw T3ClientError(message: "Invalid upload response from T3.") }
+                    pendingId = id
+                    var request = try T3Composer.uploadRequest(base: base, relative: relative, mimeType: mime)
+                    if let accessId = KeychainStore.shared.get("t3-cf-client-id"), !accessId.isEmpty,
+                       let accessSecret = KeychainStore.shared.get("t3-cf-client-secret"), !accessSecret.isEmpty {
+                        request.setValue(accessId, forHTTPHeaderField: "CF-Access-Client-Id")
+                        request.setValue(accessSecret, forHTTPHeaderField: "CF-Access-Client-Secret")
+                    }
+                    let (_, result) = try await http.upload(for: request, fromFile: url)
+                    try check(current)
+                    guard let status = (result as? HTTPURLResponse)?.statusCode, (200..<300).contains(status) else {
+                        throw T3ClientError(message: "Upload failed or expired. Remove the file and attach it again.")
+                    }
+                    guard let index = draftFiles[thread.id]?.firstIndex(where: { $0.id == itemId }) else {
+                        _ = try? await rpc("attachments.delete", payload: ["attachmentId": id]); return
+                    }
+                    draftFiles[thread.id]?[index].attachment = T3Attachment(id: id, type: metadata.type, name: metadata.name, mimeType: mime, sizeBytes: metadata.sizeBytes)
+                } catch {
+                    if current == generation, let id = pendingId { _ = try? await rpc("attachments.delete", payload: ["attachmentId": id]) }
+                    if let index = draftFiles[thread.id]?.firstIndex(where: { $0.id == itemId }) {
+                        draftFiles[thread.id]?[index].metadata = nil
+                        draftFiles[thread.id]?[index].error = (error as? T3ClientError)?.message ?? "Upload failed. Check the connection and attach the file again."
+                    }
+                }
+            }
+        }
+    }
+    func attachImage(_ data: Data, extension suffix: String, to target: String?) {
+        do {
+            guard data.count <= T3Composer.imageLimit else { throw T3ClientError(message: "Images must be at most 10 MiB.") }
+            let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + "." + suffix)
+            try data.write(to: url)
+            attachFiles([url], to: target, removeAfterUpload: true)
+        } catch { chatError = (error as? T3ClientError)?.message ?? "Could not stage the dropped image." }
+    }
+    func removeFile(thread: String, id: UUID) {
+        guard !sending.contains(thread), let item = draftFiles[thread]?.first(where: { $0.id == id }) else { return }
+        uploadTasks[id]?.cancel()
+        draftFiles[thread]?.removeAll { $0.id == id }
+        draftCommands[thread] = nil
+        if let attachment = item.attachment { Task { _ = try? await rpc("attachments.delete", payload: ["attachmentId": attachment.id]) } }
+    }
+
+}
+
+struct T3DraftFile: Identifiable {
+    let id: UUID
+    let name: String
+    var attachment: T3Attachment?
+    var metadata: T3Attachment? = nil
+    var error: String?
 }

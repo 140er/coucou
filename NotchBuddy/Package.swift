@@ -3,6 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "CoucouT3Core",
+    platforms: [.macOS(.v14)],
     products: [.library(name: "T3Core", targets: ["T3Core"])],
     targets: [
         .target(name: "T3Core", path: "Sources/T3Core"),

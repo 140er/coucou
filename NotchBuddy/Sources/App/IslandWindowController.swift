@@ -124,53 +124,16 @@ final class IslandWindowController: NSWindowController {
         // AppKit routes NSDraggingDestination events to registered views independently of hitTest.
         let dropView = FileDropNSView(frame: NSRect(origin: .zero, size: contentSize))
         dropView.autoresizingMask = [.width, .height]
-        dropView.onDragEntered = { [weak self] loc in
+        dropView.onDragEntered = { _ in
             Task { @MainActor in
-                let iLoc = self?.windowToIsland(loc) ?? CGPoint(x: 320, y: 88)
-                AppState.shared.fileDragOver = true
-                // The voice mail card stays on screen: the file will be its attachment.
-                if AppState.shared.voiceMailDraft != nil && AppState.shared.view == .mail {
-                    NotificationCenter.default.post(name: .botMorphTo, object: CGFloat(1))
-                    return
-                }
-                // enterZone sets isActive=true BEFORE hookExpand triggers re-render,
-                // so IslandContainer sees isActive=true when state.view becomes .upload.
-                UploadSequenceEngine.shared.enterZone(x: iLoc.x, y: iLoc.y)
-                NotificationCenter.default.post(name: .hookExpand, object: IslandView.upload)
-                NotificationCenter.default.post(name: .botMorphTo, object: CGFloat(1))
+                T3CodeSource.shared.openChat()
+                NotificationCenter.default.post(name: .hookExpand, object: IslandView.prompt)
             }
         }
-        dropView.onDragUpdated = { [weak self] loc in
-            Task { @MainActor in
-                let iLoc = self?.windowToIsland(loc) ?? CGPoint(x: 320, y: 88)
-                UploadSequenceEngine.shared.updateCursor(x: iLoc.x, y: iLoc.y)
-            }
-        }
-        dropView.onDragExited = {
-            Task { @MainActor in
-                AppState.shared.fileDragOver = false
-                // Do NOT collapse — drag session still active; island stays open.
-                NotificationCenter.default.post(name: .botMorphTo, object: CGFloat(0))
-                UploadSequenceEngine.shared.exitZone()
-            }
-        }
-        dropView.onFilesDropped = { [weak self] urls in
-            Task { @MainActor in
-                #if !APPSTORE
-                // During the voice email (above all after "any attachment?"), a file
-                // dropped on the notch goes into that email.
-                if VoiceActionRunner.shared.isMailInProgress, let url = urls.first {
-                    await self?.attachVoiceMailFile(url)
-                    return
-                }
-                // The mail card prepared by voice (Claude) is open: the file is its attachment.
-                if AppState.shared.voiceMailDraft != nil, AppState.shared.view == .mail, let url = urls.first {
-                    self?.attachToVoiceMailCard(url)
-                    return
-                }
-                #endif
-                await FileDropHandler.handle(urls: urls, state: AppState.shared)
-            }
+        dropView.onDragUpdated = { _ in }
+        dropView.onDragExited = { }
+        dropView.onFilesDropped = { urls in
+            Task { @MainActor in T3CodeSource.shared.attachFiles(urls) }
         }
 
         container.addSubview(hosting)    // z-bottom: SwiftUI + mouse events

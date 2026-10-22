@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 // Foundation-only port of windows/src-tauri/src/t3.rs (orchestration v2).
 // The shell owns pending state; projections only enrich approval prompts.
@@ -21,10 +24,16 @@ struct T3Thread: Identifiable, Equatable, Sendable {
     let requestCreatedAt: String
     let blocking: Bool
     let lastError: String
+    let activeRunId: String?
+    let parentThreadId: String?
+    let relationshipToParent: String?
 
     init?(_ raw: [String: Any]) {
         guard let id = raw["id"] as? String, !id.isEmpty else { return nil }
         self.id = id
+        activeRunId = raw["activeRunId"] as? String
+        parentThreadId = (raw["lineage"] as? [String: Any])?["parentThreadId"] as? String
+        relationshipToParent = (raw["lineage"] as? [String: Any])?["relationshipToParent"] as? String
         projectId = raw["projectId"] as? String ?? ""
         title = raw["title"] as? String ?? ""
         updatedAt = raw["updatedAt"] as? String ?? ""
@@ -73,6 +82,7 @@ struct T3Project: Identifiable, Equatable, Sendable {
 struct T3Session {
     private(set) var projects: [String: T3Project] = [:]
     private(set) var threads: [String: T3Thread] = [:]
+    private(set) var messages: [String: [T3ChatMessage]] = [:]
     private(set) var prompts: [String: [String: String]] = [:]
 
     var sortedProjects: [T3Project] {
@@ -122,6 +132,7 @@ struct T3Session {
             if let id = item["threadId"] as? String { threads.removeValue(forKey: id) }
         default: break
         }
+        messages = messages.filter { threads[$0.key] != nil }
         prompts = prompts.filter { threads[$0.key] != nil }
     }
     private mutating func upsertProject(_ row: [String: Any]) {
@@ -138,11 +149,20 @@ struct T3Session {
             let snapshot = item["snapshot"] as? [String: Any]
             if let projection = (item["projection"] ?? snapshot?["projection"]) as? [String: Any] {
                 prompts[id] = Self.collectPrompts(projection)
+                messages[id] = (projection["messages"] as? [[String: Any]] ?? []).compactMap(T3ChatMessage.init).suffix(100).map { $0 }
             }
         } else if item["kind"] as? String == "event", let event = item["event"] as? [String: Any],
-                  ["turn-item.updated", "runtime-request.updated"].contains(event["type"] as? String ?? ""),
                   let payload = event["payload"] as? [String: Any] {
-            prompts[id, default: [:]].merge(Self.collectPrompts(payload)) { _, new in new }
+            let type = event["type"] as? String ?? ""
+            if ["turn-item.updated", "runtime-request.updated"].contains(type) {
+                prompts[id, default: [:]].merge(Self.collectPrompts(payload)) { _, new in new }
+            }
+            if type == "message.updated", let message = T3ChatMessage(payload) {
+                var rows = messages[id] ?? []
+                if let index = rows.firstIndex(where: { $0.id == message.id }) { rows[index] = message }
+                else { rows.append(message) }
+                messages[id] = Array(rows.suffix(100))
+            }
         }
     }
     static func collectPrompts(_ value: [String: Any]) -> [String: String] {
@@ -230,5 +250,137 @@ struct T3Alerts {
         previous = session.threads.mapValues(\.status)
         approvals = open
         return alerts
+    }
+}
+
+// One stable pill per real shell project. Its representative prefers an active
+// top-level parent of subagents, then the most urgent/recent thread. Status still
+// includes child threads, so a child's approval cannot disappear behind its parent.
+struct T3ProjectPill: Identifiable, Equatable, Sendable {
+    let id: String
+    let projectId: String
+    let name: String
+    let threadId: String?
+    let status: T3Status
+    static let fallbackId = "agent_t3"
+    static func owns(_ id: String) -> Bool { id == fallbackId || id.hasPrefix("t3_project:") }
+    static func id(project: String) -> String { "t3_project:\(project)" }
+    static func map(_ session: T3Session) -> [T3ProjectPill] {
+        session.projects.values.sorted { ($0.title.lowercased(), $0.id) < ($1.title.lowercased(), $1.id) }.map { project in
+            let threads = session.sortedThreads(projectId: project.id)
+            let parentIds = Set(threads.filter { $0.relationshipToParent == "subagent" }.compactMap(\.parentThreadId))
+            let orchestrator = threads.first {
+                $0.relationshipToParent != "subagent" && parentIds.contains($0.id) &&
+                    ["preparing", "starting", "running", "waiting"].contains($0.runStatus)
+            }
+            return T3ProjectPill(id: id(project: project.id), projectId: project.id, name: project.title,
+                                 threadId: (orchestrator ?? threads.first)?.id,
+                                 status: threads.first?.status ?? .idle)
+        }
+    }
+}
+
+struct T3ChatMessage: Identifiable, Equatable, Sendable {
+    let id: String
+    let role: String
+    let text: String
+    let files: [String]
+    let streaming: Bool
+    init?(_ raw: [String: Any]) {
+        guard let id = raw["id"] as? String, let role = raw["role"] as? String,
+              ["user", "assistant"].contains(role) else { return nil }
+        self.id = id; self.role = role
+        text = raw["text"] as? String ?? ""
+        files = (raw["attachments"] as? [[String: Any]] ?? []).compactMap { $0["name"] as? String }
+        streaming = raw["streaming"] as? Bool ?? false
+    }
+}
+
+struct T3ClientError: LocalizedError {
+    let message: String
+    var errorDescription: String? { message }
+}
+
+struct T3Attachment: Identifiable, Equatable, Sendable {
+    let id: String
+    let type: String
+    let name: String
+    let mimeType: String
+    let sizeBytes: Int
+    var metadata: [String: Any] {
+        ["type": type, "name": name, "mimeType": mimeType, "sizeBytes": sizeBytes]
+    }
+    var reference: [String: Any] { metadata.merging(["id": id]) { _, new in new } }
+}
+
+enum T3Composer {
+    static let imageLimit = 10 * 1024 * 1024
+    static let fileLimit = 50 * 1024 * 1024
+    static let totalImageLimit = 80 * 1024 * 1024
+    static let imageTypes = ["image/png", "image/jpeg", "image/gif", "image/webp"]
+
+    static func validate(_ attachments: [T3Attachment], maxFileBytes: Int = fileLimit) throws {
+        guard attachments.count <= 100 else { throw T3ClientError(message: "Attach at most 100 files per message.") }
+        var imageBytes = 0
+        for attachment in attachments {
+            let image = attachment.type == "image"
+            let limit = image ? imageLimit : min(maxFileBytes, fileLimit)
+            guard attachment.sizeBytes > 0, attachment.sizeBytes <= limit else {
+                let size = limit > 0 && limit % (1024 * 1024) == 0 ? "\(limit / 1024 / 1024) MiB" : "\(limit) bytes"
+                throw T3ClientError(message: "\(attachment.name): file must be nonempty and at most \(size).")
+            }
+            guard !attachment.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                  attachment.name.utf16.count <= 255, !attachment.mimeType.isEmpty,
+                  attachment.mimeType.utf16.count <= 100, T3Protocol.headerSafe(attachment.mimeType),
+                  ["image", "file"].contains(attachment.type),
+                  !image || imageTypes.contains(attachment.mimeType) else {
+                throw T3ClientError(message: "Unsupported attachment name or image format. Use PNG, JPEG, GIF or WebP for images.")
+            }
+            if image || imageTypes.contains(attachment.mimeType) { imageBytes += attachment.sizeBytes }
+        }
+        guard imageBytes <= totalImageLimit else { throw T3ClientError(message: "Images can total at most 80 MiB per message.") }
+    }
+    static func uploadMetadata(name: String, mimeType: String, bytes: Int, maxFileBytes: Int = fileLimit) throws -> T3Attachment {
+        let value = T3Attachment(id: "", type: imageTypes.contains(mimeType) ? "image" : "file",
+                                 name: name, mimeType: mimeType, sizeBytes: bytes)
+        try validate([value], maxFileBytes: maxFileBytes)
+        return value
+    }
+    static func uploadURL(base: URL, relative: String) throws -> URL {
+        guard relative.hasPrefix("/api/attachments/upload/"), !relative.contains("#"),
+              let url = URL(string: relative, relativeTo: base)?.absoluteURL,
+              url.scheme == base.scheme, url.host == base.host, url.port == base.port else {
+            throw T3ClientError(message: "The server returned an invalid attachment upload URL.")
+        }
+        return url
+    }
+    static func uploadRequest(base: URL, relative: String, mimeType: String) throws -> URLRequest {
+        guard T3Protocol.headerSafe(mimeType) else { throw T3ClientError(message: "Invalid attachment content type.") }
+        var request = URLRequest(url: try uploadURL(base: base, relative: relative), timeoutInterval: 300)
+        request.httpMethod = "POST"
+        request.setValue(mimeType, forHTTPHeaderField: "Content-Type")
+        return request
+    }
+    static func message(thread: T3Thread, text: String, attachments: [T3Attachment],
+                        commandId: String, messageId: String, serverResolvesContext: Bool) throws -> [String: Any] {
+        guard text.utf16.count <= 120_000 else { throw T3ClientError(message: "Messages can contain at most 120,000 characters.") }
+        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !attachments.isEmpty else {
+            throw T3ClientError(message: "Enter a message or attach a file.")
+        }
+        try validate(attachments)
+        guard attachments.allSatisfy({ !$0.id.isEmpty }) else { throw T3ClientError(message: "Wait for attachments to finish uploading.") }
+        let running = ["preparing", "starting", "running", "waiting"].contains(thread.runStatus)
+        var mode: [String: Any] = ["type": "start_immediately"]
+        if running && !serverResolvesContext {
+            guard let run = thread.activeRunId, !run.isEmpty else {
+                throw T3ClientError(message: "Waiting for the active run ID. Retry after the thread updates.")
+            }
+            mode = ["type": "steer_active", "targetRunId": run]
+        }
+        var command: [String: Any] = ["type": "message.dispatch", "commandId": commandId, "messageId": messageId,
+            "threadId": thread.id, "createdBy": "user", "creationSource": "web", "text": text,
+            "attachments": attachments.map(\.reference), "dispatchMode": mode]
+        if serverResolvesContext { command["deliveryIntent"] = running ? "steer" : "auto" }
+        return command
     }
 }

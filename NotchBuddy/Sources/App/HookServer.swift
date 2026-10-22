@@ -945,7 +945,7 @@ final class HookServer: @unchecked Sendable {
     /// card moved on to another request is ignored, so it can never answer the wrong one.
     @MainActor
     func sendApprovalDecision(_ decision: String, for id: UUID? = nil) {
-        if AppState.shared.pendingApproval?.pillId == T3CodeSource.pillId {
+        if let pill = AppState.shared.pendingApproval?.pillId, T3ProjectPill.owns(pill) {
             if decision == "allow" || decision == "deny" {
                 T3CodeSource.shared.decide(cardId: id, accept: decision == "allow")
             }

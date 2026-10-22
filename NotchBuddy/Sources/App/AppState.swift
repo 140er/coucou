@@ -12,7 +12,14 @@ final class AppState: ObservableObject {
     @Published var view: IslandView = .overview
 
     // Tasks
-    @Published var tasks: [AgentTask] = []
+    @Published var tasks: [AgentTask] = [] {
+        didSet {
+            // T3-only UI boundary: dormant legacy services/hooks cannot add pills.
+            if tasks.contains(where: { !T3ProjectPill.owns($0.id) }) {
+                tasks.removeAll { !T3ProjectPill.owns($0.id) }
+            }
+        }
+    }
     @Published var focusId: String? = nil
 
     // Bot state override
@@ -354,7 +361,7 @@ final class AppState: ObservableObject {
     }
 
     // Active integration pills (main workspace pill excluded). Max 4.
-    @Published var activeIntegrations: Set<String> = ["integration_resend", "integration_n8n", "integration_vercel", "integration_github"] {
+    @Published var activeIntegrations: Set<String> = [] {
         didSet {
             if let data = try? JSONEncoder().encode(Array(activeIntegrations)) {
                 UserDefaults.standard.set(data, forKey: "activeIntegrations")
@@ -590,6 +597,7 @@ final class AppState: ObservableObject {
     // MARK: - Task management
 
     func addTask(_ task: AgentTask) {
+        guard T3ProjectPill.owns(task.id) else { return }
         guard !tasks.contains(where: { $0.id == task.id }) else { return }
         tasks.append(task)
         if focusId == nil { focusId = task.id }
@@ -675,32 +683,38 @@ final class AppState: ObservableObject {
 
     /// Load catalog pills into tasks, respecting activeIntegrations. Safe to call multiple times.
     func loadIntegrationTasks() {
-        let catalog = PillCatalog.available
-        // Sanitize: remove saved IDs not in catalog
-        let catalogIds = Set(catalog.map { $0.id })
-        activeIntegrations = activeIntegrations.filter { catalogIds.contains($0) }
-        // Validate mainPillId: must be a non-comingSoon workspace pill in the catalog
-        if !PillCatalog.available.contains(where: { $0.id == mainPillId && $0.category == .workspace && !$0.comingSoon }) {
-            mainPillId = PillCatalog.defaultMainPillId
-        }
-        // mainPillId must never be in activeIntegrations (migration + invariant)
-        activeIntegrations.remove(mainPillId)
-        for def in catalog {
-            // mainPillId always loads; activeIntegrations load
-            let shouldLoad = def.id == mainPillId || activeIntegrations.contains(def.id)
-            let loaded = tasks.contains(where: { $0.id == def.id })
-            if shouldLoad && !loaded {
-                let task = AgentTask(id: def.id, name: def.name, color: def.color,
-                                     state: .idle, steps: [], source: def.source, isIntegration: true)
-                tasks.append(task)
+        mainPillId = T3ProjectPill.fallbackId
+        activeIntegrations = [] // migrate saved non-T3 selections
+        if !tasks.contains(where: { T3ProjectPill.owns($0.id) }) { replaceT3Tasks([]) }
+    }
+
+    func replaceT3Tasks(_ pills: [T3ProjectPill]) {
+        let old = Dictionary(uniqueKeysWithValues: tasks.map { ($0.id, $0) })
+        let next: [AgentTask]
+        if pills.isEmpty {
+            next = [AgentTask(id: T3ProjectPill.fallbackId, name: "T3 Code", color: "#38BDF8",
+                               state: .idle, steps: [], source: .agent, isIntegration: true)]
+        } else {
+            next = pills.map { pill in
+                let state: BotState = switch pill.status {
+                case .running: .working
+                case .approval: .approval
+                case .question: .question
+                case .done: .finished
+                case .error: .error
+                case .idle: .idle
+                }
+                var task = old[pill.id] ?? AgentTask(id: pill.id, name: pill.name, color: "#38BDF8",
+                    state: state, steps: [], source: .agent, isIntegration: true)
+                task.name = pill.name; task.state = state
+                task.pillBadge = pill.status == .approval ? .approval : pill.status == .error ? .error : pill.status == .question ? .finished : nil
+                return task
             }
-            if !shouldLoad && loaded {
-                tasks.removeAll { $0.id == def.id }
-            }
         }
-        sortTasksByCatalog()
-        if focusId == nil { focusId = mainPillId }
+        if tasks != next { tasks = next }
+        if !tasks.contains(where: { $0.id == focusId }) { focusId = tasks.first?.id }
         syncMode()
+        syncView()
     }
 
     /// Toggle a catalog pill on/off.

@@ -153,4 +153,121 @@ final class T3ProtocolTests: XCTestCase {
         }
         XCTAssertEqual(T3Protocol.environment(["environment": ["environmentId": "env"]]), "env")
     }
+    func testProjectPillsIncludeEmptyProjectsAndStableIds() {
+        var session = T3Session()
+        session.applyShell(["kind": "snapshot", "snapshot": ["projects": [
+            ["id": "z", "title": "Zeta"], ["id": "p", "title": "Coucou"], ["id": "e", "title": "Empty"]
+        ], "threads": [thread()]]])
+        let pills = T3ProjectPill.map(session)
+        XCTAssertEqual(pills.map(\.name), ["Coucou", "Empty", "Zeta"])
+        XCTAssertEqual(pills[0].status, .running)
+        XCTAssertEqual(pills[1].status, .idle)
+        XCTAssertNil(pills[1].threadId)
+        let id = pills[0].id
+        session.applyShell(["kind": "project.updated", "project": ["id": "p", "title": "Renamed"]])
+        XCTAssertEqual(T3ProjectPill.map(session).first { $0.projectId == "p" }?.id, id)
+        XCTAssertTrue(T3ProjectPill.owns(id))
+        XCTAssertFalse(T3ProjectPill.owns("integration_github"))
+        session.applyShell(["kind": "project.removed", "projectId": "p"])
+        XCTAssertFalse(T3ProjectPill.map(session).contains { $0.id == id })
+    }
+    func testProjectStatusAggregatesChildrenAndPrefersActiveOrchestrator() {
+        var parent = thread(); parent["id"] = "parent"
+        var child = thread(kind: "command"); child["id"] = "child"
+        child["lineage"] = ["parentThreadId": "parent", "relationshipToParent": "subagent"]
+        var session = T3Session()
+        session.applyShell(snapshot([parent, child]))
+        XCTAssertEqual(T3ProjectPill.map(session).first?.threadId, "parent")
+        XCTAssertEqual(T3ProjectPill.map(session).first?.status, .approval)
+        parent["status"] = "completed"
+        session.applyShell(["kind": "thread.updated", "thread": parent])
+        XCTAssertEqual(T3ProjectPill.map(session).first?.threadId, "child")
+        session.applyShell(["kind": "thread.removed", "threadId": "child"])
+        XCTAssertEqual(T3ProjectPill.map(session).first?.status, .done)
+        session.applyShell(["kind": "thread.updated", "thread": thread(kind: "user_input")])
+        XCTAssertEqual(T3ProjectPill.map(session).first?.status, .question)
+        session.applyShell(["kind": "thread.removed", "threadId": "t"])
+        parent["status"] = "failed"
+        session.applyShell(["kind": "thread.updated", "thread": parent])
+        XCTAssertEqual(T3ProjectPill.map(session).first?.status, .error)
+    }
+    func testMessageStartsIdleAndSteersRunningThread() throws {
+        let idle = try XCTUnwrap(T3Thread(thread("idle")))
+        let start = try T3Composer.message(thread: idle, text: "Hello", attachments: [], commandId: "c", messageId: "m", serverResolvesContext: false)
+        XCTAssertEqual(start["type"] as? String, "message.dispatch")
+        XCTAssertEqual(start["threadId"] as? String, "t")
+        XCTAssertEqual(start["messageId"] as? String, "m")
+        XCTAssertEqual(start["createdBy"] as? String, "user")
+        XCTAssertEqual(start["creationSource"] as? String, "web")
+        XCTAssertEqual((start["dispatchMode"] as? [String: String])?["type"], "start_immediately")
+        var raw = thread(); raw["activeRunId"] = "run-1"
+        let active = try XCTUnwrap(T3Thread(raw))
+        let steer = try T3Composer.message(thread: active, text: "Change direction", attachments: [], commandId: "c", messageId: "m", serverResolvesContext: false)
+        XCTAssertEqual(steer["dispatchMode"] as? [String: String], ["type": "steer_active", "targetRunId": "run-1"])
+        let resolved = try T3Composer.message(thread: active, text: "Steer", attachments: [], commandId: "c", messageId: "m", serverResolvesContext: true)
+        XCTAssertEqual(resolved["deliveryIntent"] as? String, "steer")
+        XCTAssertEqual((resolved["dispatchMode"] as? [String: String])?["type"], "start_immediately")
+        XCTAssertThrowsError(try T3Composer.message(thread: XCTUnwrap(T3Thread(thread())), text: "Hi", attachments: [], commandId: "c", messageId: "m", serverResolvesContext: false))
+        XCTAssertThrowsError(try T3Composer.message(thread: idle, text: " ", attachments: [], commandId: "c", messageId: "m", serverResolvesContext: true))
+        XCTAssertThrowsError(try T3Composer.message(thread: idle, text: String(repeating: "x", count: 120001), attachments: [], commandId: "c", messageId: "m", serverResolvesContext: true))
+    }
+    func testAttachmentsUseUploadMetadataAndPersistedReferences() throws {
+        let file = try T3Composer.uploadMetadata(name: "notes.md", mimeType: "text/markdown", bytes: 200)
+        XCTAssertEqual(file.type, "file")
+        XCTAssertNil(file.metadata["id"])
+        XCTAssertNil(file.metadata["dataUrl"])
+        XCTAssertEqual(file.metadata["sizeBytes"] as? Int, 200)
+        let ready = T3Attachment(id: "pending_abc", type: file.type, name: file.name, mimeType: file.mimeType, sizeBytes: file.sizeBytes)
+        let command = try T3Composer.message(thread: XCTUnwrap(T3Thread(thread("idle"))), text: "", attachments: [ready], commandId: "c", messageId: "m", serverResolvesContext: true)
+        let attachment = try XCTUnwrap((command["attachments"] as? [[String: Any]])?.first)
+        XCTAssertEqual(attachment["id"] as? String, "pending_abc")
+        XCTAssertNil(attachment["dataUrl"])
+        XCTAssertNil(attachment["path"])
+        XCTAssertEqual(command["deliveryIntent"] as? String, "auto")
+        XCTAssertThrowsError(try T3Composer.message(thread: XCTUnwrap(T3Thread(thread("idle"))), text: "", attachments: [file], commandId: "c", messageId: "m", serverResolvesContext: true))
+        let image = try T3Composer.uploadMetadata(name: "shot.png", mimeType: "image/png", bytes: 100)
+        XCTAssertEqual(image.type, "image")
+    }
+    func testAttachmentLimitsAndSignedUploadOrigin() throws {
+        XCTAssertThrowsError(try T3Composer.uploadMetadata(name: "a", mimeType: "text/plain", bytes: 0))
+        XCTAssertThrowsError(try T3Composer.uploadMetadata(name: "a", mimeType: "text/plain", bytes: T3Composer.fileLimit + 1))
+        XCTAssertThrowsError(try T3Composer.uploadMetadata(name: "a", mimeType: "text/plain", bytes: 1025, maxFileBytes: 1024))
+        XCTAssertThrowsError(try T3Composer.uploadMetadata(name: "a.png", mimeType: "image/png", bytes: T3Composer.imageLimit + 1))
+        let image = T3Attachment(id: "image", type: "image", name: "x.png", mimeType: "image/png", sizeBytes: T3Composer.imageLimit)
+        XCTAssertNoThrow(try T3Composer.validate(Array(repeating: image, count: 8)))
+        XCTAssertThrowsError(try T3Composer.validate(Array(repeating: image, count: 9)))
+        let file = T3Attachment(id: "file", type: "file", name: "x.txt", mimeType: "text/plain", sizeBytes: 1)
+        XCTAssertThrowsError(try T3Composer.validate(Array(repeating: file, count: 101)))
+        let base = try XCTUnwrap(URL(string: "https://t3.example"))
+        XCTAssertEqual(try T3Composer.uploadURL(base: base, relative: "/api/attachments/upload/signed.token").host, "t3.example")
+        for bad in ["https://evil.example/upload", "//evil.example/upload", "/other/upload", "/api/attachments/upload/token#fragment"] {
+            XCTAssertThrowsError(try T3Composer.uploadURL(base: base, relative: bad))
+        }
+    }
+    func testUploadRequestMatchesWebComposerByteTransport() throws {
+        let base = try XCTUnwrap(URL(string: "https://t3.example"))
+        let request = try T3Composer.uploadRequest(base: base, relative: "/api/attachments/upload/signed.token", mimeType: "application/pdf")
+        XCTAssertEqual(request.httpMethod, "POST")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "Content-Type"), "application/pdf")
+        XCTAssertEqual(request.timeoutInterval, 300)
+        XCTAssertNil(request.value(forHTTPHeaderField: "Authorization"))
+        XCTAssertNil(request.httpBody) // upload(for:fromFile:) supplies the raw bytes
+        XCTAssertThrowsError(try T3Composer.uploadRequest(base: base, relative: "/api/attachments/upload/signed.token", mimeType: "text/plain\r\nX-Injected: yes"))
+    }
+    func testChatSnapshotAndStreamedRepliesReplaceById() {
+        var session = T3Session()
+        session.applyShell(snapshot([thread()]))
+        session.applyThread(id: "t", item: ["kind": "snapshot", "projection": ["messages": [
+            ["id": "m", "role": "assistant", "text": "First", "streaming": true]
+        ]]])
+        session.applyThread(id: "t", item: ["kind": "event", "event": ["type": "message.updated", "payload": [
+            "id": "m", "role": "assistant", "text": "First reply complete", "streaming": false
+        ]]])
+        XCTAssertEqual(session.messages["t"]?.count, 1)
+        XCTAssertEqual(session.messages["t"]?.first?.text, "First reply complete")
+        XCTAssertEqual(session.messages["t"]?.first?.streaming, false)
+        session.applyShell(["kind": "thread.removed", "threadId": "t"])
+        XCTAssertNil(session.messages["t"])
+    }
+
 }
