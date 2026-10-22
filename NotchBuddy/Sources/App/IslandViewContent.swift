@@ -72,7 +72,9 @@ struct OverviewView: View {
 
                 // Title row + ticker stacked (or integration card)
                 if let agent = agent {
-                    if agent.isIntegration {
+                    if agent.id == T3CodeSource.pillId {
+                        T3CodeCardView()
+                    } else if agent.isIntegration {
                         IntegrationCardView(task: agent, showingDetail: $showingN8nDetail, onDiffTap: { diffIdx in
                             withAnimation(.easeIn(duration: 0.16)) { activeDiffId = diffIdx }
                         })
@@ -166,7 +168,7 @@ struct OverviewView: View {
                 #else
                 let hideJumpButton = showingN8nDetail || activeDiffId != nil
                 #endif
-                if !hideJumpButton {
+                if !hideJumpButton && agent?.id != T3CodeSource.pillId {
                     Button(action: { openAgentTarget(agent) }) {
                         Image(systemName: "arrow.up.right")
                             .font(.system(size: 8, weight: .medium))
@@ -223,6 +225,8 @@ struct OverviewView: View {
     private func openAgentTarget(_ task: AgentTask?) {
         guard let task else { return }
         switch task.id {
+        case "agent_t3":
+            T3CodeSource.shared.open()
         case "integration_claude":
             if ClaudeHost.activate(task.hostApp) { return }
             let vscodeBundleId = "com.microsoft.VSCode"
@@ -350,6 +354,7 @@ struct EmptyStateView: View {
 
 struct ApprovalView: View {
     @ObservedObject var state: AppState
+    @ObservedObject private var t3Source = T3CodeSource.shared
 
     var approval: ApprovalInfo? { state.pendingApproval }
 
@@ -401,7 +406,8 @@ struct ApprovalView: View {
                             HookServer.shared.sendApprovalDecision("allow", for: shownId)
                         }
                         // Codex, Copilot CLI and Muse Code do not support updatedPermissions
-                        let hideAlways = approval?.pillId == "agent_codex"
+                        let hideAlways = approval?.pillId == "agent_t3"
+                            || approval?.pillId == "agent_codex"
                             || approval?.pillId == "agent_copilot"
                             || approval?.pillId == "agent_muse"
                         if !hideAlways {
@@ -409,6 +415,15 @@ struct ApprovalView: View {
                                 HookServer.shared.sendApprovalDecision("always", for: shownId)
                             }
                         }
+                    }
+                    .disabled(approval?.pillId == T3CodeSource.pillId &&
+                              t3Source.deciding.contains(approval?.inputKey ?? ""))
+                    if approval?.pillId == T3CodeSource.pillId {
+                        Text(t3Source.connection)
+                            .font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
+                        Button("Open in T3 Code") {
+                            t3Source.open(thread: t3Source.session.threads[approval?.sessionId ?? ""])
+                        }.buttonStyle(.plain).font(.system(size: 11))
                     }
                 }
             }

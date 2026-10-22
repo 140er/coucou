@@ -283,6 +283,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         FlowDictation.shared.start()  // watches the dictation key only if Flow dictation is on
         #endif
         N8nPoller.shared.start()
+        T3CodeSource.shared.start()
         VercelPoller.shared.start()
         ResendPoller.shared.start()
         GithubPoller.shared.start()

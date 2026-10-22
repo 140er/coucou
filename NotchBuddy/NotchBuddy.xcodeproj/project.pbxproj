@@ -381,6 +381,12 @@
 		FDF87CF7C5F703EDD9A7CC14 /* CloudProbe.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28323DC20034A281F6829884 /* CloudProbe.swift */; };
 		FEFEF1EBAB0E6CA74A33C10B /* SafeWebURL.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2FDED98F7F6C755A72C97A3 /* SafeWebURL.swift */; };
 		8896DCFCB54BA53FE1EE49AC /* FluidAudio in Frameworks */ = {isa = PBXBuildFile; productRef = FAFFA455BB88CDC7BB499851 /* FluidAudio */; };
+		3138836EE5490CE7B00C8E09 /* T3CodeSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 453AA834354AE80F5739DCF7 /* T3CodeSource.swift */; };
+		99C5A395D8AEB92CEAE23E8C /* T3CodeSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 453AA834354AE80F5739DCF7 /* T3CodeSource.swift */; };
+		12E1A27C8D29D7EC3F0D6A9C /* T3CodeViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33059B51D44BC5D603FD6B6A /* T3CodeViews.swift */; };
+		D05176F46136E824784E3700 /* T3CodeViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33059B51D44BC5D603FD6B6A /* T3CodeViews.swift */; };
+		146019A84D031049EB852671 /* T3Protocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EFF561A2507985910522259 /* T3Protocol.swift */; };
+		51CAE384A4380954B190E139 /* T3Protocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EFF561A2507985910522259 /* T3Protocol.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -601,6 +607,9 @@
 		FA02B08886939FF6FE0475DD /* IslandViewContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandViewContent.swift; sourceTree = "<group>"; };
 		FA51E5B140C20812641168EA /* ShortcutLogic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortcutLogic.swift; sourceTree = "<group>"; };
 		FADC1FE5696B1075932D0B7C /* InstructionRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstructionRunner.swift; sourceTree = "<group>"; };
+		453AA834354AE80F5739DCF7 /* T3CodeSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "T3CodeSource.swift"; sourceTree = "<group>"; };
+		33059B51D44BC5D603FD6B6A /* T3CodeViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "T3CodeViews.swift"; sourceTree = "<group>"; };
+		5EFF561A2507985910522259 /* T3Protocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "../T3Core/T3Protocol.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -669,6 +678,9 @@
 				23F907A5CC3CC05876548E96 /* MailViews.swift */,
 				4F142FB3952B5F0639383047 /* MusicController.swift */,
 				B89DA1A0C21AE3535A1760BB /* N8nPoller.swift */,
+				5EFF561A2507985910522259 /* T3Protocol.swift */,
+				33059B51D44BC5D603FD6B6A /* T3CodeViews.swift */,
+				453AA834354AE80F5739DCF7 /* T3CodeSource.swift */,
 				F1BD8F3CAA60CF37640759E1 /* NotchBuddyApp.swift */,
 				BE03E03D1804B0B92C5C2DAD /* NotionPoller.swift */,
 				F56C7E1EBC74664A7F1689CF /* NowPlayingViews.swift */,
@@ -1166,6 +1178,9 @@
 				25F66E99460D62478899A292 /* MochiWardrobe.swift in Sources */,
 				5C6D0BC8C546718CAA82BF90 /* MusicController.swift in Sources */,
 				0A267EE2955C7AD8E02A296C /* N8nPoller.swift in Sources */,
+				146019A84D031049EB852671 /* T3Protocol.swift in Sources */,
+				12E1A27C8D29D7EC3F0D6A9C /* T3CodeViews.swift in Sources */,
+				3138836EE5490CE7B00C8E09 /* T3CodeSource.swift in Sources */,
 				06BF5FD95E03010CAFDBF2D0 /* NotchBuddyApp.swift in Sources */,
 				2F36E3C6C073E968A682AFA4 /* NotionPoller.swift in Sources */,
 				03FDC0AA0CEDE913B59D0F4D /* NowPlayingViews.swift in Sources */,
@@ -1387,6 +1402,9 @@
 				A885B7E6DC43231BECE36E3D /* MochiWardrobe.swift in Sources */,
 				9C653B8291EFFA414565E8A8 /* MusicController.swift in Sources */,
 				160EDB9D06275E2607DA5151 /* N8nPoller.swift in Sources */,
+				51CAE384A4380954B190E139 /* T3Protocol.swift in Sources */,
+				D05176F46136E824784E3700 /* T3CodeViews.swift in Sources */,
+				99C5A395D8AEB92CEAE23E8C /* T3CodeSource.swift in Sources */,
 				DE05D09A32117582AC93A24A /* NotchBuddyApp.swift in Sources */,
 				78FCEDC8F78B683AB10E6529 /* NotionPoller.swift in Sources */,
 				3E84EA0AE7C450941ED943CF /* NowPlayingViews.swift in Sources */,

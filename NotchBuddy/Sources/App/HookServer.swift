@@ -945,6 +945,12 @@ final class HookServer: @unchecked Sendable {
     /// card moved on to another request is ignored, so it can never answer the wrong one.
     @MainActor
     func sendApprovalDecision(_ decision: String, for id: UUID? = nil) {
+        if AppState.shared.pendingApproval?.pillId == T3CodeSource.pillId {
+            if decision == "allow" || decision == "deny" {
+                T3CodeSource.shared.decide(cardId: id, accept: decision == "allow")
+            }
+            return
+        }
         // Only intercept a demo card — a real card has a queued request behind it.
         if DemoEngine.shared.isActive,
            AppState.shared.pendingApproval?.sessionId == "demo_session",

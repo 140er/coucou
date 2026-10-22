@@ -69,6 +69,7 @@ final class KeychainStore: @unchecked Sendable {
         "moonshot-api-key",
         "resend-api-key", "resend-from",
         "n8n-url", "n8n-api-key",
+        "t3-url", "t3-token", "t3-cf-client-id", "t3-cf-client-secret",
         "vercel-token",
         "github-token",
         "stripe-api-key",

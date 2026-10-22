@@ -584,6 +584,7 @@ struct SettingsView: View {
     // MARK: - Agents section
 
     @ViewBuilder private var agentsSection: some View {
+        T3CodeSettingsView()
         GroupBox(String(localized: "hooks.claude-code.title")) {
             VStack(alignment: .leading, spacing: 10) {
                 if hookNeedsUpdate {

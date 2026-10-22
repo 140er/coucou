@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
+    branches: [main, cursor/t3-code-source-7d85]
 
 jobs:
   build:
@@ -29,6 +29,9 @@ jobs:
 
       - name: Test parallel Claude Code sessions
         run: bash scripts/test-session-registry.sh
+
+      - name: Test T3 Code protocol and state mapping
+        run: swift test --package-path NotchBuddy
 
       - name: Test approval queue
         run: bash scripts/test-approval-queue.sh
