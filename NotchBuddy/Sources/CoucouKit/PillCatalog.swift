@@ -55,6 +55,7 @@ struct PillDefinition {
         switch id {
         case "integration_claude": return "Claude Code"
         case "agent_cursor":       return "Cursor"
+        case "agent_t3":           return "T3 Code"
         case "agent_codex":        return "Codex"
         case "agent_hermes":       return "Hermes"
         case "agent_claude-desktop": return "Claude Desktop"
@@ -77,6 +78,8 @@ enum PillCatalog {
               category: .workspace, subtitle: String(localized: "Integration"),  source: .agent,  githubOnly: true),
         .init(id: "agent_codex",         name: "Codex",       color: "#2DD4BF",
               category: .workspace, subtitle: String(localized: "Integration"),  source: .agent,  githubOnly: true),
+        .init(id: "agent_t3", name: "T3 Code", color: "#38BDF8",
+              category: .workspace, subtitle: "T3 Code", source: .agent),
         // ── Agents ───────────────────────────────────────────────────────────
         .init(id: "agent_gemini",        name: "Gemini CLI",  color: "#8AB4F8",
               category: .agent,     subtitle: String(localized: "Agent"),        source: .agent,  githubOnly: true),
@@ -136,7 +139,9 @@ enum PillCatalog {
 
     /// Pills available in the current build target.
     static var available: [PillDefinition] {
-        #if APPSTORE
+        #if os(macOS)
+        all.filter { $0.id == "agent_t3" }
+        #elseif APPSTORE
         all.filter { !$0.githubOnly }
         #else
         all
@@ -144,7 +149,11 @@ enum PillCatalog {
     }
 
     /// Default ID for the always-on main workspace pill.
+    #if os(macOS)
+    static let defaultMainPillId = "agent_t3"
+    #else
     static let defaultMainPillId = "integration_claude"
+    #endif
 
     /// Looks up a definition by task ID (nil if not in catalog).
     static func definition(for id: String) -> PillDefinition? {

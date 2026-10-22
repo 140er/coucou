@@ -15,11 +15,11 @@ struct IslandViewContent: View {
         case .error:     ErrorView(state: state)
         case .finished:  FinishedView(state: state)
         case .confused:  ConfusedView()
-        case .upload:    UploadView(state: state)
+        case .upload:    T3ChatView()
         case .uploading: UploadingView(state: state)
         case .choose:    ChooseView(state: state)
         case .mail:      MailView(state: state)
-        case .prompt:    PromptView(state: state)
+        case .prompt:    T3ChatView()
         case .searching: SearchingView(state: state)
         case .result:    ResultView(state: state)
         case .note:      NoteView(state: state)
@@ -72,7 +72,9 @@ struct OverviewView: View {
 
                 // Title row + ticker stacked (or integration card)
                 if let agent = agent {
-                    if agent.isIntegration {
+                    if T3ProjectPill.owns(agent.id) {
+                        T3CodeCardView(pillId: agent.id)
+                    } else if agent.isIntegration {
                         IntegrationCardView(task: agent, showingDetail: $showingN8nDetail, onDiffTap: { diffIdx in
                             withAnimation(.easeIn(duration: 0.16)) { activeDiffId = diffIdx }
                         })
@@ -166,7 +168,7 @@ struct OverviewView: View {
                 #else
                 let hideJumpButton = showingN8nDetail || activeDiffId != nil
                 #endif
-                if !hideJumpButton {
+                if !hideJumpButton && !(agent.map { T3ProjectPill.owns($0.id) } ?? false) {
                     Button(action: { openAgentTarget(agent) }) {
                         Image(systemName: "arrow.up.right")
                             .font(.system(size: 8, weight: .medium))
@@ -223,6 +225,8 @@ struct OverviewView: View {
     private func openAgentTarget(_ task: AgentTask?) {
         guard let task else { return }
         switch task.id {
+        case "agent_t3":
+            T3CodeSource.shared.open()
         case "integration_claude":
             if ClaudeHost.activate(task.hostApp) { return }
             let vscodeBundleId = "com.microsoft.VSCode"
@@ -350,6 +354,7 @@ struct EmptyStateView: View {
 
 struct ApprovalView: View {
     @ObservedObject var state: AppState
+    @ObservedObject private var t3Source = T3CodeSource.shared
 
     var approval: ApprovalInfo? { state.pendingApproval }
 
@@ -401,7 +406,8 @@ struct ApprovalView: View {
                             HookServer.shared.sendApprovalDecision("allow", for: shownId)
                         }
                         // Codex, Copilot CLI and Muse Code do not support updatedPermissions
-                        let hideAlways = approval?.pillId == "agent_codex"
+                        let hideAlways = (approval.map { T3ProjectPill.owns($0.pillId) } ?? false)
+                            || approval?.pillId == "agent_codex"
                             || approval?.pillId == "agent_copilot"
                             || approval?.pillId == "agent_muse"
                         if !hideAlways {
@@ -409,6 +415,15 @@ struct ApprovalView: View {
                                 HookServer.shared.sendApprovalDecision("always", for: shownId)
                             }
                         }
+                    }
+                    .disabled((approval.map { T3ProjectPill.owns($0.pillId) } ?? false) &&
+                              t3Source.deciding.contains(approval?.inputKey ?? ""))
+                    if (approval.map { T3ProjectPill.owns($0.pillId) } ?? false) {
+                        Text(t3Source.connection)
+                            .font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
+                        Button("Open in T3 Code") {
+                            t3Source.open(thread: t3Source.session.threads[approval?.sessionId ?? ""])
+                        }.buttonStyle(.plain).font(.system(size: 11))
                     }
                 }
             }
@@ -4092,62 +4107,19 @@ struct TickerShimmerText: View {
 struct AgentPillsView: View {
     @ObservedObject var state: AppState
     @State private var swapping = false
-
-    private var others: [AgentTask] {
-        state.tasks.filter { $0.id != state.focusId }
-    }
-
-    private var displayTasks: [AgentTask] {
-        Array(others.prefix(4))
-    }
-
-    private let columns = [
-        GridItem(.flexible(), spacing: 4),
-        GridItem(.flexible(), spacing: 4)
-    ]
-
+    private let columns = [GridItem(.flexible(), spacing: 6), GridItem(.flexible(), spacing: 6)]
     var body: some View {
-        VStack(spacing: 0) {
-            Spacer(minLength: 0)
-            LazyVGrid(columns: columns, spacing: 4) {
-                ForEach(displayTasks) { task in
-                    #if !APPSTORE
-                    if task.id == "integration_music" {
-                        MusicPill(task: task, state: state, swapping: $swapping) {
-                            swapping = true
-                            state.setFocus(task.id)
-                            SoundEngine.shared.play("blip")
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { swapping = false }
-                        }
-                    } else if task.id == "integration_spotify" {
-                        SpotifyPill(task: task, swapping: $swapping) {
-                            swapping = true
-                            state.setFocus(task.id)
-                            SoundEngine.shared.play("blip")
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { swapping = false }
-                        }
-                    } else {
-                        AgentPill(task: task, state: state, swapping: $swapping) {
-                            swapping = true
-                            state.setFocus(task.id)
-                            SoundEngine.shared.play("blip")
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { swapping = false }
-                        }
-                    }
-                    #else
+        ScrollView {
+            LazyVGrid(columns: columns, spacing: 6) {
+                ForEach(state.tasks.filter { T3ProjectPill.owns($0.id) }) { task in
                     AgentPill(task: task, state: state, swapping: $swapping) {
-                        swapping = true
                         state.setFocus(task.id)
-                        SoundEngine.shared.play("blip")
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { swapping = false }
+                        if state.soundEnabled { SoundEngine.shared.play("blip") }
                     }
-                    #endif
+                    .help(task.name)
                 }
-            }
-            .padding(.horizontal, 8)
-            Spacer(minLength: 0)
+            }.padding(10)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
@@ -4160,21 +4132,21 @@ struct AgentPill: View {
 
     private var effectiveColor: String { task.color }
 
-    // The Claude pill shows "VS Code" (or "Claude Code" for a terminal session) regardless of project name
-    private var displayName: String {
-        task.id == "integration_claude" ? ClaudeHost.pillName(hostApp: task.hostApp) : task.name
-    }
+    private var displayName: String { task.name }
 
     var body: some View {
-        Button(action: { onTap() }) {
+        Button(action: {
+            onTap()
+            T3CodeSource.shared.select(pill: task.id)
+        }) {
             ZStack(alignment: .topTrailing) {
                 ZStack {
                     Capsule()
-                        .fill(isHovered
+                        .fill((isHovered || state.focusId == task.id)
                               ? Color(hex: effectiveColor).opacity(0.18)
                               : Color(hex: "#0E0F11"))
                     Capsule()
-                        .stroke(Color(hex: effectiveColor).opacity(isHovered ? 0.55 : 0.14), lineWidth: 1)
+                        .stroke(Color(hex: effectiveColor).opacity(isHovered || state.focusId == task.id ? 0.55 : 0.14), lineWidth: 1)
                     HStack(spacing: 0) {
                         MiniBotCanvasView(task: task)
                             .frame(width: 22 / 0.6, height: 22 / 0.6)
@@ -4182,17 +4154,20 @@ struct AgentPill: View {
                             .padding(.leading, 8)
                         Spacer()
                     }
-                    Text(displayName)
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundColor(isHovered
+                    VStack(spacing: 1) {
+                        Text(displayName).font(.system(size: 11, weight: .semibold))
+                        Text(T3StatusLabel.text(task.state)).font(.system(size: 11))
+                    }
+                        .foregroundColor((isHovered || state.focusId == task.id)
                                          ? Color(hex: effectiveColor).lighter(by: 0.3)
                                          : Color(hex: "#6B7079"))
                         .lineLimit(1)
                         .truncationMode(.tail)
                         .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.leading, 30).padding(.trailing, 4)
                 }
                 .frame(maxWidth: .infinity)
-                .frame(height: 28)
+                .frame(height: 38)
                 .shadow(color: Color(hex: effectiveColor).opacity(isHovered ? 0.35 : 0), radius: 10, x: 0, y: 2)
 
                 // Alert badge (approval / finished / error)

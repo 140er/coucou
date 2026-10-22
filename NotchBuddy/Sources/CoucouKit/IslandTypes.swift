@@ -213,9 +213,9 @@ enum IslandConst {
     static let expandedCorner: CGFloat = 22
 
     static let viewLayouts: [IslandView: ViewLayout] = [
-        // Home is the reference: height 150
-        .overview:  ViewLayout(height: 160, botX: 68,  botY: nil, botDiameter: 58, agentMode: .pills),
-        // All non-chat views match home height (150) — law
+        // T3 Home has room for the project grid and a scrollable thread list.
+        .overview:  ViewLayout(height: 230, botX: 68,  botY: nil, botDiameter: 58, agentMode: .pills),
+        // Legacy compact cards keep their original height. T3 requests use a sheet.
         .empty:     ViewLayout(height: 160, botX: 70,  botY: nil, botDiameter: 62, agentMode: .none),
         .approval:  ViewLayout(height: 160, botX: 62,  botY: nil, botDiameter: 56, agentMode: .column),
         .question:  ViewLayout(height: 160, botX: 62,  botY: nil, botDiameter: 56, agentMode: .column),
@@ -226,7 +226,7 @@ enum IslandConst {
         .uploading: ViewLayout(height: 176, botX: 46,  botY: 118, botDiameter: 20, agentMode: .none),
         .choose:    ViewLayout(height: 176, botX: 60,  botY: 101, botDiameter: 52, agentMode: .column),
         .mail:      ViewLayout(height: 240, botX: 56,  botY: nil, botDiameter: 46, agentMode: .column),
-        .prompt:    ViewLayout(height: 160, botX: 52,  botY: nil, botDiameter: 44, agentMode: .column),
+        .prompt:    ViewLayout(height: 420, botX: 52,  botY: nil, botDiameter: 44, agentMode: .column),
         .searching: ViewLayout(height: 160, botX: 52,  botY: nil, botDiameter: 44, agentMode: .column),
         .result:    ViewLayout(height: 160, botX: 52,  botY: nil, botDiameter: 44, agentMode: .column),
         .note:      ViewLayout(height: 160, botX: 60,  botY: nil, botDiameter: 50, agentMode: .column),

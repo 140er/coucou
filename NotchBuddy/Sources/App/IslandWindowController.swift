@@ -124,53 +124,16 @@ final class IslandWindowController: NSWindowController {
         // AppKit routes NSDraggingDestination events to registered views independently of hitTest.
         let dropView = FileDropNSView(frame: NSRect(origin: .zero, size: contentSize))
         dropView.autoresizingMask = [.width, .height]
-        dropView.onDragEntered = { [weak self] loc in
+        dropView.onDragEntered = { _ in
             Task { @MainActor in
-                let iLoc = self?.windowToIsland(loc) ?? CGPoint(x: 320, y: 88)
-                AppState.shared.fileDragOver = true
-                // The voice mail card stays on screen: the file will be its attachment.
-                if AppState.shared.voiceMailDraft != nil && AppState.shared.view == .mail {
-                    NotificationCenter.default.post(name: .botMorphTo, object: CGFloat(1))
-                    return
-                }
-                // enterZone sets isActive=true BEFORE hookExpand triggers re-render,
-                // so IslandContainer sees isActive=true when state.view becomes .upload.
-                UploadSequenceEngine.shared.enterZone(x: iLoc.x, y: iLoc.y)
-                NotificationCenter.default.post(name: .hookExpand, object: IslandView.upload)
-                NotificationCenter.default.post(name: .botMorphTo, object: CGFloat(1))
+                T3CodeSource.shared.openChat()
+                NotificationCenter.default.post(name: .hookExpand, object: IslandView.prompt)
             }
         }
-        dropView.onDragUpdated = { [weak self] loc in
-            Task { @MainActor in
-                let iLoc = self?.windowToIsland(loc) ?? CGPoint(x: 320, y: 88)
-                UploadSequenceEngine.shared.updateCursor(x: iLoc.x, y: iLoc.y)
-            }
-        }
-        dropView.onDragExited = {
-            Task { @MainActor in
-                AppState.shared.fileDragOver = false
-                // Do NOT collapse — drag session still active; island stays open.
-                NotificationCenter.default.post(name: .botMorphTo, object: CGFloat(0))
-                UploadSequenceEngine.shared.exitZone()
-            }
-        }
-        dropView.onFilesDropped = { [weak self] urls in
-            Task { @MainActor in
-                #if !APPSTORE
-                // During the voice email (above all after "any attachment?"), a file
-                // dropped on the notch goes into that email.
-                if VoiceActionRunner.shared.isMailInProgress, let url = urls.first {
-                    await self?.attachVoiceMailFile(url)
-                    return
-                }
-                // The mail card prepared by voice (Claude) is open: the file is its attachment.
-                if AppState.shared.voiceMailDraft != nil, AppState.shared.view == .mail, let url = urls.first {
-                    self?.attachToVoiceMailCard(url)
-                    return
-                }
-                #endif
-                await FileDropHandler.handle(urls: urls, state: AppState.shared)
-            }
+        dropView.onDragUpdated = { _ in }
+        dropView.onDragExited = { }
+        dropView.onFilesDropped = { urls in
+            Task { @MainActor in T3CodeSource.shared.attachFiles(urls) }
         }
 
         container.addSubview(hosting)    // z-bottom: SwiftUI + mouse events
@@ -327,10 +290,10 @@ final class IslandWindowController: NSWindowController {
         // An approval, or an email prepared by voice, stays open until I click.
         #if !APPSTORE
         // A WhatsApp reply being typed holds the island open, like a voice mail draft.
-        fsm.isHeldOpen = { AppState.shared.pendingApproval != nil || AppState.shared.voiceMailDraft != nil
+        fsm.isHeldOpen = { AppState.shared.pendingApproval != nil || AppState.shared.voiceMailDraft != nil || T3CodeSource.shared.presentedRequest != nil
                            || WhatsAppController.shared.composing }
         #else
-        fsm.isHeldOpen = { AppState.shared.pendingApproval != nil || AppState.shared.voiceMailDraft != nil }
+        fsm.isHeldOpen = { AppState.shared.pendingApproval != nil || AppState.shared.voiceMailDraft != nil || T3CodeSource.shared.presentedRequest != nil }
         #endif
 
         // Voice: wake phrase detected → open listening island
@@ -759,7 +722,7 @@ final class IslandWindowController: NSWindowController {
         }
         // ⌘↩ — send chat message
         if cmd && event.keyCode == 36 && state.view == .prompt {
-            NotificationCenter.default.post(name: .islandSendMessage, object: nil)
+            T3CodeSource.shared.sendMessage()
             return true
         }
         // ⌘K — new conversation
@@ -1327,15 +1290,7 @@ final class IslandWindowController: NSWindowController {
         let panelW = window?.frame.width  ?? 720
         let (islandW, fixedH) = islandSize(mode: s.mode, view: s.view,
                                             progress: s.uploadProgress, nw: notchW, nh: notchH)
-        // Chat view resizes dynamically — must match IslandContainer.chatPromptHeight
-        let islandH: CGFloat
-        if s.mode == .expanded && s.view == .prompt {
-            let base: CGFloat = 240
-            let perMsg: CGFloat = 40
-            islandH = min(300, base + CGFloat(s.chatHistory.count) * perMsg)
-        } else {
-            islandH = fixedH
-        }
+        let islandH = fixedH
         let islandMinX = (panelW - islandW) / 2
         let (cx, cy, diameter, _) = botPosition(mode: s.mode, view: s.view,
                                                   islandW: islandW, islandH: islandH,
@@ -1434,14 +1389,7 @@ final class IslandPanel: NSPanel {
         let s = AppState.shared
         let (w, fixedH) = islandSize(mode: s.mode, view: s.view,
                                       progress: s.uploadProgress, nw: nw, nh: nh)
-        let h: CGFloat
-        if s.mode == .expanded && s.view == .prompt {
-            let base: CGFloat = 240
-            let perMsg: CGFloat = 40
-            h = min(300, base + CGFloat(s.chatHistory.count) * perMsg)
-        } else {
-            h = fixedH
-        }
+        let h = fixedH
         return CGRect(x: (frame.width - w) / 2, y: frame.height - h, width: w, height: h)
     }
 }

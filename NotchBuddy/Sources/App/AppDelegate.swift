@@ -277,18 +277,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         islandController = IslandWindowController()
         islandController?.showWindow(nil)
         islandController?.fsm.launch()
-        HookServer.shared.start()
+        // Legacy hook sources are retained in code, but this app is T3-only.
         #if !APPSTORE
         _ = VoiceEngine.shared  // registers system observers; starts mic only if the user enabled voice
         FlowDictation.shared.start()  // watches the dictation key only if Flow dictation is on
         #endif
-        N8nPoller.shared.start()
-        VercelPoller.shared.start()
-        ResendPoller.shared.start()
-        GithubPoller.shared.start()
-        StripePoller.shared.start()
-        CalcomPoller.shared.start()
-        NotionPoller.shared.start()
+        T3CodeSource.shared.start()
         NotificationCenter.default.addObserver(self, selector: #selector(openSettingsFromNotification(_:)),
                                                name: .openFullSettings, object: nil)
         // After the greeting ends, fly Mochi back to the desktop if it was there at last quit

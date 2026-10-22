@@ -11,7 +11,7 @@ enum HubPage: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 
     static let flowPages: [HubPage] = [.dictation, .notes, .insights, .dictionary, .snippets, .styles, .settings]
-    static let notchPages: [HubPage] = [.general, .pills, .agents, .chat, .integrations, .voice, .shortcuts]
+    static let notchPages: [HubPage] = [.general, .pills, .agents, .shortcuts]
 
     /// The section of Settings this page shows, for the notch's pages.
     var settingsSection: String? {
