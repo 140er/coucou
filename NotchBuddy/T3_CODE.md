@@ -11,17 +11,28 @@ rejects non-T3 pills. A single T3 connection card is shown until projects load.
 Each project has a stable pill ID and displays running, needs answer, approval,
 done, error or idle. Status aggregates all active threads, including subagents.
 The thread opened by a pill prefers an active parent of subagents (the
-orchestrator), otherwise the most urgent/recent thread. Clicking a project pill
-selects it and opens that thread in T3. The project card lists its other threads;
-chat has a thread picker. All project pills are scrollable, without the old
+orchestrator), otherwise the most urgent/recent thread. Clicking a project pill switches the bot inside Coucou and restores its selected
+thread. The project card and chat picker list top-level threads/orchestrators;
+subagents stay hidden from chat targets. Only the explicit arrow opens T3 in a
+browser. Projects have distinct colors persisted by project ID. Chat also has a
+project switcher. All project pills are scrollable, without the old
 four-pill limit. Empty projects appear idle and can be opened in T3 to create a
 thread. Project/thread removal updates the pills immediately.
 
-Approvals use the existing card and belong to their project pill. The shell owns
-pending state; a thread projection enriches prompts. Allow/Deny dispatch
-`runtime-request.respond` and remain pending until the shell resolves them.
-Questions show **Needs answer** and can be answered in T3. Reconnect uses a
-1–30 second backoff, clears stale live state and deduplicates approval sounds.
+Approvals and questions from any thread, including subagents, open a native
+popup labelled with their project and thread. Questions support choices,
+multiple selections and custom text; answers use question IDs and option values
+in `runtime-request.respond`. Authentication requests offer an explicit T3 link.
+The popup stays pending until the shell resolves the request. **Later** dismisses
+it without answering; the project's request indicator reopens it. A request never
+switches chat to a subagent. Projection updates enrich question/approval details.
+Reconnect uses a 1–30 second backoff and clears stale live state.
+
+Home and chat share their rendered geometry with the native window's mouse hit
+region. Only the active view is mounted. Home has scrollable project/thread
+lists; chat uses the full width with a visible composer and no decorative bot
+column. Command-Return sends to the selected thread. The plus icon is an action,
+so it does not appear as a second selected chat tab.
 
 ## Chat and attachments
 
@@ -104,7 +115,11 @@ Manual checks on the Mac:
    non-T3 selections saved to verify migration.
 2. Start/finish a run, trigger a question/approval (including a subagent), and
    check the project status, sound, approval prompt and Allow/Deny ownership.
-   Click a project with an active orchestrator and confirm its T3 thread opens.
+   Click a different project and verify Coucou switches locally without opening
+   a browser. Use the explicit arrow to open T3. Confirm different projects have
+   different colors after relaunch. Verify subagent requests open a popup and
+   do not add subagents to the chat picker. Answer choices/custom text, dismiss
+   with Later, reopen with the request indicator, and resolve a request in T3.
 3. Select another thread in chat. Send to an idle thread, then send while it is
    running and confirm steering. Watch the latest assistant text stream. Change
    project and verify draft and attachment state do not cross threads.
@@ -116,11 +131,12 @@ Manual checks on the Mac:
 
 ## Linux verification
 
-Swift 6.0.3: `swift test --package-path NotchBuddy --jobs 2` passes 15 tests,
+Swift 6.0.3: `swift test --package-path NotchBuddy --jobs 2` passes 18 tests,
 covering protocol parsing/state precedence, project/orchestrator mapping,
 metadata refresh/removal, approval prompts/alert deduplication, safe URLs,
 start/steer dispatch shapes, upload metadata/POST/reference shapes, attachment
-limits and streamed reply replacement. Changed native sources pass Swift syntax
+limits, streamed reply replacement, subagent filtering, stable distinct colors,
+and popup answer command building. Changed native sources pass Swift syntax
 checks. The connection source also passes strict Swift 6 concurrency type-checks
 with temporary Linux UI/resource stubs; this does not verify native frameworks.
 

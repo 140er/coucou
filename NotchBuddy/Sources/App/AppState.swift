@@ -690,6 +690,9 @@ final class AppState: ObservableObject {
 
     func replaceT3Tasks(_ pills: [T3ProjectPill]) {
         let old = Dictionary(uniqueKeysWithValues: tasks.map { ($0.id, $0) })
+        let previousColors = UserDefaults.standard.dictionary(forKey: "t3ProjectColors") as? [String: String] ?? [:]
+        let colors = T3ProjectColors.assign(pills.map(\.projectId), previous: previousColors)
+        if colors != previousColors { UserDefaults.standard.set(colors, forKey: "t3ProjectColors") }
         let next: [AgentTask]
         if pills.isEmpty {
             next = [AgentTask(id: T3ProjectPill.fallbackId, name: "T3 Code", color: "#38BDF8",
@@ -707,6 +710,7 @@ final class AppState: ObservableObject {
                 var task = old[pill.id] ?? AgentTask(id: pill.id, name: pill.name, color: "#38BDF8",
                     state: state, steps: [], source: .agent, isIntegration: true)
                 task.name = pill.name; task.state = state
+                task.color = PillColors.color(for: pill.id, catalogColor: colors[pill.projectId] ?? "#38BDF8", in: pillColors)
                 task.pillBadge = pill.status == .approval ? .approval : pill.status == .error ? .error : pill.status == .question ? .finished : nil
                 return task
             }

@@ -4107,64 +4107,19 @@ struct TickerShimmerText: View {
 struct AgentPillsView: View {
     @ObservedObject var state: AppState
     @State private var swapping = false
-
-    private var others: [AgentTask] {
-        state.tasks.filter { $0.id != state.focusId }
-    }
-
-    private var displayTasks: [AgentTask] {
-        state.tasks.filter { T3ProjectPill.owns($0.id) }
-    }
-
-    private let columns = [
-        GridItem(.flexible(), spacing: 4),
-        GridItem(.flexible(), spacing: 4)
-    ]
-
+    private let columns = [GridItem(.flexible(), spacing: 6), GridItem(.flexible(), spacing: 6)]
     var body: some View {
-        VStack(spacing: 0) {
-            Spacer(minLength: 0)
-            ScrollView {
-            LazyVGrid(columns: columns, spacing: 4) {
-                ForEach(displayTasks) { task in
-                    #if !APPSTORE
-                    if task.id == "integration_music" {
-                        MusicPill(task: task, state: state, swapping: $swapping) {
-                            swapping = true
-                            state.setFocus(task.id)
-                            SoundEngine.shared.play("blip")
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { swapping = false }
-                        }
-                    } else if task.id == "integration_spotify" {
-                        SpotifyPill(task: task, swapping: $swapping) {
-                            swapping = true
-                            state.setFocus(task.id)
-                            SoundEngine.shared.play("blip")
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { swapping = false }
-                        }
-                    } else {
-                        AgentPill(task: task, state: state, swapping: $swapping) {
-                            swapping = true
-                            state.setFocus(task.id)
-                            SoundEngine.shared.play("blip")
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { swapping = false }
-                        }
-                    }
-                    #else
+        ScrollView {
+            LazyVGrid(columns: columns, spacing: 6) {
+                ForEach(state.tasks.filter { T3ProjectPill.owns($0.id) }) { task in
                     AgentPill(task: task, state: state, swapping: $swapping) {
-                        swapping = true
                         state.setFocus(task.id)
-                        SoundEngine.shared.play("blip")
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { swapping = false }
+                        if state.soundEnabled { SoundEngine.shared.play("blip") }
                     }
-                    #endif
+                    .help(task.name)
                 }
-            }
-            .padding(.horizontal, 8)
-            }
-            Spacer(minLength: 0)
+            }.padding(10)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
@@ -4182,7 +4137,7 @@ struct AgentPill: View {
     var body: some View {
         Button(action: {
             onTap()
-            T3CodeSource.shared.select(pill: task.id, openInT3: true)
+            T3CodeSource.shared.select(pill: task.id)
         }) {
             ZStack(alignment: .topTrailing) {
                 ZStack {

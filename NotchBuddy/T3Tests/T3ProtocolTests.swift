@@ -181,7 +181,7 @@ final class T3ProtocolTests: XCTestCase {
         XCTAssertEqual(T3ProjectPill.map(session).first?.status, .approval)
         parent["status"] = "completed"
         session.applyShell(["kind": "thread.updated", "thread": parent])
-        XCTAssertEqual(T3ProjectPill.map(session).first?.threadId, "child")
+        XCTAssertEqual(T3ProjectPill.map(session).first?.threadId, "parent") // child requests never become chat targets
         session.applyShell(["kind": "thread.removed", "threadId": "child"])
         XCTAssertEqual(T3ProjectPill.map(session).first?.status, .done)
         session.applyShell(["kind": "thread.updated", "thread": thread(kind: "user_input")])
@@ -268,6 +268,55 @@ final class T3ProtocolTests: XCTestCase {
         XCTAssertEqual(session.messages["t"]?.first?.streaming, false)
         session.applyShell(["kind": "thread.removed", "threadId": "t"])
         XCTAssertNil(session.messages["t"])
+    }
+
+    func testChatTargetsExcludeSubagentsButKeepForksAndRequests() throws {
+        var root = thread(); root["id"] = "root"
+        var child = thread(kind: "command"); child["id"] = "child"
+        child["lineage"] = ["parentThreadId": "root", "relationshipToParent": "subagent"]
+        var fork = thread(); fork["id"] = "fork"
+        fork["lineage"] = ["parentThreadId": "root", "relationshipToParent": "fork"]
+        var session = T3Session()
+        session.applyShell(snapshot([root, child, fork]))
+        XCTAssertEqual(Set(session.chatThreads(projectId: "p").map(\.id)), Set(["root", "fork"]))
+        XCTAssertEqual(session.pendingThreads.map(\.id), ["child"])
+        let request = T3PendingRequest.list(session).first
+        XCTAssertEqual(request?.threadId, "child")
+        XCTAssertEqual(request?.projectName, "Coucou")
+        XCTAssertEqual(try request?.response(commandId: "c", accept: true)["decision"] as? String, "accept")
+    }
+    func testProjectColorsAreDistinctAndStayWithTheirProjects() {
+        let ids = (0..<30).map { "project-\($0)" }
+        let colors = T3ProjectColors.assign(ids, previous: [:])
+        XCTAssertEqual(Set(colors.values).count, ids.count)
+        XCTAssertEqual(T3ProjectColors.assign(Array(ids.reversed()), previous: [:]), colors)
+        let changed = T3ProjectColors.assign(["new", "project-0"], previous: colors)
+        XCTAssertEqual(changed["project-0"], colors["project-0"])
+        XCTAssertFalse(Set(colors.values).contains(changed["new"]!))
+    }
+    func testQuestionPopupUsesRequestAndQuestionIdsAndOptionValues() throws {
+        var session = T3Session()
+        session.applyShell(snapshot([thread(kind: "user_input")]))
+        session.applyThread(id: "t", item: ["kind": "snapshot", "projection": ["turnItems": [[
+            "type": "user_input_request", "requestId": "r", "questions": [
+                ["id": "q1", "question": "Choose", "options": [["label": "Label", "value": "wire-value", "description": "Details"]], "allowCustomAnswer": false],
+                ["id": "q2", "question": "Choose several", "multiSelect": true, "options": [["label": "A"], ["label": "B"]]],
+                ["id": "q3", "question": "Explain", "options": []]
+            ]
+        ]]]])
+        let request = try XCTUnwrap(T3PendingRequest.list(session).first)
+        let command = try request.response(commandId: "cmd", selections: ["q1": ["wire-value"], "q2": ["A", "B"]], custom: ["q3": "My answer"])
+        XCTAssertEqual(command["type"] as? String, "runtime-request.respond")
+        XCTAssertEqual(command["threadId"] as? String, "t")
+        XCTAssertEqual(command["requestId"] as? String, "r")
+        XCTAssertNil(command["decision"])
+        let answers = try XCTUnwrap(command["answers"] as? [String: Any])
+        XCTAssertEqual(answers["q1"] as? String, "wire-value")
+        XCTAssertEqual(answers["q2"] as? [String], ["A", "B"])
+        XCTAssertEqual(answers["q3"] as? String, "My answer")
+        XCTAssertThrowsError(try request.response(commandId: "cmd", selections: ["q1": ["Label"]]))
+        session.applyShell(["kind": "thread.updated", "thread": thread()])
+        XCTAssertTrue(T3PendingRequest.list(session).isEmpty)
     }
 
 }

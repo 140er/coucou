@@ -48,6 +48,7 @@ struct T3Thread: Identifiable, Equatable, Sendable {
         lastError = raw["lastError"] as? String ?? ""
     }
 
+    var isSubagent: Bool { relationshipToParent == "subagent" }
     var isApproval: Bool {
         !requestId.isEmpty && !requestKind.isEmpty && !["user_input", "auth_refresh"].contains(requestKind)
     }
@@ -82,6 +83,7 @@ struct T3Project: Identifiable, Equatable, Sendable {
 struct T3Session {
     private(set) var projects: [String: T3Project] = [:]
     private(set) var threads: [String: T3Thread] = [:]
+    private(set) var questions: [String: [String: [T3InputQuestion]]] = [:]
     private(set) var messages: [String: [T3ChatMessage]] = [:]
     private(set) var prompts: [String: [String: String]] = [:]
 
@@ -95,6 +97,12 @@ struct T3Session {
             if $0.updatedAt != $1.updatedAt { return $0.updatedAt > $1.updatedAt }
             return ($0.title, $0.id) < ($1.title, $1.id)
         }
+    }
+    func chatThreads(projectId: String? = nil) -> [T3Thread] {
+        sortedThreads(projectId: projectId).filter { !$0.isSubagent }
+    }
+    var pendingThreads: [T3Thread] {
+        sortedThreads().filter { !$0.requestId.isEmpty && !$0.requestKind.isEmpty }
     }
     var approvalThreads: [T3Thread] {
         threads.values.filter(\.isApproval).sorted { ($0.requestCreatedAt, $0.id) < ($1.requestCreatedAt, $1.id) }
@@ -132,6 +140,7 @@ struct T3Session {
             if let id = item["threadId"] as? String { threads.removeValue(forKey: id) }
         default: break
         }
+        questions = questions.filter { threads[$0.key] != nil }
         messages = messages.filter { threads[$0.key] != nil }
         prompts = prompts.filter { threads[$0.key] != nil }
     }
@@ -149,6 +158,7 @@ struct T3Session {
             let snapshot = item["snapshot"] as? [String: Any]
             if let projection = (item["projection"] ?? snapshot?["projection"]) as? [String: Any] {
                 prompts[id] = Self.collectPrompts(projection)
+                questions[id] = T3InputQuestion.collect(projection)
                 messages[id] = (projection["messages"] as? [[String: Any]] ?? []).compactMap(T3ChatMessage.init).suffix(100).map { $0 }
             }
         } else if item["kind"] as? String == "event", let event = item["event"] as? [String: Any],
@@ -156,6 +166,7 @@ struct T3Session {
             let type = event["type"] as? String ?? ""
             if ["turn-item.updated", "runtime-request.updated"].contains(type) {
                 prompts[id, default: [:]].merge(Self.collectPrompts(payload)) { _, new in new }
+                questions[id, default: [:]].merge(T3InputQuestion.collect(payload)) { _, new in new }
             }
             if type == "message.updated", let message = T3ChatMessage(payload) {
                 var rows = messages[id] ?? []
@@ -274,7 +285,7 @@ struct T3ProjectPill: Identifiable, Equatable, Sendable {
                     ["preparing", "starting", "running", "waiting"].contains($0.runStatus)
             }
             return T3ProjectPill(id: id(project: project.id), projectId: project.id, name: project.title,
-                                 threadId: (orchestrator ?? threads.first)?.id,
+                                 threadId: (orchestrator ?? threads.first(where: { !$0.isSubagent }))?.id,
                                  status: threads.first?.status ?? .idle)
         }
     }
@@ -382,5 +393,102 @@ enum T3Composer {
             "attachments": attachments.map(\.reference), "dispatchMode": mode]
         if serverResolvesContext { command["deliveryIntent"] = running ? "steer" : "auto" }
         return command
+    }
+}
+
+struct T3InputOption: Equatable, Sendable {
+    let label: String
+    let description: String
+    let value: String
+}
+struct T3InputQuestion: Identifiable, Equatable, Sendable {
+    let id: String
+    let question: String
+    let options: [T3InputOption]
+    let multiple: Bool
+    let custom: Bool
+    let required: Bool
+    init?(_ raw: [String: Any]) {
+        guard let id = raw["id"] as? String, let question = raw["question"] as? String else { return nil }
+        self.id = id; self.question = question
+        options = (raw["options"] as? [[String: Any]] ?? []).compactMap {
+            guard let label = $0["label"] as? String else { return nil }
+            return T3InputOption(label: label, description: $0["description"] as? String ?? "", value: $0["value"] as? String ?? label)
+        }
+        multiple = raw["multiSelect"] as? Bool ?? false
+        custom = raw["allowCustomAnswer"] as? Bool ?? true
+        required = raw["required"] as? Bool ?? true
+    }
+    static func collect(_ raw: [String: Any]) -> [String: [T3InputQuestion]] {
+        var found: [String: [T3InputQuestion]] = [:]
+        let item = raw["item"] as? [String: Any] ?? raw
+        if item["type"] as? String == "user_input_request", let id = item["requestId"] as? String {
+            found[id] = (item["questions"] as? [[String: Any]] ?? []).compactMap(Self.init)
+        }
+        for key in ["turnItems", "visibleTurnItems"] {
+            for child in raw[key] as? [[String: Any]] ?? [] { found.merge(collect(child)) { first, _ in first } }
+        }
+        return found
+    }
+}
+
+struct T3PendingRequest: Identifiable, Equatable, Sendable {
+    let id: String
+    let threadId: String
+    let projectId: String
+    let projectName: String
+    let threadTitle: String
+    let kind: String
+    let prompt: String
+    let questions: [T3InputQuestion]
+    static func list(_ session: T3Session) -> [T3PendingRequest] {
+        session.pendingThreads.map { thread in
+            T3PendingRequest(id: thread.requestId, threadId: thread.id, projectId: thread.projectId,
+                projectName: session.projects[thread.projectId]?.title ?? "T3 Code", threadTitle: thread.title,
+                kind: thread.requestKind, prompt: session.prompts[thread.id]?[thread.requestId] ?? thread.requestLabel,
+                questions: session.questions[thread.id]?[thread.requestId] ?? [])
+        }
+    }
+    func response(commandId: String, accept: Bool? = nil, selections: [String: [String]] = [:], custom: [String: String] = [:]) throws -> [String: Any] {
+        var command: [String: Any] = ["type": "runtime-request.respond", "commandId": commandId, "threadId": threadId, "requestId": id]
+        if kind == "user_input" {
+            guard !questions.isEmpty else { throw T3ClientError(message: "Waiting for the question details.") }
+            var answers: [String: Any] = [:]
+            for question in questions {
+                let text = (custom[question.id] ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+                let values = (selections[question.id] ?? []).filter { value in question.options.contains { $0.value == value } }
+                if question.custom && !text.isEmpty { answers[question.id] = text }
+                else if !values.isEmpty { answers[question.id] = question.multiple ? values : String(values[0]) as Any }
+                else if question.required { throw T3ClientError(message: "Answer each required question before sending.") }
+            }
+            command["answers"] = answers
+        } else {
+            guard kind != "auth_refresh", let accept else { throw T3ClientError(message: "Complete authentication in T3 Code.") }
+            command["decision"] = accept ? "accept" : "decline"
+        }
+        return command
+    }
+}
+
+enum T3ProjectColors {
+    static let palette = ["#38BDF8", "#F5A524", "#65D5A1", "#EF92BC", "#B2A0F5", "#E7D16B", "#F58973", "#84CBD7"]
+    static func assign(_ ids: [String], previous: [String: String]) -> [String: String] {
+        var result = previous
+        var used = Set(previous.values)
+        for id in ids.sorted() where result[id] == nil {
+            var candidate = palette.first { !used.contains($0) }
+            var index = used.count
+            while candidate == nil {
+                // Extra projects get deterministic, distinct light RGB colors.
+                let value = (index &* 0x9E3779) & 0xFFFFFF
+                let rgb = ((value & 0x7F7F7F) | 0x808080)
+                let color = String(format: "#%06X", rgb)
+                if !used.contains(color) { candidate = color }
+                index += 1
+            }
+            result[id] = candidate!
+            used.insert(candidate!)
+        }
+        return result
     }
 }

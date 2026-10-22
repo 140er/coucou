@@ -21,6 +21,10 @@ final class T3CodeSource: ObservableObject {
     @Published private(set) var connection = "Not configured"
     @Published private(set) var connected = false
     @Published private(set) var deciding: Set<String> = []
+    @Published private(set) var presentedRequest: T3PendingRequest?
+    @Published private(set) var requestError: String?
+    private var dismissedRequests: Set<String> = []
+    private var rememberedThreads: [String: String] = [:]
     private var base: URL?
     private var environment: String?
     private var supervisor: Task<Void, Never>?
@@ -60,8 +64,7 @@ final class T3CodeSource: ObservableObject {
                     self.restart()
                 }
                 if self.connected {
-                    self.presentApproval()
-
+                    self.presentRequests()
                 }
                 try? await Task.sleep(for: .seconds(1))
             }
@@ -73,6 +76,7 @@ final class T3CodeSource: ObservableObject {
         clearLive()
         base = nil; environment = nil
         alerts = T3Alerts()
+        dismissedRequests.removeAll()
         guard enabled else { connection = "Disabled"; return }
         let values = Self.keys.map { KeychainStore.shared.get($0) ?? "" }
         guard let base = T3Protocol.origin(values[0]),
@@ -118,6 +122,8 @@ final class T3CodeSource: ObservableObject {
         supportsUploads = false; maxFileBytes = nil; serverResolvesContext = false
         // Keep seen approvals across reconnects, like the reference's Seen object.
         clearCard()
+        presentedRequest = nil; requestError = nil
+        AppState.shared.isPinned = false
         AppState.shared.replaceT3Tasks([])
     }
     private func check(_ current: UUID) throws {
@@ -262,7 +268,7 @@ final class T3CodeSource: ObservableObject {
     }
     private func publish() {
         let app = AppState.shared
-        let open = Set(session.approvalThreads.map(\.requestId))
+        let open = Set(session.pendingThreads.map(\.requestId))
         deciding.formIntersection(open)
         cardIds = cardIds.filter { open.contains($0.key) }
         let events = alerts.take(session)
@@ -280,7 +286,7 @@ final class T3CodeSource: ObservableObject {
         }
         app.replaceT3Tasks(T3ProjectPill.map(session))
         if let selectedThreadId, session.threads[selectedThreadId] == nil { self.selectedThreadId = nil }
-        presentApproval()
+        presentRequests()
     }
     private func clearCard() {
         let app = AppState.shared
@@ -289,32 +295,61 @@ final class T3CodeSource: ObservableObject {
         app.isPinned = false
         if app.view == .approval { app.view = .overview }
     }
-    private func presentApproval() {
-        let app = AppState.shared
-        if let shown = app.pendingApproval, T3ProjectPill.owns(shown.pillId) {
-            if let thread = session.threads[shown.sessionId], cardIds[thread.requestId] == shown.id, thread.isApproval {
-                app.pendingApproval?.command = session.prompts[thread.id]?[thread.requestId] ?? thread.requestLabel
-                app.pendingApproval?.queueCount = session.approvalThreads.count
-                return
+    var pendingRequests: [T3PendingRequest] { T3PendingRequest.list(session) }
+    private func presentRequests() {
+        let pending = pendingRequests
+        dismissedRequests.formIntersection(Set(pending.map(\.id)))
+        if let shown = presentedRequest {
+            if let live = pending.first(where: { $0.id == shown.id && $0.threadId == shown.threadId }) {
+                if live != shown { presentedRequest = live }
+            } else {
+                presentedRequest = nil
+                requestError = nil
+                AppState.shared.isPinned = false
             }
-            clearCard()
+            return
         }
-        let focusedProject = T3ProjectPill.map(session).first { $0.id == app.focusId }?.projectId
-        let requests = session.approvalThreads
-        guard app.pendingApproval == nil, app.pendingQuestion == nil,
-              let thread = requests.first(where: { $0.projectId == focusedProject }) ?? requests.first else { return }
-        let id = cardIds[thread.requestId] ?? UUID()
-        cardIds[thread.requestId] = id
-        app.pendingApproval = ApprovalInfo(sessionId: thread.id, tool: thread.requestLabel,
-            command: session.prompts[thread.id]?[thread.requestId] ?? thread.requestLabel,
-            inputKey: thread.requestId, pillId: T3ProjectPill.id(project: thread.projectId), id: id, queueCount: session.approvalThreads.count,
-            projectName: session.projects[thread.projectId]?.title ?? thread.title)
-        app.isPinned = true
-        app.focusId = T3ProjectPill.id(project: thread.projectId)
-        selectedThreadId = thread.id
-        Task { try? await syncSubscriptions() }
-        if app.mode == .expanded { app.view = .approval }
-        else { NotificationCenter.default.post(name: .hookExpand, object: IslandView.approval) }
+        guard let next = pending.first(where: { !dismissedRequests.contains($0.id) }) else { return }
+        showRequest(next)
+    }
+    private func showRequest(_ request: T3PendingRequest) {
+        presentedRequest = request
+        requestError = nil
+        AppState.shared.isPinned = true
+        if AppState.shared.mode != .expanded {
+            NotificationCenter.default.post(name: .hookExpand, object: IslandView.overview)
+        }
+    }
+    func showRequests(projectId: String? = nil) {
+        if let request = pendingRequests.first(where: { projectId == nil || $0.projectId == projectId }) {
+            dismissedRequests.remove(request.id)
+            showRequest(request)
+        }
+    }
+    func dismissRequest() {
+        if let shown = presentedRequest { dismissedRequests.insert(shown.id) }
+        presentedRequest = nil
+        requestError = nil
+        AppState.shared.isPinned = false
+    }
+    func respond(_ request: T3PendingRequest, accept: Bool? = nil, selections: [String: [String]] = [:], custom: [String: String] = [:]) {
+        guard connected, pendingRequests.contains(where: { $0.id == request.id && $0.threadId == request.threadId }),
+              !deciding.contains(request.id) else { return }
+        do {
+            let command = try request.response(commandId: UUID().uuidString, accept: accept, selections: selections, custom: custom)
+            deciding.insert(request.id); requestError = nil
+            let current = generation
+            Task {
+                do { _ = try await rpc("orchestration.dispatchCommand", payload: command) }
+                catch {
+                    guard generation == current else { return }
+                    deciding.remove(request.id)
+                    if presentedRequest?.id == request.id {
+                        requestError = (error as? T3ClientError)?.message ?? "Could not send the answer. Try again."
+                    }
+                }
+            }
+        } catch { requestError = (error as? T3ClientError)?.message ?? "Check your answer." }
     }
     func open(thread: T3Thread? = nil) {
         guard let base else { return }
@@ -323,21 +358,23 @@ final class T3CodeSource: ObservableObject {
     var pills: [T3ProjectPill] { T3ProjectPill.map(session) }
     var selectedThread: T3Thread? {
         let project = pills.first { $0.id == AppState.shared.focusId }
-        if let selectedThreadId, let thread = session.threads[selectedThreadId], thread.projectId == project?.projectId { return thread }
+        if let selectedThreadId, let thread = session.threads[selectedThreadId], !thread.isSubagent, thread.projectId == project?.projectId { return thread }
         return project?.threadId.flatMap { session.threads[$0] }
     }
     func select(pill id: String, openInT3: Bool = false) {
         guard let pill = pills.first(where: { $0.id == id }) else { return }
         AppState.shared.setFocus(id)
-        selectedThreadId = pill.threadId
+        let remembered = rememberedThreads[pill.projectId].flatMap { session.threads[$0] }
+        selectedThreadId = remembered?.isSubagent == false ? remembered?.id : pill.threadId
         chatError = nil
         Task { try? await syncSubscriptions() }
         if openInT3 { open(thread: selectedThread) }
     }
     func selectThread(_ id: String) {
-        guard let thread = session.threads[id], pills.contains(where: { $0.projectId == thread.projectId }) else { return }
+        guard let thread = session.threads[id], !thread.isSubagent, pills.contains(where: { $0.projectId == thread.projectId }) else { return }
         AppState.shared.setFocus(T3ProjectPill.id(project: thread.projectId))
         selectedThreadId = id
+        rememberedThreads[thread.projectId] = id
         chatError = nil
         Task { try? await syncSubscriptions() }
     }
@@ -349,7 +386,7 @@ final class T3CodeSource: ObservableObject {
     private func syncSubscriptions() async throws {
         guard let socket else { return }
         let current = generation
-        var wanted = Set(session.approvalThreads.map(\.id))
+        var wanted = Set(session.pendingThreads.map(\.id))
         if let thread = selectedThread { wanted.insert(thread.id) }
         let old = subscriptions
         subscriptions = wanted

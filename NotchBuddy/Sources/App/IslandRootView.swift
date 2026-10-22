@@ -33,7 +33,7 @@ struct IslandContainer: View {
     private let openSpring = Animation.spring(response: 0.5, dampingFraction: 0.72)
     private let closeEase  = Animation.timingCurve(0.45, 0, 0.2, 1, duration: 0.34)
 
-    private var chatPromptHeight: CGFloat { 300 }
+    private var chatPromptHeight: CGFloat { IslandConst.viewLayouts[.prompt]!.height }
 
     /// Pixels the content must be pushed down to clear the concave ear transparent area.
     /// = 0 in expanded mode (no ears), = earRadius in compact/notch mode.
@@ -375,6 +375,7 @@ func botPosition(mode: IslandMode, view: IslandView, islandW: CGFloat, islandH: 
             : (islandW / 2, resting.botCenterY, resting.botDiameter, 1)
     case .compact: return (40, resting.botCenterY, resting.botDiameter, 1)
     case .expanded:
+        if view == .prompt { return (0, 0, 0, 0) }
         let layout = IslandConst.viewLayouts[view]!
         let diameter = layout.botDiameter
         // Uploading: Mochi dot rides the leading edge of the progress fill.
@@ -477,6 +478,7 @@ struct CountdownBar: View {
 
 struct IslandContentView: View {
     @ObservedObject var state: AppState
+    @ObservedObject private var source = T3CodeSource.shared
 
     var body: some View {
         VStack(spacing: 0) {
@@ -485,35 +487,18 @@ struct IslandContentView: View {
                 .opacity(state.view == .confused ? 0 : 1)
                 .animation(.easeInOut(duration: 0.2), value: state.view == .confused)
 
-            ZStack {
-                ForEach(IslandView.allCases, id: \.self) { v in
-                    let active = state.view == v
-                    // Views that fill available height instead of the fixed 98pt content frame:
-                    // chat (prompt) is always flexible; mail is flexible only when active so
-                    // it doesn't push the ZStack taller when inactive.
-                    let isTall = v == .prompt || (v == .mail && active)
-                    let anim: Animation = active
-                        ? .spring(response: 0.4, dampingFraction: 0.8).delay(0.16)
-                        : .easeIn(duration: 0.16)
-                    IslandViewContent(view: v, state: state)
-                        // Views behind the active one stay mounted (for the cross-fade)
-                        // but stop their endless animations: nobody sees them.
-                        .environment(\.islandViewActive, active)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: isTall ? nil : 98)
-                        .frame(minHeight: (isTall && !active) ? 0 : nil, maxHeight: isTall ? .infinity : nil)
-                        .opacity(active ? 1 : 0)
-                        .scaleEffect(active ? 1 : 0.97)
-                        .allowsHitTesting(active)
-                        .animation(anim, value: state.view)
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .padding(.horizontal, 10)
+            IslandViewContent(view: state.view, state: state)
+                .environment(\.islandViewActive, true)
+                .id(state.view)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding(.horizontal, 10)
         }
         .padding(.top, 8)
         .padding(.bottom, 10)
         .foregroundColor(Color(hex: "#F5F6F8"))
+        .sheet(item: Binding(get: { source.presentedRequest }, set: { if $0 == nil { source.dismissRequest() } })) { request in
+            T3RequestPopup(request: request)
+        }
     }
 }
 
@@ -527,7 +512,7 @@ struct IslandHeader: View {
 
     /// Pending approval or mail draft: the island refuses to fold (fsm.isHeldOpen), so the
     /// close cross is not shown.
-    private var heldOpen: Bool { state.pendingApproval != nil || state.voiceMailDraft != nil }
+    private var heldOpen: Bool { state.pendingApproval != nil || state.voiceMailDraft != nil || T3CodeSource.shared.presentedRequest != nil }
 
     var body: some View {
         HStack(spacing: 0) {
@@ -597,6 +582,7 @@ struct TabButton: View {
     @State private var isHovered = false
 
     private var isOn: Bool {
+        if icon == "plus" { return false } // attachment action, not a second chat tab
         if view == .overview { return state.view == .overview || state.view == .empty }
         return state.view == view
     }

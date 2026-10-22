@@ -44,7 +44,7 @@ struct T3CodeSettingsView: View {
                     Text(source.connection).font(.system(size: 11)).foregroundStyle(.secondary)
                 }
                 if let validation { Text(validation).font(.system(size: 11)).foregroundStyle(.red) }
-                Text("Credentials are saved in this Mac’s Keychain. Questions are answered in T3 Code.")
+                Text("Credentials are saved in this Mac’s Keychain. Requests appear as popups in Coucou.")
                     .font(.system(size: 11)).foregroundStyle(.secondary)
             }.padding(6)
         }
@@ -56,43 +56,56 @@ struct T3CodeCardView: View {
     let pillId: String
     @ObservedObject private var source = T3CodeSource.shared
     private var project: T3ProjectPill? { source.pills.first { $0.id == pillId } }
+    private var color: Color { Color(hex: AppState.shared.focusTask?.color ?? "#38BDF8") }
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text(project?.name ?? "T3 Code").font(.system(size: 12, weight: .semibold))
-                Spacer()
-                Text(source.connection).font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
-                Button { source.restart() } label: { Image(systemName: "arrow.clockwise") }
-                    .buttonStyle(.plain).help("Reconnect")
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 6) {
+                Text(project?.name ?? "T3 Code").font(.system(size: 13, weight: .semibold)).lineLimit(1)
+                Spacer(minLength: 0)
+                Circle().fill(source.connected ? Color.green : Color.orange).frame(width: 5, height: 5).help(source.connection)
+                Button { source.open() } label: { Image(systemName: "arrow.up.right") }
+                    .buttonStyle(.plain).help("Open selected thread in browser")
             }
             if let project {
+                let requests = source.pendingRequests.filter { $0.projectId == project.projectId }
+                if !requests.isEmpty {
+                    Button { source.showRequests(projectId: project.projectId) } label: {
+                        Label("\(requests.count) waiting for you", systemImage: "exclamationmark.bubble")
+                            .font(.system(size: 11)).foregroundStyle(.orange)
+                    }.buttonStyle(.plain)
+                }
                 ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 8) {
-                        ForEach(source.session.sortedThreads(projectId: project.projectId)) { thread in
+                    VStack(alignment: .leading, spacing: 6) {
+                        ForEach(source.session.chatThreads(projectId: project.projectId)) { thread in
                             Button {
                                 source.selectThread(thread.id)
-                                source.open(thread: thread)
                             } label: {
-                                HStack {
-                                    Text(thread.title).lineLimit(1)
-                                    Spacer()
-                                    Text(T3StatusLabel.text(thread.status)).foregroundStyle(.secondary)
-                                    Image(systemName: "arrow.up.right")
-                                }.font(.system(size: 12))
-                            }.buttonStyle(.plain)
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(thread.title).font(.system(size: 12)).lineLimit(1)
+                                    Text(T3StatusLabel.text(thread.status)).font(.system(size: 11)).foregroundStyle(.secondary)
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.horizontal, 6).padding(.vertical, 5)
+                                .background(source.selectedThread?.id == thread.id ? color.opacity(0.12) : Color.clear)
+                                .clipShape(RoundedRectangle(cornerRadius: 5))
+                            }.buttonStyle(.plain).help(thread.title)
                         }
                     }
                 }
-                if project.threadId == nil {
-                    Button("No threads yet — open T3 Code") { source.open() }.buttonStyle(.plain)
+                if project.threadId != nil {
+                    Button("Chat with selected thread") { source.openChat() }
+                        .buttonStyle(.plain).font(.system(size: 11, weight: .medium)).foregroundStyle(color)
+                } else {
+                    Text("No top-level threads yet.").font(.system(size: 12)).foregroundStyle(.secondary)
                 }
             } else {
                 Text(source.connected ? "No projects yet. Create a project in T3 Code." : "Set the server URL and token in Settings → Agents.")
                     .font(.system(size: 12)).foregroundStyle(.secondary)
+                Button("Reconnect") { source.restart() }.buttonStyle(.plain)
+                Spacer(minLength: 0)
             }
-            Spacer(minLength: 0)
         }
-        .padding(.leading, 116).padding(.trailing, 16).padding(.vertical, 12)
+        .padding(.leading, 100).padding(.trailing, 12).padding(.vertical, 12)
     }
 }
 
@@ -150,12 +163,22 @@ struct T3ChatView: View {
         VStack(alignment: .leading, spacing: 6) {
             if let thread {
                 HStack {
-                    Text(app.focusTask?.name ?? "T3 Code").font(.system(size: 12, weight: .semibold))
+                    Menu {
+                        ForEach(source.pills) { pill in
+                            Button(pill.name) { source.select(pill: pill.id) }
+                        }
+                    } label: {
+                        Text(app.focusTask?.name ?? "T3 Code").font(.system(size: 12, weight: .semibold)).lineLimit(1)
+                    }.menuStyle(.borderlessButton).frame(width: 160, alignment: .leading)
                     Picker("Thread", selection: Binding(get: { thread.id }, set: { source.selectThread($0) })) {
-                        ForEach(source.session.sortedThreads(projectId: thread.projectId)) { row in
+                        ForEach(source.session.chatThreads(projectId: thread.projectId)) { row in
                             Text(row.title).tag(row.id)
                         }
-                    }.labelsHidden()
+                    }.labelsHidden().pickerStyle(.menu).frame(maxWidth: .infinity)
+                    if source.pendingRequests.contains(where: { $0.projectId == thread.projectId }) {
+                        Button { source.showRequests(projectId: thread.projectId) } label: { Image(systemName: "exclamationmark.bubble") }
+                            .buttonStyle(.plain).foregroundStyle(.orange).help("Answer pending request")
+                    }
                     Button { source.open(thread: thread) } label: { Image(systemName: "arrow.up.right") }.buttonStyle(.plain)
                 }
                 ScrollViewReader { scroll in
@@ -165,19 +188,24 @@ struct T3ChatView: View {
                                 VStack(alignment: .leading, spacing: 3) {
                                     Text(message.role == "assistant" ? "T3 Code" : "You")
                                         .font(.system(size: 11, weight: .semibold)).foregroundStyle(.secondary)
-                                    Text(message.text).font(.system(size: 12)).textSelection(.enabled)
+                                    Text(message.text).font(.system(size: 12)).textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
                                     ForEach(Array(message.files.enumerated()), id: \.offset) { _, name in
                                         Label(name, systemImage: "paperclip").font(.system(size: 11))
                                     }
                                     if message.streaming { Text("Replying…").font(.system(size: 11)).foregroundStyle(.secondary) }
                                 }.frame(maxWidth: .infinity, alignment: .leading).id(message.id)
                             }
-                        }
+                        }.padding(.horizontal, 10).padding(.vertical, 8)
                     }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color(hex: "#111214"))
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .onAppear { if let last = source.session.messages[thread.id]?.last { scroll.scrollTo(last.id, anchor: .bottom) } }
+                    .onChange(of: thread.id) { _, _ in if let last = source.session.messages[thread.id]?.last { scroll.scrollTo(last.id, anchor: .bottom) } }
                     .onChange(of: source.session.messages[thread.id]) { _, rows in
                         if let last = rows?.last { scroll.scrollTo(last.id, anchor: .bottom) }
                     }
-                }
+                }.frame(maxHeight: .infinity)
                 ScrollView(.horizontal) {
                     HStack {
                         ForEach(source.draftFiles[thread.id] ?? []) { file in
@@ -191,16 +219,27 @@ struct T3ChatView: View {
                         }
                     }
                 }.frame(maxHeight: (source.draftFiles[thread.id] ?? []).isEmpty ? 0 : 24)
-                TextEditor(text: Binding(get: { source.draftTexts[thread.id] ?? "" }, set: { source.updateDraft(thread: thread.id, text: $0) }))
-                    .font(.system(size: 12)).frame(height: 44).scrollContentBackground(.hidden)
-                    .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.secondary.opacity(0.3)))
-                    .disabled(source.sending.contains(thread.id))
+                ZStack(alignment: .topLeading) {
+                    RoundedRectangle(cornerRadius: 7).fill(Color(hex: "#24262A"))
+                    if (source.draftTexts[thread.id] ?? "").isEmpty {
+                        Text("Message this thread…").font(.system(size: 12)).foregroundStyle(.secondary)
+                            .padding(.leading, 9).padding(.top, 9).allowsHitTesting(false)
+                    }
+                    TextEditor(text: Binding(get: { source.draftTexts[thread.id] ?? "" }, set: { source.updateDraft(thread: thread.id, text: $0) }))
+                        .font(.system(size: 12)).scrollContentBackground(.hidden).padding(4)
+                        .disabled(source.sending.contains(thread.id))
+                }.frame(height: 60)
+
                 HStack {
                     Button { source.chooseFiles() } label: { Label("Attach", systemImage: "plus") }
                     Text(T3StatusLabel.text(thread.status)).font(.system(size: 11)).foregroundStyle(.secondary)
                     Spacer()
                     Button(source.sending.contains(thread.id) ? "Sending…" : "Send") { source.sendMessage() }
-                        .disabled(!source.connected || source.sending.contains(thread.id) || (source.draftFiles[thread.id] ?? []).contains { $0.attachment == nil })
+                        .buttonStyle(.borderedProminent)
+                        .tint(Color(hex: app.focusTask?.color ?? "#38BDF8"))
+                        .disabled(!source.connected || source.sending.contains(thread.id) ||
+                                  ((source.draftTexts[thread.id] ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && (source.draftFiles[thread.id] ?? []).isEmpty) ||
+                                  (source.draftFiles[thread.id] ?? []).contains { $0.attachment == nil })
                 }
             } else {
                 Text("Select a project with an existing thread to chat. Create new threads in T3 Code.")
@@ -208,7 +247,7 @@ struct T3ChatView: View {
             }
             if let error = source.chatError { Text(error).font(.system(size: 11)).foregroundStyle(.red).fixedSize(horizontal: false, vertical: true) }
         }
-        .padding(.leading, 108).padding(.trailing, 16).padding(.vertical, 8)
+        .padding(.horizontal, 12).padding(.vertical, 8)
         .onDrop(of: [UTType.fileURL, UTType.png, UTType.jpeg, UTType.plainText], isTargeted: $dropTarget) { providers in
             let client = source
             guard let target = client.selectedThread?.id else { return false }
@@ -233,5 +272,87 @@ struct T3ChatView: View {
             }
             return !providers.isEmpty
         }
+    }
+}
+
+struct T3RequestPopup: View {
+    let request: T3PendingRequest
+    @ObservedObject private var source = T3CodeSource.shared
+    @State private var selections: [String: [String]] = [:]
+    @State private var custom: [String: String] = [:]
+    private var live: T3PendingRequest { source.pendingRequests.first { $0.id == request.id && $0.threadId == request.threadId } ?? request }
+    private var busy: Bool { source.deciding.contains(request.id) }
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 5) {
+                Text(live.kind == "user_input" ? "Answer needed" : live.kind == "auth_refresh" ? "Sign-in needed" : "Approval requested")
+                    .font(.system(size: 18, weight: .semibold))
+                HStack {
+                    Text("\(live.projectName) · \(live.threadTitle)").font(.system(size: 12)).foregroundStyle(.secondary)
+                    Spacer(minLength: 8)
+                    Button { source.open(thread: source.session.threads[live.threadId]) } label: { Image(systemName: "arrow.up.right") }
+                        .buttonStyle(.plain).help("Open request in T3 Code")
+                }
+            }
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    if live.kind == "user_input" {
+                        if live.questions.isEmpty { Text("Loading question details…").foregroundStyle(.secondary) }
+                        ForEach(live.questions) { question in
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text(question.question).font(.system(size: 13, weight: .medium)).fixedSize(horizontal: false, vertical: true)
+                                ForEach(Array(question.options.enumerated()), id: \.offset) { _, option in
+                                    Button {
+                                        var selected = selections[question.id] ?? []
+                                        if question.multiple {
+                                            if selected.contains(option.value) { selected.removeAll { $0 == option.value } }
+                                            else { selected.append(option.value) }
+                                        } else { selected = [option.value] }
+                                        selections[question.id] = selected
+                                        custom[question.id] = ""
+                                    } label: {
+                                        HStack(alignment: .top, spacing: 8) {
+                                            Image(systemName: (selections[question.id] ?? []).contains(option.value) ? "checkmark.circle.fill" : "circle")
+                                            VStack(alignment: .leading, spacing: 3) {
+                                                Text(option.label).font(.system(size: 12, weight: .medium))
+                                                if !option.description.isEmpty { Text(option.description).font(.system(size: 11)).foregroundStyle(.secondary) }
+                                            }
+                                            Spacer(minLength: 0)
+                                        }.padding(9).contentShape(Rectangle())
+                                    }.buttonStyle(.plain)
+                                    .background(Color.white.opacity(0.05)).clipShape(RoundedRectangle(cornerRadius: 6))
+                                }
+                                if question.custom {
+                                    TextField(question.options.isEmpty ? "Your answer" : "Or enter your own answer", text: Binding(
+                                        get: { custom[question.id] ?? "" }, set: { custom[question.id] = $0 }))
+                                        .textFieldStyle(.roundedBorder)
+                                }
+                            }
+                        }
+                    } else {
+                        Text(live.prompt).font(.system(size: 12, design: .monospaced)).textSelection(.enabled)
+                            .frame(maxWidth: .infinity, alignment: .leading).fixedSize(horizontal: false, vertical: true)
+                    }
+                }.frame(maxWidth: .infinity, alignment: .leading)
+            }.frame(minHeight: 60, maxHeight: 340)
+            if let error = source.requestError { Text(error).font(.system(size: 12)).foregroundStyle(.red) }
+            if busy { Text("Sent. Waiting for T3 to resolve this request…").font(.system(size: 12)).foregroundStyle(.secondary) }
+            HStack {
+                Button("Later") { source.dismissRequest() }
+                Spacer()
+                if live.kind == "auth_refresh" {
+                    Button("Open T3 Code") { source.open(thread: source.session.threads[live.threadId]) }
+                } else if live.kind == "user_input" {
+                    Button("Send answer") { source.respond(live, selections: selections, custom: custom) }
+                        .buttonStyle(.borderedProminent).disabled(busy || live.questions.isEmpty).keyboardShortcut(.defaultAction)
+                } else {
+                    Button("Deny") { source.respond(live, accept: false) }.disabled(busy)
+                    Button("Allow") { source.respond(live, accept: true) }.buttonStyle(.borderedProminent).disabled(busy).keyboardShortcut(.defaultAction)
+                }
+            }
+        }
+        .padding(22).frame(width: 460)
+        .background(Color(hex: "#17181B")).foregroundStyle(Color.white)
+        .preferredColorScheme(.dark)
     }
 }

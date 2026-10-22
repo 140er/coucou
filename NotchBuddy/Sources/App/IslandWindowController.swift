@@ -290,10 +290,10 @@ final class IslandWindowController: NSWindowController {
         // An approval, or an email prepared by voice, stays open until I click.
         #if !APPSTORE
         // A WhatsApp reply being typed holds the island open, like a voice mail draft.
-        fsm.isHeldOpen = { AppState.shared.pendingApproval != nil || AppState.shared.voiceMailDraft != nil
+        fsm.isHeldOpen = { AppState.shared.pendingApproval != nil || AppState.shared.voiceMailDraft != nil || T3CodeSource.shared.presentedRequest != nil
                            || WhatsAppController.shared.composing }
         #else
-        fsm.isHeldOpen = { AppState.shared.pendingApproval != nil || AppState.shared.voiceMailDraft != nil }
+        fsm.isHeldOpen = { AppState.shared.pendingApproval != nil || AppState.shared.voiceMailDraft != nil || T3CodeSource.shared.presentedRequest != nil }
         #endif
 
         // Voice: wake phrase detected → open listening island
@@ -722,7 +722,7 @@ final class IslandWindowController: NSWindowController {
         }
         // ⌘↩ — send chat message
         if cmd && event.keyCode == 36 && state.view == .prompt {
-            NotificationCenter.default.post(name: .islandSendMessage, object: nil)
+            T3CodeSource.shared.sendMessage()
             return true
         }
         // ⌘K — new conversation
@@ -1290,15 +1290,7 @@ final class IslandWindowController: NSWindowController {
         let panelW = window?.frame.width  ?? 720
         let (islandW, fixedH) = islandSize(mode: s.mode, view: s.view,
                                             progress: s.uploadProgress, nw: notchW, nh: notchH)
-        // Chat view resizes dynamically — must match IslandContainer.chatPromptHeight
-        let islandH: CGFloat
-        if s.mode == .expanded && s.view == .prompt {
-            let base: CGFloat = 240
-            let perMsg: CGFloat = 40
-            islandH = min(300, base + CGFloat(s.chatHistory.count) * perMsg)
-        } else {
-            islandH = fixedH
-        }
+        let islandH = fixedH
         let islandMinX = (panelW - islandW) / 2
         let (cx, cy, diameter, _) = botPosition(mode: s.mode, view: s.view,
                                                   islandW: islandW, islandH: islandH,
@@ -1397,14 +1389,7 @@ final class IslandPanel: NSPanel {
         let s = AppState.shared
         let (w, fixedH) = islandSize(mode: s.mode, view: s.view,
                                       progress: s.uploadProgress, nw: nw, nh: nh)
-        let h: CGFloat
-        if s.mode == .expanded && s.view == .prompt {
-            let base: CGFloat = 240
-            let perMsg: CGFloat = 40
-            h = min(300, base + CGFloat(s.chatHistory.count) * perMsg)
-        } else {
-            h = fixedH
-        }
+        let h = fixedH
         return CGRect(x: (frame.width - w) / 2, y: frame.height - h, width: w, height: h)
     }
 }
