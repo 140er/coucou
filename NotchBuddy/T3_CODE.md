@@ -6,6 +6,55 @@ navigation. Their implementation files remain, but their pollers/hook listener
 are not started, saved selections are migrated away, and the task collection
 rejects non-T3 pills. A single T3 connection card is shown until projects load.
 
+## Live orchestrator status
+
+Home shows the project's orchestrator as the main activity card, with app-owned
+child threads and provider-native subagents beneath it. It uses existing T3
+protocol v2 data; no server changes are required.
+
+The card derives action verbs/targets from turn items, displays shell run timing
+and provider-scoped model names, and keeps a rolling log of at most five actions.
+Plans from `todo_list` / `plan.updated` provide the actual step count and segmented
+bar; without a plan both are hidden. File-change paths and ready checkpoint files
+are deduplicated within the run. Completion freezes the timer and fills the bar.
+Approval actions use the same request IDs and `runtime-request.respond` path as
+the existing popup. Questions continue to open the answer popup.
+
+Child relationships use lineage, launch ownership and app-owned subagent items'
+`childThreadId`. Finished children with `lastHandoff` remain visible until settled;
+old handoffs do not carry into a new run. Native subagents stay separate from the
+chat picker and do not duplicate app-owned shell rows.
+
+At most eight bounded thread-detail streams are open: root, visible popup and
+selected chat first, then active children and queued request details. Child streams
+are dropped on completion/settlement or when switching projects. Cached activity
+for visible terminal rows is retained separately from message/prompt caches.
+The reducer retains at most 128 compact action items, eight plans and four runs'
+file sets per cached thread, without tool outputs or diffs. Existing shell status,
+project pills, per-thread chat and request popups continue to own their behavior.
+
+The orchestrator Stop button sends `thread.stop`; child runs use `run.interrupt`
+with the child run ID, and provider-native rows use `subagent.stop` with the parent
+thread/run and subagent node IDs. Stale child run IDs are rejected locally. There
+is no Pause action because T3 has no run pause.
+
+### Mac preview and validation
+
+Open `Sources/App/T3LiveStatusView.swift` in Xcode with the **NotchBuddy / Debug**
+scheme and enable the Preview Canvas. `T3LiveStatusPreviews` includes:
+
+- Running: current action, elapsed timer, step 4/6, rolling log and active children.
+- Approval: blue accent, `npm test` prompt and Approve/Deny controls.
+- Done: 13 seconds, six changed files, completed segments and retained handoff row.
+
+These deterministic wire-shaped fixtures run through the same reducer as live
+data. Preview callbacks are inert: they do not contact or stop any live agent.
+Linux cannot render SwiftUI, so no native screenshots are supplied. Chief still
+needs the Xcode build and visual inspection at the real notch size. Use the build
+command below, then verify a live root and child update, handoff then settlement,
+a late approval with the stream cap reached, each kind of Stop, and project/chat
+switching. No build or installation on Jeffrey's Mac was performed by the agent.
+
 ## Projects and requests
 
 Each project has a stable pill ID and displays running, needs answer, approval,
@@ -131,12 +180,14 @@ Manual checks on the Mac:
 
 ## Linux verification
 
-Swift 6.0.3: `swift test --package-path NotchBuddy --jobs 2` passes 18 tests,
+Swift 6.0.3: `swift test --package-path NotchBuddy --jobs 2` passes 32 tests,
 covering protocol parsing/state precedence, project/orchestrator mapping,
 metadata refresh/removal, approval prompts/alert deduplication, safe URLs,
 start/steer dispatch shapes, upload metadata/POST/reference shapes, attachment
 limits, streamed reply replacement, subagent filtering, stable distinct colors,
-and popup answer command building. Changed native sources pass Swift syntax
+popup answer command building, activity reduction/timing, run isolation, tree and
+handoff lifecycle, bounded subscription/cache behavior, model names, stop command
+shapes and the three preview fixtures. Changed native sources pass Swift syntax
 checks. The connection source also passes strict Swift 6 concurrency type-checks
 with temporary Linux UI/resource stubs; this does not verify native frameworks.
 

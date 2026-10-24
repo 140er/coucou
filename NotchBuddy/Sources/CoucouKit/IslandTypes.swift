@@ -214,7 +214,7 @@ enum IslandConst {
 
     static let viewLayouts: [IslandView: ViewLayout] = [
         // T3 Home has room for the project grid and a scrollable thread list.
-        .overview:  ViewLayout(height: 230, botX: 68,  botY: nil, botDiameter: 58, agentMode: .pills),
+        .overview:  ViewLayout(height: 400, botX: 68,  botY: nil, botDiameter: 58, agentMode: .pills),
         // Legacy compact cards keep their original height. T3 requests use a sheet.
         .empty:     ViewLayout(height: 160, botX: 70,  botY: nil, botDiameter: 62, agentMode: .none),
         .approval:  ViewLayout(height: 160, botX: 62,  botY: nil, botDiameter: 56, agentMode: .column),

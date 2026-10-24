@@ -23,6 +23,9 @@ final class T3CodeSource: ObservableObject {
     @Published private(set) var deciding: Set<String> = []
     @Published private(set) var presentedRequest: T3PendingRequest?
     @Published private(set) var requestError: String?
+    @Published private(set) var activityModels: [String: String] = [:]
+    @Published private(set) var stopping: Set<String> = []
+    @Published private(set) var activityError: String?
     private var dismissedRequests: Set<String> = []
     private var rememberedThreads: [String: String] = [:]
     private var base: URL?
@@ -120,6 +123,7 @@ final class T3CodeSource: ObservableObject {
         let waiting = pendingRPC; pendingRPC.removeAll()
         for continuation in waiting.values { continuation.resume(throwing: T3ClientError(message: "Disconnected. Draft kept; check the thread before retrying a send.")) }
         supportsUploads = false; maxFileBytes = nil; serverResolvesContext = false
+        activityModels = [:]; stopping = []; activityError = nil
         // Keep seen approvals across reconnects, like the reference's Seen object.
         clearCard()
         presentedRequest = nil; requestError = nil
@@ -209,6 +213,7 @@ final class T3CodeSource: ObservableObject {
                     if id == "config", exit["_tag"] as? String == "Success",
                        let config = exit["value"] as? [String: Any],
                        let env = config["environment"] as? [String: Any] {
+                        activityModels = T3ActivityTree.modelNames(config: config)
                         environment = env["environmentId"] as? String ?? environment
                         let caps = env["capabilities"] as? [String: Any] ?? [:]
                         serverResolvesContext = caps["serverResolvedCommandContext"] as? Bool == true
@@ -314,14 +319,17 @@ final class T3CodeSource: ObservableObject {
     }
     private func showRequest(_ request: T3PendingRequest) {
         presentedRequest = request
+        Task { try? await syncSubscriptions() }
         requestError = nil
         AppState.shared.isPinned = true
         if AppState.shared.mode != .expanded {
             NotificationCenter.default.post(name: .hookExpand, object: IslandView.overview)
         }
     }
-    func showRequests(projectId: String? = nil) {
-        if let request = pendingRequests.first(where: { projectId == nil || $0.projectId == projectId }) {
+    func showRequests(projectId: String? = nil, threadId: String? = nil) {
+        if let request = pendingRequests.first(where: {
+            (projectId == nil || $0.projectId == projectId) && (threadId == nil || $0.threadId == threadId)
+        }) {
             dismissedRequests.remove(request.id)
             showRequest(request)
         }
@@ -368,6 +376,7 @@ final class T3CodeSource: ObservableObject {
         selectedThreadId = remembered?.isSubagent == false ? remembered?.id : pill.threadId
         chatError = nil
         Task { try? await syncSubscriptions() }
+        activityError = nil
         if openInT3 { open(thread: selectedThread) }
     }
     func selectThread(_ id: String) {
@@ -386,8 +395,13 @@ final class T3CodeSource: ObservableObject {
     private func syncSubscriptions() async throws {
         guard let socket else { return }
         let current = generation
-        var wanted = Set(session.pendingThreads.map(\.id))
-        if let thread = selectedThread { wanted.insert(thread.id) }
+        let root = activityRoot?.id
+        let planned = T3ActivityTree.subscriptions(session: session, root: root,
+            chat: selectedThread?.id, popup: presentedRequest?.threadId)
+        let wanted = Set(planned)
+        var cached = wanted
+        if let root { cached.formUnion(session.activityChildren(root: root).map(\.threadId).prefix(24)) }
+        session.retainDetails(activity: cached, streams: wanted)
         let old = subscriptions
         subscriptions = wanted
         for id in old.subtracting(wanted) {
@@ -395,8 +409,42 @@ final class T3CodeSource: ObservableObject {
             try check(current)
         }
         for id in wanted.subtracting(old) {
-            try await send(T3Protocol.request(id: "thread:\(id)", method: "orchestration.subscribeThread", payload: ["threadId": id]), socket: socket)
+            try await send(T3Protocol.request(id: "thread:\(id)", method: "orchestration.subscribeThread", payload: ["threadId": id, "acceptBoundedSnapshot": true]), socket: socket)
             try check(current)
+        }
+    }
+    var activityRoot: T3Thread? {
+        guard let project = pills.first(where: { $0.id == AppState.shared.focusId }) else { return nil }
+        return session.activityRoot(project: project.projectId, selected: selectedThread?.id)
+    }
+    var activityCard: T3ActivityCard? {
+        activityRoot.flatMap { session.activityCard(thread: $0.id, models: activityModels) }
+    }
+    var activityChildren: [T3ActivityChild] {
+        activityRoot.map { session.activityChildren(root: $0.id, models: activityModels) } ?? []
+    }
+    func stopActivity(_ target: T3ActivityStop) {
+        guard connected, !stopping.contains(target.key) else { return }
+        switch target {
+        case .thread(let id):
+            guard session.threads[id]?.status == .running else { return }
+        case .run(let thread, let run):
+            guard session.threads[thread]?.activeRunId == run else { activityError = "Run changed. Try again."; return }
+        case .subagent(let thread, let run, let id):
+            guard session.threads[thread]?.activeRunId == run,
+                  session.activity[thread]?.items.values.contains(where: { $0.subagentId == id && $0.runId == run && $0.running }) == true else {
+                activityError = "Agent changed. Try again."; return
+            }
+        }
+        stopping.insert(target.key); activityError = nil
+        let current = generation
+        Task {
+            defer { if generation == current { stopping.remove(target.key) } }
+            do { _ = try await rpc("orchestration.dispatchCommand", payload: target.command(id: UUID().uuidString)) }
+            catch {
+                guard generation == current else { return }
+                activityError = (error as? T3ClientError)?.message ?? "Could not stop the run."
+            }
         }
     }
     private func rpc(_ method: String, payload: [String: Any]) async throws -> Data {

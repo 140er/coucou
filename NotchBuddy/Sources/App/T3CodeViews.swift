@@ -105,7 +105,7 @@ struct T3CodeCardView: View {
                 Spacer(minLength: 0)
             }
         }
-        .padding(.leading, 100).padding(.trailing, 12).padding(.vertical, 12)
+        .padding(12)
     }
 }
 
