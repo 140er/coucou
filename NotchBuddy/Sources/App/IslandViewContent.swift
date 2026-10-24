@@ -73,7 +73,7 @@ struct OverviewView: View {
                 // Title row + ticker stacked (or integration card)
                 if let agent = agent {
                     if T3ProjectPill.owns(agent.id) {
-                        T3CodeCardView(pillId: agent.id)
+                        T3LiveStatusView()
                     } else if agent.isIntegration {
                         IntegrationCardView(task: agent, showingDetail: $showingN8nDetail, onDiffTap: { diffIdx in
                             withAnimation(.easeIn(duration: 0.16)) { activeDiffId = diffIdx }
@@ -183,7 +183,7 @@ struct OverviewView: View {
                     .frame(maxWidth: .infinity, alignment: .trailing)
                 }
             }
-            .frame(width: 322)
+            .frame(width: 390)
 
             // Right card: agent pills
             CardBackground(wash: nil) {
@@ -4107,7 +4107,7 @@ struct TickerShimmerText: View {
 struct AgentPillsView: View {
     @ObservedObject var state: AppState
     @State private var swapping = false
-    private let columns = [GridItem(.flexible(), spacing: 6), GridItem(.flexible(), spacing: 6)]
+    private let columns = [GridItem(.flexible())]
     var body: some View {
         ScrollView {
             LazyVGrid(columns: columns, spacing: 6) {

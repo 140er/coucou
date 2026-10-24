@@ -387,6 +387,12 @@
 		D05176F46136E824784E3700 /* T3CodeViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33059B51D44BC5D603FD6B6A /* T3CodeViews.swift */; };
 		146019A84D031049EB852671 /* T3Protocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EFF561A2507985910522259 /* T3Protocol.swift */; };
 		51CAE384A4380954B190E139 /* T3Protocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EFF561A2507985910522259 /* T3Protocol.swift */; };
+		EE953080031C73BE1073503B /* T3LiveStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FD6B53B532794D4248DC3A3 /* T3LiveStatusView.swift */; };
+		6269F1E12D95606FCFE2E034 /* T3LiveStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FD6B53B532794D4248DC3A3 /* T3LiveStatusView.swift */; };
+		C896F46691237426EF9CB939 /* T3Activity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C2102EFB6F388F9F0FF6BB5 /* T3Activity.swift */; };
+		BF857715DE55CAA32FDE00DA /* T3Activity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C2102EFB6F388F9F0FF6BB5 /* T3Activity.swift */; };
+		B3AC4DA443616E83EE123C2E /* T3ActivityFixtures.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FCCB571104BFE41860B33D3 /* T3ActivityFixtures.swift */; };
+		1E2AAF62E282A6C6A1063C51 /* T3ActivityFixtures.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FCCB571104BFE41860B33D3 /* T3ActivityFixtures.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -610,6 +616,9 @@
 		453AA834354AE80F5739DCF7 /* T3CodeSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "T3CodeSource.swift"; sourceTree = "<group>"; };
 		33059B51D44BC5D603FD6B6A /* T3CodeViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "T3CodeViews.swift"; sourceTree = "<group>"; };
 		5EFF561A2507985910522259 /* T3Protocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "../T3Core/T3Protocol.swift"; sourceTree = "<group>"; };
+		2FD6B53B532794D4248DC3A3 /* T3LiveStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "T3LiveStatusView.swift"; sourceTree = "<group>"; };
+		3C2102EFB6F388F9F0FF6BB5 /* T3Activity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "../T3Core/T3Activity.swift"; sourceTree = "<group>"; };
+		0FCCB571104BFE41860B33D3 /* T3ActivityFixtures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "../T3Core/T3ActivityFixtures.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -681,6 +690,9 @@
 				5EFF561A2507985910522259 /* T3Protocol.swift */,
 				33059B51D44BC5D603FD6B6A /* T3CodeViews.swift */,
 				453AA834354AE80F5739DCF7 /* T3CodeSource.swift */,
+				0FCCB571104BFE41860B33D3 /* T3ActivityFixtures.swift */,
+				3C2102EFB6F388F9F0FF6BB5 /* T3Activity.swift */,
+				2FD6B53B532794D4248DC3A3 /* T3LiveStatusView.swift */,
 				F1BD8F3CAA60CF37640759E1 /* NotchBuddyApp.swift */,
 				BE03E03D1804B0B92C5C2DAD /* NotionPoller.swift */,
 				F56C7E1EBC74664A7F1689CF /* NowPlayingViews.swift */,
@@ -1181,6 +1193,9 @@
 				146019A84D031049EB852671 /* T3Protocol.swift in Sources */,
 				12E1A27C8D29D7EC3F0D6A9C /* T3CodeViews.swift in Sources */,
 				3138836EE5490CE7B00C8E09 /* T3CodeSource.swift in Sources */,
+				B3AC4DA443616E83EE123C2E /* T3ActivityFixtures.swift in Sources */,
+				C896F46691237426EF9CB939 /* T3Activity.swift in Sources */,
+				EE953080031C73BE1073503B /* T3LiveStatusView.swift in Sources */,
 				06BF5FD95E03010CAFDBF2D0 /* NotchBuddyApp.swift in Sources */,
 				2F36E3C6C073E968A682AFA4 /* NotionPoller.swift in Sources */,
 				03FDC0AA0CEDE913B59D0F4D /* NowPlayingViews.swift in Sources */,
@@ -1405,6 +1420,9 @@
 				51CAE384A4380954B190E139 /* T3Protocol.swift in Sources */,
 				D05176F46136E824784E3700 /* T3CodeViews.swift in Sources */,
 				99C5A395D8AEB92CEAE23E8C /* T3CodeSource.swift in Sources */,
+				1E2AAF62E282A6C6A1063C51 /* T3ActivityFixtures.swift in Sources */,
+				BF857715DE55CAA32FDE00DA /* T3Activity.swift in Sources */,
+				6269F1E12D95606FCFE2E034 /* T3LiveStatusView.swift in Sources */,
 				DE05D09A32117582AC93A24A /* NotchBuddyApp.swift in Sources */,
 				78FCEDC8F78B683AB10E6529 /* NotionPoller.swift in Sources */,
 				3E84EA0AE7C450941ED943CF /* NowPlayingViews.swift in Sources */,

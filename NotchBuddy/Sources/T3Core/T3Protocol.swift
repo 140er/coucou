@@ -25,6 +25,15 @@ struct T3Thread: Identifiable, Equatable, Sendable {
     let blocking: Bool
     let lastError: String
     let activeRunId: String?
+    let latestRunId: String?
+    let runStartedAt: Date?
+    let runCompletedAt: Date?
+    let providerInstanceId: String
+    let modelId: String
+    let rootThreadId: String?
+    let launchedByThreadId: String?
+    let handoff: T3Handoff?
+    let settled: Bool
     let parentThreadId: String?
     let relationshipToParent: String?
 
@@ -32,6 +41,16 @@ struct T3Thread: Identifiable, Equatable, Sendable {
         guard let id = raw["id"] as? String, !id.isEmpty else { return nil }
         self.id = id
         activeRunId = raw["activeRunId"] as? String
+        latestRunId = raw["latestRunId"] as? String
+        runStartedAt = T3ActivityTime.date(raw["activityRunStartedAt"] as? String ?? raw["latestRunStartedAt"] as? String)
+        runCompletedAt = T3ActivityTime.date(raw["latestRunCompletedAt"] as? String)
+        providerInstanceId = raw["providerInstanceId"] as? String ?? ""
+        modelId = (raw["modelSelection"] as? [String: Any])?["model"] as? String ?? ""
+        rootThreadId = (raw["lineage"] as? [String: Any])?["rootThreadId"] as? String
+        launchedByThreadId = raw["launchedByThreadId"] as? String
+        handoff = (raw["lastHandoff"] as? [String: Any]).flatMap(T3Handoff.init)
+        settled = raw["settledOverride"] as? String == "settled" ||
+            (raw["settledAt"] is String && raw["settledOverride"] as? String != "active")
         parentThreadId = (raw["lineage"] as? [String: Any])?["parentThreadId"] as? String
         relationshipToParent = (raw["lineage"] as? [String: Any])?["relationshipToParent"] as? String
         projectId = raw["projectId"] as? String ?? ""
@@ -81,6 +100,7 @@ struct T3Project: Identifiable, Equatable, Sendable {
 }
 
 struct T3Session {
+    private(set) var activity: [String: T3ActivityReducer] = [:]
     private(set) var projects: [String: T3Project] = [:]
     private(set) var threads: [String: T3Thread] = [:]
     private(set) var questions: [String: [String: [T3InputQuestion]]] = [:]
@@ -140,6 +160,7 @@ struct T3Session {
             if let id = item["threadId"] as? String { threads.removeValue(forKey: id) }
         default: break
         }
+        activity = activity.filter { threads[$0.key] != nil }
         questions = questions.filter { threads[$0.key] != nil }
         messages = messages.filter { threads[$0.key] != nil }
         prompts = prompts.filter { threads[$0.key] != nil }
@@ -154,6 +175,7 @@ struct T3Session {
         else { threads[thread.id] = thread }
     }
     mutating func applyThread(id: String, item: [String: Any]) {
+        activity[id, default: T3ActivityReducer()].apply(item)
         if item["kind"] as? String == "snapshot" {
             let snapshot = item["snapshot"] as? [String: Any]
             if let projection = (item["projection"] ?? snapshot?["projection"]) as? [String: Any] {
@@ -175,6 +197,12 @@ struct T3Session {
                 messages[id] = Array(rows.suffix(100))
             }
         }
+    }
+    mutating func retainDetails(activity ids: Set<String>, streams: Set<String>) {
+        activity = activity.filter { ids.contains($0.key) }
+        messages = messages.filter { streams.contains($0.key) }
+        questions = questions.filter { streams.contains($0.key) }
+        prompts = prompts.filter { streams.contains($0.key) }
     }
     static func collectPrompts(_ value: [String: Any]) -> [String: String] {
         var found: [String: String] = [:]
