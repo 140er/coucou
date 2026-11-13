@@ -31,3 +31,11 @@ Windows and Linux: `cd windows && npm install && npm run tauri dev`
 - Pill IDs are stable contract values (Keychain, UserDefaults, hook routing): never rename an existing pill ID.
 - New views follow the existing app style. `design/prototype/notch-buddy.html` and `design/captures/` are references for new work, not a reason to change existing views.
 - Every release adds its CHANGELOG.md section, a row in the README Versions table, and commits the regenerated Info.plist with the new version.
+
+## Self-improvement and suggestions
+
+**Lessons.** After a task, a failure, or feedback from Jeffrey, write the lesson down in one line: what happened, what to do differently, and the outcome that taught it (PR, commit, check result, or dated message). Keep it in your handoff or task notes, not in chat. When the same lesson shows up a second time, propose a small edit to the instruction file it belongs to (this file, a skill, or a prompt) as a PR or a staged diff next to the original. Never rewrite instructions silently and never edit a live instruction file directly. Keep each edit to a few lines, cite the outcomes that taught it, and do not merge your own instruction PR: it needs Jeffrey's go.
+
+**Suggestion cards.** When you think the current way of working is bad, see a better one, or have a feature idea that would improve the user experience (in Commonplace or in the project you are working on), you may file one suggestion card: a Commonplace card, or a GitHub issue labeled `suggestion` where there is no board. State the problem, the proposal, the expected benefit and the cost. Never act on your own suggestion. Every card goes to Chief first (`ask-chief --need decision`); Chief reviews it and brings it to Jeffrey, and work starts only after his yes. Keep cards rare and concrete: search open cards first (no duplicates) and do not poll for an answer.
+
+**Hard rules still win.** This loop cannot loosen them: no secrets in notes or edits, no merges or deploys without Jeffrey (report to him first), no bypassing gates, no full test suite, and lean usage (no extra long threads, no polling).
